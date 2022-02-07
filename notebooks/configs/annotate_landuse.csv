@@ -5,3 +5,4 @@ employment_density,employment_density,land_use.TOTEMP / (land_use.RESACRE + land
 density_index,density_index,(household_density *employment_density) / (household_density + employment_density).clip(lower=1)
 ,is_cbd,land_use.area_type == 1
 #### ADDITIONS FOR TM2PY ####,,
+population_density,population_density,land_use.TOTPOP / (land_use.RESACRE + land_use.CIACRE)
