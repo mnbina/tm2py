@@ -23,7 +23,7 @@ If you want to install a more up-to-date or development version, you can do so b
 ```bash
 conda env create -f environment.yml
 conda activate tm2py
-pip install git+https://github.com/bayareametro/tm2py@develop
+pip install git+https://github.com/camsys/tm2py@cs-dev
 ```
 
 #### Developers (from clone)
@@ -33,7 +33,8 @@ If you are going to be working on Lasso locally, you might want to clone it to y
 ```bash
 conda env create -f environment.yml
 conda activate tm2py
-git clone https://github.com/bayareametro/tm2py
+git clone https://github.com/camsys/tm2py
+git checkout cs-dev
 cd tm2py
 pip install -e .
 ```
