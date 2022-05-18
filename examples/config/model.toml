@@ -516,7 +516,23 @@
 	capacity = 0
 	free_flow_speed = 10
 	critical_speed = 3.0
-
+[[transit.modes]]
+    id = "P"
+    name = "pnr"
+    type = "PNR"
+    assign_type = "AUX_TRANSIT"
+    speed_miles_per_hour = 40.0
+[[transit.modes]]
+    id = "K"
+    name = "knr"
+    type = "KNR"
+    assign_type = "AUX_TRANSIT"
+    speed_miles_per_hour = 40.0
+[[transit.modes]]
+    id = "p"
+    name = "pnrdummy"
+    type = "PNR"
+    assign_type = "TRANSIT"
 [[transit.modes]]
     id = "w"
     name = "walk"
@@ -565,7 +581,13 @@
     name = "comm_rail"
     type = "PREMIUM"
     assign_type = "TRANSIT"
-
+[[transit.vehicles]]
+    id = 11 
+    mode = "b"
+    name = ""
+    auto_equivalent = 2.0
+    seated_capacity = 1 
+    total_capacity = 2
 [[transit.vehicles]]
     id = 12 
     mode = "b"

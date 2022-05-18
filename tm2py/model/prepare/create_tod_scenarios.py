@@ -40,7 +40,7 @@ class CreateTODScenarios(_Component):
         emme_app = self._emme_manager.project(project_path)
         self._emme_manager.init_modeller(emme_app)
         with self._setup():
-            self._create_highway_scenarios()
+            # self._create_highway_scenarios() # comment out highway part
             self._create_transit_scenarios()
 
     @_context
@@ -144,9 +144,9 @@ class CreateTODScenarios(_Component):
                 "scenarios": 6,
                 "regular_nodes": 650000,
                 "links": 1900000,
-                "transit_vehicles": 200,
+                "transit_vehicles": 600, # pnr vechiles
                 "transit_segments": 1800000,
-                "extra_attribute_values": 200000000
+                "extra_attribute_values": 100000000  # reduce processing time
             }
             self._emme_manager.change_emmebank_dimensions(emmebank, required_dims)
             for ident in ["ft1", "ft2", "ft3"]:
@@ -166,18 +166,18 @@ class CreateTODScenarios(_Component):
                 for name in attrs:
                     if ref_scenario.extra_attribute(name) is None:
                         ref_scenario.create_extra_attribute(domain, name)
-            network = ref_scenario.get_network()
-            auto_network = self._ref_auto_network
-            # copy link attributes from auto network to transit network
-            link_lookup = {}
-            for link in auto_network.links():
-                link_lookup[link["#link_id"]] = link
-            for link in network.links():
-                auto_link = link_lookup.get(link["#link_id"])
-                if not auto_link:
-                    continue
-                for attr in ["@area_type", "@capclass", "@free_flow_speed", "@free_flow_time"]:
-                    link[attr] = auto_link[attr]
+            network = ref_scenario.get_network()           
+            # auto_network = self._ref_auto_network     # comment out because of missing highway network
+            # # copy link attributes from auto network to transit network
+            # link_lookup = {}
+            # for link in auto_network.links():
+            #     link_lookup[link["#link_id"]] = link
+            # for link in network.links():
+            #     auto_link = link_lookup.get(link["#link_id"])
+            #     if not auto_link:
+            #         continue
+            #     for attr in ["@area_type", "@capclass", "@free_flow_speed", "@free_flow_time"]:
+            #         link[attr] = auto_link[attr]
 
             mode_table = self.config.transit.modes
             in_vehicle_factors = {}
@@ -211,17 +211,17 @@ class CreateTODScenarios(_Component):
                     "in_vehicle_perception_factor", default_in_vehicle_factor)
 
             # create vehicles
-            vehicle_table = self.config.transit.vehicles
-            for veh_data in vehicle_table:
-                vehicle = network.transit_vehicle(veh_data['id'])
-                if vehicle is None:
-                    vehicle = network.create_transit_vehicle(veh_data['id'], veh_data['mode'])
-                elif vehicle.mode.id != veh_data['mode']:
-                    raise Exception(
-                        f"vehicle {veh_data['id']} already exists with mode {vehicle.mode.id} instead of {veh_data['mode']}")
-                vehicle.auto_equivalent = veh_data["auto_equivalent"]
-                vehicle.seated_capacity = veh_data["seated_capacity"]
-                vehicle.total_capacity = veh_data["total_capacity"]
+            # vehicle_table = self.config.transit.vehicles
+            # for veh_data in vehicle_table:
+            #     vehicle = network.transit_vehicle(veh_data['id'])
+            #     if vehicle is None:
+            #         vehicle = network.create_transit_vehicle(veh_data['id'], veh_data['mode'])
+            #     elif vehicle.mode.id != veh_data['mode']:
+            #         raise Exception(
+            #             f"vehicle {veh_data['id']} already exists with mode {vehicle.mode.id} instead of {veh_data['mode']}")
+            #     vehicle.auto_equivalent = veh_data["auto_equivalent"]
+            #     vehicle.seated_capacity = veh_data["seated_capacity"]
+            #     vehicle.total_capacity = veh_data["total_capacity"]
 
             # set fixed guideway times, and initial free flow auto link times
             # TODO: cntype_speed_map to config
@@ -229,7 +229,8 @@ class CreateTODScenarios(_Component):
             for link in network.links():
                 speed = cntype_speed_map.get(link["#cntype"])
                 if speed is None:
-                    speed = link["@free_flow_speed"]
+                    # speed = link["@free_flow_speed"]
+                    speed = 30.0 # fix it later
                     if link["@ft"] == 1 and speed > 0:
                         link["@trantime"] = 60 * link.length / speed
                     elif speed > 0:
@@ -240,41 +241,43 @@ class CreateTODScenarios(_Component):
                 if link.i_node.is_centroid or link.j_node.is_centroid:
                     link.length = 0.01  # 60.0 / 5280.0
             for line in network.transit_lines():
-                # TODO: may want to set transit line speeds (not necessarily used in the assignment though)
-                line_veh = network.transit_vehicle(line["#mode"])
-                if line_veh is None:
-                    raise Exception(f"line {line.id} requires vehicle ('#mode') {line['#mode']} which does not exist")
-                line_mode = line_veh.mode.id
-                for seg in line.segments():
-                    seg.link.modes |= {line_mode}
-                line.vehicle = line_veh
-                # Set the perception factor from the mode table
+                # # TODO: may want to set transit line speeds (not necessarily used in the assignment though)
+                # line_veh = network.transit_vehicle(line["#mode"])
+                # if line_veh is None:
+                #     raise Exception(f"line {line.id} requires vehicle ('#mode') {line['#mode']} which does not exist")
+                # line_mode = line_veh.mode.id
+                # for seg in line.segments():
+                #     seg.link.modes |= {line_mode}
+                # line.vehicle = line_veh
+                # # Set the perception factor from the mode table
                 line["@invehicle_factor"] = in_vehicle_factors[line.vehicle.mode.id]
 
             # set link modes to the minimum set
             auto_mode = {self.config.highway.generic_highway_mode_code}
             for link in network.links():
                 # get used transit modes on link
-                modes = {seg.line.mode for seg in link.segments()}
+                # modes = {seg.line.mode for seg in link.segments()}
                 # add in available modes based on link type
-                if link["@drive_link"]:
-                    modes |= local_modes
-                    modes |= auto_mode
-                if link["@bus_only"]:
-                    modes |= local_modes
-                if link["@rail_link"] and not modes:
-                    modes |= premium_modes
+                # if link["@drive_link"]==1:  # pnr, knr, and pnr dummy can only be used by p, k, P mode
+                #     modes |= local_modes
+                #     modes |= auto_mode
+                # if link["@bus_only"]:
+                #     modes |= local_modes
+                # if link["@rail_link"] and not modes:
+                #     modes |= premium_modes
                 # add access, egress or walk mode (auxilary transit modes)
-                if link.i_node.is_centroid:
-                    modes |= egress_modes
-                elif link.j_node.is_centroid:
-                    modes |= access_modes
-                elif link["@walk_link"]:
-                    modes |= walk_modes
-                if not modes:  # in case link is unused, give it the auto mode
-                    link.modes = auto_mode
-                else:
-                    link.modes = modes
+                if (link.i_node.is_centroid) and (link["@drive_link"]!=2) and (link["@drive_link"]!=3):
+                    # modes |= access_modes  # switch access and egress mode previous settings might be wrong
+                    link.modes = "a"
+                elif (link.j_node.is_centroid) and (link["@drive_link"]!=2) and (link["@drive_link"]!=3):
+                    # modes |= egress_modes  # switch access and egress mode previous settings might be wrong
+                    link.modes = "e"
+                # elif link["@walk_link"]:
+                #     modes |= walk_modes
+                # if not modes:  # in case link is unused, give it the auto mode
+                #     link.modes = auto_mode
+                # else:
+                #     link.modes = modes
 
             ref_scenario.publish_network(network)
 

@@ -4,49 +4,56 @@
     maz_landuse_file = "inputs\\landuse\\maz_data.csv"
 
 [run]
+    create_tod_scenarios = false
+    active_modes = false
+    air_passenger = false
+    highway = [ false, false, false, false ]
+    highway_maz_maz = [ false, false, false, false ]
+    drive_access = [ false, false, false, false ]
+    transit = [ false, true, false, false ]
+    household = [ false, false, false ]
+    internal_external = [ false, false, false ]
+    truck = [ false, false, false ]
+
+    global_iterations = 1
     start_iteration = 0
     end_iteration = 1
 
-    create_tod_scenarios = true
-    active_modes = true
-    air_passenger = true
-    highway_maz_maz = [ true, true ]
-    highway = [ true, true ]
-    transit = [ true, true ]
-    drive_access = [ true, true ]
-    household = [ true ]
-    internal_external = [ true ]
-    truck = [ true ]
+[[periods]]
+name = "ea"
+length_hours = 3
+highway_capacity_factor = 3
+emme_scenario_id = 11
 
 [[periods]]
-    name = "ea"
-    length_hours = 3
-    highway_capacity_factor = 3
-    emme_scenario_id = 11
+name = "am"
+length_hours = 4
+duration = 4
+highway_capacity_factor = 3.65
+emme_scenario_id = 12
+
 [[periods]]
-    name = "am"
-    length_hours = 4
-    highway_capacity_factor = 3.65
-    emme_scenario_id = 12
+name = "md"
+length_hours = 5
+highway_capacity_factor = 5
+emme_scenario_id = 13
+
 [[periods]]
-    name = "md"
-    length_hours = 5
-    highway_capacity_factor = 5
-    emme_scenario_id = 13
+name = "pm"
+length_hours = 4
+highway_capacity_factor = 3.65
+emme_scenario_id = 14
+
 [[periods]]
-    name = "pm"
-    length_hours = 4
-    highway_capacity_factor = 3.65
-    emme_scenario_id = 14
-[[periods]]
-    name = "ev"
-    length_hours = 8
-    highway_capacity_factor = 8
-    emme_scenario_id = 15
+name = "ev"
+length_hours = 8
+highway_capacity_factor = 8
+emme_scenario_id = 15
 
 [household]
     highway_demand_file = "demand_matrices\\highway\\household\\TAZ_Demand_{period}.omx"
-    transit_demand_file = "demand_matrices\\transit\\TAP_Demand_{set}_{period}.omx"
+    #transit_demand_file = "demand_matrices\\transit_onboard_survey_maz_tap_api\\TAP_Demand_{set}_{period}.omx"
+    transit_demand_file = "demand_matrices\\onboard_survey\\TAZ_Demand_{set}_{period}.omx"
 
 [air_passenger]
     highway_demand_file = "demand_matrices\\highway\\air_passenger\\tripsAirPax{period}.omx"
@@ -136,8 +143,6 @@
     [highway.tolls]
         file_path = "inputs\\hwy\\tolls.csv"
         src_vehicle_group_names = ["da", "s2",  "s3",  "vsm", "sml", "med", "lrg"]
-        # the dst_vehicle_group_names is used in the class group suffix for the
-        # highway.classes toll attribute names and the skims names
         dst_vehicle_group_names = ["da", "sr2", "sr3", "vsm", "sml", "med", "lrg"]
         tollbooth_start_index = 11
     [highway.maz_to_maz]
@@ -150,7 +155,7 @@
         skim_period = "md"
         max_skim_cost = 11.0
             # based on ~= 5 miles @ 40 mph = 11
-            #           = time + (0.6 / vot) * (dist * opcost) 
+            #           = time + (0.6 / vot) * (dist * opcost)
             #           = 5 / 40 * 60 + (0.6 / 17.23) * (5 * 18.93)
     [[highway.classes]]
         name = "da"
@@ -178,7 +183,6 @@
         value_of_time = 18.93
         operating_cost_per_mile = 17.23
         toll = "@bridgetoll_sr2"
-        toll_factor = 0.5714285714285714
         skims = [ "time", "dist", "freeflowtime", "bridgetoll_sr2", "hovdist",]
         [[highway.classes.demand]]
             source = "household"
@@ -202,7 +206,6 @@
         value_of_time = 18.93
         operating_cost_per_mile = 17.23
         toll = "@bridgetoll_sr3"
-        toll_factor = 0.4
         skims = [ "time", "dist", "freeflowtime", "bridgetoll_sr3", "hovdist",]
         [[highway.classes.demand]]
             source = "household"
@@ -349,19 +352,32 @@
     fare_matrix_path = "inputs\\trn\\fareMatrix.txt"
     # max expected transfer distance for mode-to-mode transfer fare table generation
     fare_max_transfer_distance_miles = 3.0
-    # use with TAP assignment to control TAP access to rest of network
-    split_connectors_to_prevent_walk = True
+    # use with TAP assignment to control TAP access to rest of network, if TAP approach use True
+    split_connectors_to_prevent_walk = false
     use_fares = false
     # for TAZ instead of TAPs
-    # override_connector_times = true
-    # input_connector_access_times_path = "inputs\\trn\\estimated_taz_access_connectors.csv"
-    # input_connector_egress_times_path = "inputs\\trn\\estimated_taz_egress_connectors.csv"
+    override_connector_times = false # don't run prepare connector
+    input_connector_access_times_path = "inputs\\trn\\estimated_taz_access_connectors.csv"
+    input_connector_egress_times_path = "inputs\\trn\\estimated_taz_egress_connectors.csv"
     # output_stop_usage_path = "inputs\\trn\\stop_usage_{period}.csv"
+    # mask options
+    mask_noncombo_allpen = false
+    mask_over_3_xfers = false
+    use_ccr = false
+    congested_tran_assn = false
+    capacitated_tran_assn = false
+    station_capacity_tran_assn = false
+
 
 [emme]
     num_processors = "max-1"
     all_day_scenario_id = 1
-    project_path = "emme_project\\mtc_emme.emp"
+    project_path = "emme_taz_transit_network\\emme_taz_transit_network.emp"
+    # project_path = "emme_project\\mtc_emme.emp"
     highway_database_path = "emme_project\\Database_highway\\emmebank"
     active_database_paths = [ "emme_project\\Database_active_south\\emmebank", "emme_project\\Database_active_north\\emmebank" ]
-    transit_database_path = "emme_project\\Database_transit\\emmebank"
+    # databank for tap transit
+    #transit_database_path = "emme_project\\Database_transit\\emmebank"
+    # databank for taz transit
+    # transit_database_path = "emme_project\\Database\\emmebank"
+    transit_database_path = "emme_taz_transit_network\\Database\\emmebank"
