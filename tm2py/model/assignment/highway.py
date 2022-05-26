@@ -206,6 +206,7 @@ class HighwayAssignment(_Component):
                             self.controller, scenario, period.name
                         )
                         import_demand.run()
+                        self._prepare_network(scenario, period)  # TODO: temporary solution
                     else:
                         matrix = emmebank.matrix('ms"zero"')
                         if matrix:
@@ -361,23 +362,19 @@ class HighwayAssignment(_Component):
         dst_veh_groups = self.config.highway.tolls.dst_vehicle_group_names
         for link in network.links():
             modes = set([m.id for m in link.modes])
-            if link.i_node["@maz_id"] + link.j_node["@maz_id"] > 0:
-                # MAZ connectors, special MAZ access / egress mode
-                modes.add(maz_access_mode.id)
-            else:
-                exclude_links_map = {
-                    "is_sr": link["@useclass"] in [2, 3],
-                    "is_sr3": link["@useclass"] == 3,
-                    "is_auto_only": link["@useclass"] in [2, 3, 4],
-                }
-                for dst_veh in dst_veh_groups:
-                    exclude_links_map[f"is_toll_{dst_veh}"] = link[f"@valuetoll_{dst_veh}"] > 0
-                for assign_class in self.config.highway.classes:
-                    apply_exclusions(assign_class.excluded_links, assign_class.mode_code, modes, exclude_links_map)
-                apply_exclusions(
-                    self.config.highway.maz_to_maz.excluded_links,
-                    maz_access_mode.id,
-                    modes, exclude_links_map)
+            exclude_links_map = {
+                "is_sr": link["@useclass"] in [2, 3],
+                "is_sr3": link["@useclass"] == 3,
+                "is_auto_only": link["@useclass"] in [2, 3, 4],
+            }
+            for dst_veh in dst_veh_groups:
+                exclude_links_map[f"is_toll_{dst_veh}"] = link[f"@valuetoll_{dst_veh}"] > 0
+            for assign_class in self.config.highway.classes:
+                apply_exclusions(assign_class.excluded_links, assign_class.mode_code, modes, exclude_links_map)
+            apply_exclusions(
+                self.config.highway.maz_to_maz.excluded_links,
+                maz_access_mode.id,
+                modes, exclude_links_map)
             link.modes = modes
 
     def _assign_and_skim(self, period, scenario):
@@ -441,8 +438,8 @@ class HighwayAssignment(_Component):
     def _set_intrazonal_values(self, period, class_name, skims):
         """Set the intrazonal values to 1/2 nearest neighbour for time and distance skims."""
         for skim_name in skims:
-            if skim_name in ["time", "distance", "freeflowtime", "hovdist", "tolldist"]:
-                matrix_name = f'mf"{period}_{class_name}_{skim_name}"'
+            if skim_name in ["time", "dist", "btoll", "vtoll"]:
+                matrix_name = f'mf"{skim_name}{class_name}"'
                 matrix = self._emmebank.matrix(matrix_name)
                 if not matrix:
                     raise Exception(f"Matrix {matrix_name} does not exist")
@@ -556,8 +553,11 @@ class HighwayAssignment(_Component):
         # then calculate time = gen_cost - (oper_cost + toll)
         if "time" in skim_names:
             # total generalized cost results from od_travel_time
-            od_travel_times = f"{period}_{name}_time"
+            od_travel_times = f"time{name}"
             skim_matrices.append(od_travel_times)
+            class_analysis.append(
+                self._analysis_spec(f"time{name}", f"@free_flow_time")
+            )
             # also get non-time costs
             skim_matrices.append(f"{period}_{name}_cost")
             class_analysis.append(
@@ -568,22 +568,13 @@ class HighwayAssignment(_Component):
             od_travel_times = None
 
         for skim_type in skim_names:
-            if "_" in skim_type:
-                skim_type, group = skim_type.split("_")
-            else:
-                group = ""
+            group = name
             analysis_link = {
                 "dist": "length",  # NOTE: length must be in miles
-                "hovdist": "@hov_length",
-                "tolldist": "@toll_length",
-                "freeflowtime": "@free_flow_time",
-                "bridgetoll": f"@bridgetoll_{group}",
-                "valuetoll": f"@valuetoll_{group}",
+                "btoll": f"@bridgetoll_{group}",
+                "vtoll": f"@valuetoll_{group}",
             }
-            if group:
-                matrix_name = f"{period}_{name}_{skim_type}{group}"
-            else:
-                matrix_name = f"{period}_{name}_{skim_type}"
+            matrix_name = f"{skim_type}{group}"
             class_analysis.append(
                 self._analysis_spec(matrix_name, analysis_link[skim_type])
             )
