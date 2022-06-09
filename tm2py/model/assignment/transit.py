@@ -324,9 +324,11 @@ class TransitAssignment(_Component):
                 # ("CAPPEN", "Capacity penalty"),
             ]
             skim_sets = [
-                ("PNR_TRN", "PNR to transit"),
-                ("KNR_TRN", "KNR to transit"),
-                ("WLK_TRN", "Walk to transit"),
+                ("PNR_TRN_WLK", "PNR access"),
+                ("WLK_TRN_PNR", "PNR egress"),
+                ("KNR_TRN_WLK", "KNR access"),
+                ("WLK_TRN_KNR", "KNR egress"),
+                ("WLK_TRN_WLK", "Walk to transit"),
                 # ("WLK_BUS", "Local bus only"),
                 # ("PNR_BUS", "Local bus only"),
                 # ("KNR_BUS", "Local bus only"),
@@ -373,47 +375,37 @@ class TransitAssignment(_Component):
         msa_iteration = self.controller.iteration
         # omx_filename_template = "transit_{period}_{access_mode}_TRN_{set}_{period}.omx"
         omx_filename_template = os.path.join(self.root_dir, self.config.household.transit_demand_file)
-        matrix_name_template = "{access_mode}_{period}"
+        matrix_name_template = "{access_mode}"
         emme_matrix_name_template = "{access_mode}_{period}"  # Consolidate LOCAL, PREM, ALLPEN
         # with _m.logbook_trace("Importing demand matrices for period %s" % period):  
-        for access_mode in _all_access_modes:
-            demand = None
-            # for set_num in _all_sets:
-            omx_filename_path = omx_filename_template.format(
-                period=period_name, set=set_num
-            )
-            with _emme_tools.OMX(omx_filename_path) as file_obj:
-                matrix_name = matrix_name_template.format(
-                    period=period_name, access_mode=access_mode
-                )
-                demand = file_obj.read(matrix_name.upper())
-                # if demand is None:
-                #     demand = access_demand
-                # else:
-                #     demand += access_demand
-
-            shape = demand.shape
-            # pad external zone values with 0
-            if shape != (num_zones, num_zones):
-                demand = np.pad(
-                    demand, ((0, num_zones - shape[0]), (0, num_zones - shape[1]))
-                )
-            demand_name = emme_matrix_name_template.format(period=period_name, access_mode=access_mode)
-            matrix = emmebank.matrix(f'mf_"{demand_name}"')
-            apply_msa_demand = self.config.transit.get("apply_msa_demand")
-            if msa_iteration <= 1:
-                if not matrix:
-                    ident = emmebank.available_matrix_identifier("FULL")
-                    matrix = emmebank.create_matrix(ident)
-                    matrix.name = demand_name
-                # matrix.description = ?
-            elif apply_msa_demand:
-                # Load prev demand and MSA average
-                prev_demand = matrix.get_numpy_data(scenario.id)
-                demand = prev_demand + (1.0 / msa_iteration) * (
-                        demand - prev_demand
-                )
-            matrix.set_numpy_data(demand, scenario.id)
+        omx_filename_path = omx_filename_template.format(period=period_name)
+        with _emme_tools.OMX(omx_filename_path) as file_obj:
+            for access_mode in _all_access_modes:
+                matrix_name = matrix_name_template.format(access_mode=access_mode)
+                demand = file_obj.read(matrix_name.upper())  
+                shape = demand.shape
+                # pad external zone values with 0
+                if shape != (num_zones, num_zones):
+                    demand = np.pad(
+                        demand, ((0, num_zones - shape[0]), (0, num_zones - shape[1]))
+                    )
+                demand_name = emme_matrix_name_template.format(period=period_name, access_mode=access_mode)
+                print(demand_name)
+                matrix = emmebank.matrix(f'mf"{demand_name}"')
+                apply_msa_demand = self.config.transit.get("apply_msa_demand")
+                if msa_iteration <= 1:
+                    if not matrix:
+                        ident = emmebank.available_matrix_identifier("FULL")
+                        matrix = emmebank.create_matrix(ident)
+                        matrix.name = demand_name
+                    # matrix.description = ?
+                elif apply_msa_demand:
+                    # Load prev demand and MSA average
+                    prev_demand = matrix.get_numpy_data(scenario.id)
+                    demand = prev_demand + (1.0 / msa_iteration) * (
+                            demand - prev_demand
+                    )
+                matrix.set_numpy_data(demand, scenario.id)
 
     def create_empty_demand_matrices(self, period_name, scenario):
         emme_matrix_name_template = "TRN_{set}_{period}"
@@ -496,7 +488,7 @@ class TransitAssignment(_Component):
                 with _m.logbook_trace("Skims for Local+Premium (set3)"):
                     self.run_skims(
                         scenario,
-                        "WLK_TRN_TRN",
+                        "WLK_TRN_PNR",
                         period,
                         mode_types["TRN"],
                         network,
@@ -682,7 +674,7 @@ class TransitAssignment(_Component):
         skim_parameters = OrderedDict(
             [
                 (
-                    "WLK_TRN",
+                    "WLK_TRN_WLK",
                     {
                         "modes": mode_types["WALK"] + list(mode_types["TRN"]),
                         "journey_levels": journey_levels,
@@ -719,7 +711,7 @@ class TransitAssignment(_Component):
             ]
         )
         if self.config.transit.get("override_connector_times", False):
-            skim_parameters["WLK_TRN"]["aux_transit_cost"] = {
+            skim_parameters["WLK_TRN_WLK"]["aux_transit_cost"] = {
                 "penalty": "@walk_time_all", "perception_factor": params["walk_perception_factor"]
             }
             skim_parameters["PNR_TRN_WLK"]["aux_transit_cost"] = {
@@ -742,7 +734,7 @@ class TransitAssignment(_Component):
             #  assign all 3 classes of demand at the same time
             specs = []
             names = []
-            demand_matrix_template = "mf_{access_mode_set}_{period}"
+            demand_matrix_template = "mf{access_mode_set}_{period}"
             for mode_name, parameters in skim_parameters.items():
                 spec = _copy(base_spec)
                 spec["modes"] = parameters["modes"]
@@ -843,7 +835,7 @@ class TransitAssignment(_Component):
             #  assign all 3 classes of demand at the same time
             specs = []
             names = []
-            demand_matrix_template = "mf_{access_mode_set}_{period}"
+            demand_matrix_template = "mf{access_mode_set}_{period}"
             for mode_name, parameters in skim_parameters.items():
                 spec = _copy(base_spec)
                 spec["modes"] = parameters["modes"]
@@ -932,7 +924,7 @@ class TransitAssignment(_Component):
                     spec = _copy(base_spec)
                     spec["modes"] = parameters["modes"]
                     # spec["demand"] = 'ms1' # zero demand matrix
-                    spec["demand"] = "mf_{access_mode_set}_{period}".format(
+                    spec["demand"] = "mf{access_mode_set}_{period}".format(
                         access_mode_set=mode_name, period=period.name
                     )
                     spec["journey_levels"] = parameters["journey_levels"]
@@ -954,7 +946,7 @@ class TransitAssignment(_Component):
                 spec = _copy(base_spec)
                 spec["modes"] = parameters["modes"]
                 # spec["demand"] = 'ms1' # zero demand matrix
-                spec["demand"] = "mf_{access_mode_set}_{period}".format(
+                spec["demand"] = "mf{access_mode_set}_{period}".format(
                     access_mode_set=mode_name, period=period.name
                 )
                 spec["journey_levels"] = parameters["journey_levels"]
@@ -1289,9 +1281,11 @@ class TransitAssignment(_Component):
         # NOTE: skims in separate file by period
         matrices = []
         skim_sets = [
-            ("PNR_TRN", "PNR to transit"),
-            ("KNR_TRN", "KNR to transit"),
-            ("WLK_TRN", "Walk to transit"),
+            ("PNR_TRN_WLK", "PNR access"),
+            ("WLK_TRN_PNR", "PNR egress"),
+            ("KNR_TRN_WLK", "KNR access"),
+            ("WLK_TRN_KNR", "KNR egress"),
+            ("WLK_TRN_WLK", "Walk to transit"),
             # ("WLK_BUS", "Local bus only"),
             # ("PNR_BUS", "Local bus only"),
             # ("KNR_BUS", "Local bus only"),
