@@ -210,7 +210,7 @@ class CreateTODScenarios(_Component):
                 in_vehicle_factors[mode.id] = mode_data.get(
                     "in_vehicle_perception_factor", default_in_vehicle_factor)
 
-            # create vehicles
+            # create vehicles   # already set up in Lasso
             # vehicle_table = self.config.transit.vehicles
             # for veh_data in vehicle_table:
             #     vehicle = network.transit_vehicle(veh_data['id'])
@@ -241,22 +241,22 @@ class CreateTODScenarios(_Component):
                 if link.i_node.is_centroid or link.j_node.is_centroid:
                     link.length = 0.01  # 60.0 / 5280.0
             for line in network.transit_lines():
-                # # TODO: may want to set transit line speeds (not necessarily used in the assignment though)
-                # line_veh = network.transit_vehicle(line["#mode"])
-                # if line_veh is None:
-                #     raise Exception(f"line {line.id} requires vehicle ('#mode') {line['#mode']} which does not exist")
-                # line_mode = line_veh.mode.id
-                # for seg in line.segments():
-                #     seg.link.modes |= {line_mode}
-                # line.vehicle = line_veh
-                # # Set the perception factor from the mode table
+                # TODO: may want to set transit line speeds (not necessarily used in the assignment though)
+                line_veh = network.transit_vehicle(line["#mode"])
+                if line_veh is None:
+                    raise Exception(f"line {line.id} requires vehicle ('#mode') {line['#mode']} which does not exist")
+                line_mode = line_veh.mode.id
+                for seg in line.segments():
+                    seg.link.modes |= {line_mode}
+                line.vehicle = line_veh
+                # Set the perception factor from the mode table
                 line["@invehicle_factor"] = in_vehicle_factors[line.vehicle.mode.id]
 
             # set link modes to the minimum set
             auto_mode = {self.config.highway.generic_highway_mode_code}
             for link in network.links():
                 # get used transit modes on link
-                # modes = {seg.line.mode for seg in link.segments()}
+                modes = {seg.line.mode for seg in link.segments()}
                 # add in available modes based on link type
                 # if link["@drive_link"]==1:  # pnr, knr, and pnr dummy can only be used by p, k, P mode
                 #     modes |= local_modes
