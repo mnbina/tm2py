@@ -134,7 +134,7 @@ class CommercialVehicleModel(Component):
         self.trkclass_tp_toll_demand_dict = self.sub_components["toll choice"].run(
             self.trkclass_tp_demand_dict
         )
-        self._export_results_to_omx(self.trkclass_tp_toll_demand_dict)
+        self._export_results_as_omx(self.trkclass_tp_toll_demand_dict)
 
     @property
     def emmebank(self):
@@ -168,16 +168,6 @@ class CommercialVehicleModel(Component):
             self._matrix_cache = MatrixCache(self.emme_scenario)
         return self._matrix_cache
 
-    @property
-    def time_periods(self):
-        """Convenience access for all time period names.
-
-        e.g. AM, PM, etc.
-
-        Returns:
-            Collection[str]: list of time periods
-        """
-        return list(set([tp for tp_list in self.tod_split.values() for tp in tp_list]))
 
     @LogStartEnd(level="DEBUG")
     def _export_results_as_omx(self, class_demand):
@@ -186,7 +176,7 @@ class CommercialVehicleModel(Component):
         os.makedirs(os.path.dirname(outdir), exist_ok=True)
         for period, matrices in class_demand.items():
             with OMXManager(
-                outdir / self.config.outfile_trip_table_tmp.format(period=period), "w"
+                os.path.join(outdir, self.config.outfile_trip_table_tmp.format(period=period)), "w"
             ) as output_file:
                 for name, data in matrices.items():
                     output_file.write_array(data, name)
@@ -610,15 +600,14 @@ class CommercialVehicleTripDistribution(Subcomponent):
         """Load friction factors lookup tables from csv file to dataframe.
 
         Reads from file: config.truck.friction_factors_file with following assumed column order:
-            0: Time
-            1: Very Small Truck FF
-            2: Small Truck FF
-            3: Medium Truck FF
-            4: Large Truck FF
+            time: Time
+            vsmtrk: Very Small Truck FF
+            smltrk: Small Truck FF
+            medtrk: Medium Truck FF
+            lrgtrk: Large Truck FF
         """
-        _cols = ["time", "vsmtrk", "smltrk", "medtrk", "lrgtrk"]
         _file_path = self.get_abs_path(self.config.friction_factors_file)
-        return pd.read_fwf(_file_path, names=_cols, header=None)
+        return pd.read_csv(_file_path)
 
     def validate_inputs(self):
         """Validate the inputs."""
@@ -821,11 +810,11 @@ class CommercialVehicleTimeOfDay(Subcomponent):
         """
         trkclass_tp_demand_dict = defaultdict(dict)
 
-        _class_timeperiod = itertools.product(self.classes, self.time_periods)
+        _class_timeperiod = itertools.product(self.classes, self.time_period_names)
 
         for _t_class, _tp in _class_timeperiod:
-            trkclass_tp_demand_dict[_t_class][_tp.name] = np.around(
-                self.class_period_splits[_t_class][_tp.name][self.split_factor]
+            trkclass_tp_demand_dict[_t_class][_tp] = np.around(
+                self.class_period_splits[_t_class][_tp.lower()][self.split_factor]
                 * daily_demand[_t_class],
                 decimals=2,
             )
@@ -905,16 +894,14 @@ class CommercialVehicleTollChoice(Subcomponent):
         Uses OMX skims output from highway assignment: traffic_skims_{period}.omx"""
 
         _tclass_time_combos = itertools.product(
-            self.controller.config.time_periods, self.component.classes
+            self.time_period_names, self.component.classes
         )
 
         class_demands = defaultdict()
         for _time_period, _tclass in _tclass_time_combos:
 
             _split_demand = self._toll_choice.run(
-                trkclass_tp_demand_dict[_tclass][_time_period.name],
-                _tclass,
-                _time_period,
+                trkclass_tp_demand_dict[_tclass][_time_period], _tclass, _time_period
             )
 
             class_demands[_time_period][_tclass] = _split_demand["no toll"]
