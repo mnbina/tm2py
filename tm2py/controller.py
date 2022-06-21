@@ -24,6 +24,7 @@ from multiprocessing.sharedctypes import Value
 from pathlib import Path
 from typing import Any, Collection, Dict, List, Tuple, Union
 
+from tm2py.components.access import HomeAccessibility
 from tm2py.components.component import Component
 from tm2py.components.demand.air_passenger import AirPassenger
 from tm2py.components.demand.commercial import CommercialVehicleModel
@@ -44,6 +45,7 @@ component_cls_map = {
     "highway": HighwayAssignment,
     "highway_maz_assign": AssignMAZSPDemand,
     "highway_maz_skim": SkimMAZCosts,
+    "home_accessibility": HomeAccessibility,
     "air_passenger": AirPassenger,
     "internal_external": InternalExternal,
     "truck": CommercialVehicleModel,
@@ -109,10 +111,6 @@ class RunController:
         self.trace = None
         self.completed_components = []
 
-        # mapping from defined names referenced in config to Component objects
-        self._component_map = {
-            k: v(self) for k, v in component_cls_map.items() if k in run_components
-        }
         self._validated_components = set()
         self._emme_manager = None
         self._num_processors = None
@@ -120,6 +118,11 @@ class RunController:
         self._component = None
         self._component_name = None
         self._queued_components = deque()
+
+        # mapping from defined names referenced in config to Component objects
+        self._component_map = {
+            k: v(self) for k, v in component_cls_map.items() if k in run_components
+        }
 
         self._queue_components(run_components=run_components)
 

@@ -3,6 +3,7 @@
 
 import pathlib
 from abc import ABC
+from pickletools import floatnl
 from typing import Dict, List, Optional, Tuple, Union
 
 import toml
@@ -55,6 +56,7 @@ class ScenarioConfig(ConfigItem):
 
 ComponentNames = Literal[
     "create_tod_scenarios",
+    "home_accessibility",
     "active_modes",
     "air_passenger",
     "prepare_network_highway",
@@ -482,6 +484,18 @@ class TruckClassConfig(ConfigItem):
 
     name: str
     description: Optional[str] = ""
+
+
+@dataclass(frozen=True)
+class HomeAccessibilityConfig(ConfigItem):
+    """Home Accessibility Parameters."""
+
+    outfile: pathlib.Path
+    dispersion_auto: float = -0.05
+    dispersion_transit: float = -0.05
+    dispersion_walk: float = -1.00
+    max_walk_distance: float = 3.0
+    out_of_vehicle_time_weight: float = 2.0
 
 
 @dataclass(frozen=True)
@@ -988,6 +1002,16 @@ class TransitVehicleConfig(ConfigItem):
 
 
 @dataclass(frozen=True)
+class TransitClassConfig(ConfigItem):
+    """Transit assignment class definition.
+
+    """
+
+    name: str = Field(min_length=1, max_length=20)
+    description: Optional[str] = Field(default="")
+    skims: Tuple[str, ...] = Field()
+
+@dataclass(frozen=True)
 class TransitConfig(ConfigItem):
     """Transit assignment parameters."""
 
@@ -1012,7 +1036,9 @@ class TransitConfig(ConfigItem):
     input_connector_access_times_path: Optional[pathlib.Path] = Field(default=None)
     input_connector_egress_times_path: Optional[pathlib.Path] = Field(default=None)
     output_stop_usage_path: Optional[pathlib.Path] = Field(default=None)
-
+    output_skim_filename_tmpl: str = Field()
+    output_skim_matrixname_tmpl: str = Field()
+    classes: Tuple[TransitClassConfig, ...] = Field()
 
 @dataclass(frozen=True)
 class EmmeConfig(ConfigItem):
@@ -1047,6 +1073,7 @@ class Configuration(ConfigItem):
     run: RunConfig
     time_periods: Tuple[TimePeriodConfig, ...]
     household: HouseholdConfig
+    accessibility: HomeAccessibilityConfig
     air_passenger: AirPassengerConfig
     internal_external: InternalExternalConfig
     truck: TruckConfig
