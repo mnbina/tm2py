@@ -26,26 +26,27 @@ class HouseholdModel(Component):
         """
         self._start_household_manager()
         self._start_matrix_manager()
+        self._start_jppf_driver()
+        self._start_jppf_node0()
         self._run_resident_model()
         self._stop_java()
 
-    @staticmethod
-    def _start_household_manager():
+    def _start_household_manager(self):
         commands = [
-            "CALL CTRAMP\\runtime\\CTRampEnv.bat",
-            "set PATH=%CD%\\CTRAMP\runtime;C:\\Windows\\System32;%JAVA_PATH%\bin;"
-            "%TPP_PATH%;%PYTHON_PATH%;%PYTHON_PATH%\\condabin;%PYTHON_PATH%\\envs",
-            'CALL CTRAMP\\runtime\\runHhMgr.cmd "%JAVA_PATH%" "%HOST_IP_ADDRESS%"',
+            "cd /d {}".format(self.controller.run_dir.__str__()),
+            "CALL {}\\CTRAMP\\runtime\\SetPath.bat".format(self.controller.run_dir.__str__()),
+            "set HOST_IP=10.0.166.185",
+            "start \"Household Manager\" java -Xms20000m -Xmx20000m -Dlog4j.configuration=log4j_hh.xml com.pb.mtc.ctramp.MtcHouseholdDataManager -hostname %HOST_IP%",
+            "echo Hello World"
         ]
         run_process(commands, name="start_household_manager")
 
-    @staticmethod
-    def _start_matrix_manager():
+    def _start_matrix_manager(self):
         commands = [
-            "CALL CTRAMP\\runtime\\CTRampEnv.bat",
-            "set PATH=%CD%\\CTRAMP\runtime;C:\\Windows\\System32;%JAVA_PATH%\bin;"
-            "%TPP_PATH%;%PYTHON_PATH%;%PYTHON_PATH%\\condabin;%PYTHON_PATH%\\envs",
-            'CALL CTRAMP\runtime\runMtxMgr.cmd %HOST_IP_ADDRESS% "%JAVA_PATH%"',
+            "cd /d {}".format(self.controller.run_dir.__str__()),
+            "CALL {}\\CTRAMP\\runtime\\SetPath.bat".format(self.controller.run_dir.__str__()),
+            "set HOST_IP=10.0.166.185",
+            "start \"Matrix Manager\" java -Xms14000m -Xmx140000m -Dlog4j.configuration=log4j_mtx.xml -Djava.library.path=\"CTRAMP/runtime\" com.pb.models.ctramp.MatrixDataServer -hostname %HOST_IP%",
         ]
         run_process(commands, name="start_matrix_manager")
 
@@ -53,15 +54,33 @@ class HouseholdModel(Component):
         sample_rate_iteration = {1: 0.3, 2: 0.5, 3: 1, 4: 0.02, 5: 0.02}
         iteration = self.controller.iteration
         sample_rate = sample_rate_iteration[iteration]
-        _shutil.copyfile("CTRAMP\\runtime\\mtctm2.properties", "mtctm2.properties")
+        seed = 0
+        #_shutil.copyfile("CTRAMP\\runtime\\mtctm2.properties", "mtctm2.properties")
         commands = [
-            "CALL CTRAMP\\runtime\\CTRampEnv.bat",
-            "set PATH=%CD%\\CTRAMP\runtime;C:\\Windows\\System32;%JAVA_PATH%\bin;"
-            "%TPP_PATH%;%PYTHON_PATH%;%PYTHON_PATH%\\condabin;%PYTHON_PATH%\\envs",
-            f'CALL CTRAMP\runtime\runMTCTM2ABM.cmd {sample_rate} {iteration} "%JAVA_PATH%"',
+            "cd /d {}".format(self.controller.run_dir.__str__()),
+            "CALL {}\\CTRAMP\\runtime\\SetPath.bat".format(self.controller.run_dir.__str__()),
+            "java -showversion -Xmx6000m -cp %CLASSPATH% -Dlog4j.configuration=log4j.xml -Djava.library.path=%RUNTIME% -Djppf.config=jppf-clientDistributed.properties "
+            "com.pb.mtc.ctramp.MtcTourBasedModel mtcTourBased -iteration {} -sampleRate {} -sampleSeed {}".format(iteration, sample_rate, seed),
         ]
         run_process(commands, name="run_resident_model")
+    
+    def _start_jppf_driver(self):
+        commands = [
+            "cd /d {}".format(self.controller.run_dir.__str__()),
+            "CALL {}\\CTRAMP\\runtime\\SetPath.bat".format(self.controller.run_dir.__str__()),
+            "set HOST_IP=10.0.166.185",
+            "start \"JPPF Server\" java -server -Xmx16m -Dlog4j.configuration=log4j-driver.properties -Djppf.config=jppf-driver.properties org.jppf.server.DriverLauncher",
+        ]
+        run_process(commands, name="start_jppf_driver")
+    
+    def _start_jppf_node0(self):
+        commands = [
+            "cd /d {}".format(self.controller.run_dir.__str__()),
+            "CALL {}\\CTRAMP\\runtime\\SetPath.bat".format(self.controller.run_dir.__str__()),
+            "set HOST_IP=10.0.166.185",
+            "start \"Node 0\" java -server -Xmx128m -Dlog4j.configuration=log4j-node0.xml -Djppf.config=jppf-node0.properties org.jppf.node.NodeLauncher",
+        ]
+        run_process(commands, name="start_jppf_node")
 
-    @staticmethod
-    def _stop_java():
+    def _stop_java(self):
         run_process(['taskkill /im "java.exe" /F'])
