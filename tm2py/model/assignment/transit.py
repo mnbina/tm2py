@@ -30,7 +30,11 @@ _skim_names = [
     "FIRSTWAIT",
     "TOTALWAIT",
     "XFERS",
-    "TOTALWALK",
+    # "TOTALAUX",
+    "DTIME", 
+    "DDIST",
+    "WACC",
+    "WEGR",
     "LBIVTT",
     "EBIVTT",
     "LRIVTT",
@@ -45,7 +49,7 @@ _skim_names = [
     "FRPIVTT",
     "XFERWAIT",
     "FARE",
-    "XFERWALK",
+    "WAUX",
     "TOTALIVTT",
     # "LINKREL",
     # "CROWD",
@@ -259,9 +263,9 @@ class TransitAssignment(_Component):
         # hard code connetor time for now
         for link in network.links():
             if (link.modes == "a") or (link.modes == "e"):
-                link['@connector_time_all'] = link['length']/3
+                link['@connector_time_all'] = 60*link['length']/3
             if (link.modes == "P") or (link.modes == "K"):
-                link['@connector_time_all'] = link['length']/40
+                link['@connector_time_all'] = 60*link['length']/40
 
         # lookup adjacent real stop to account for connector splitting
         # connectors = _defaultdict(lambda: {})
@@ -310,8 +314,12 @@ class TransitAssignment(_Component):
                 ("TOTALWAIT", "total wait time"),
                 ("FARE", "fare"),
                 ("XFERS", "num transfers"),
-                ("XFERWALK", "transfer walk time"),
-                ("TOTALWALK", "total walk time"),
+                ("WAUX", "auxiliary walk time"),
+                # ("TOTALAUX", "total auxiliary time"),
+                ("DTIME", "access and egress drive time"),
+                ("DDIST", "access and egress drive distance"),
+                ("WACC", "access walk time"),
+                ("WEGR", "egress walk time"),
                 ("TOTALIVTT", "total in-vehicle time"),
                 ("LBIVTT", "local bus in-vehicle time"),
                 ("EBIVTT", "express bus in-vehicle time"),
@@ -1001,7 +1009,7 @@ class TransitAssignment(_Component):
                         if m.type in ["TRANSIT", "AUX_TRANSIT"]
                     ],
                     "avg_boardings": 'mf"%s_XFERS"' % skim_name,
-                    "actual_aux_transit_times": 'mf"%s_TOTALWALK"' % skim_name,
+                    # "actual_aux_transit_times": 'mf"%s_TOTALAUX"' % skim_name,
                 },
             }
             if use_fares:
@@ -1017,13 +1025,40 @@ class TransitAssignment(_Component):
                 scenario=scenario,
                 num_processors=num_processors,
             )
-            xfer_modes = []
-            for mode in self.config.transit.modes:
-                if mode.type == "WALK":
-                    xfer_modes.append(mode.id)
+            # waux_modes = []
+            # drive_mode = []
+            # walk_access = []
+            # walk_egress = []
+            # for mode in self.config.transit.modes:
+            #     if mode.type == "WALK":
+            #         waux_modes.append(mode.id)
+            #     elif mode.type == "ACCESS":
+            #         walk_access.append(mode.id)
+            #         waux_modes.append(mode.id)
+            #     elif mode.type == "EGRESS":
+            #         walk_egress.append(mode.id)
+            #         waux_modes.append(mode.id)
+            #     elif (mode.type == "PNR") and (mode.assign_type != "TRANSIT"):
+            #         drive_mode.append(mode.id)
+            #     elif mode.type == "KNR":
+            #         drive_mode.append(mode.id)
             spec = {
                 "type": "EXTENDED_TRANSIT_MATRIX_RESULTS",
-                "by_mode_subset": {"modes": xfer_modes, "actual_aux_transit_times": 'mf"%s_XFERWALK"' % skim_name},
+                "by_mode_subset": {"modes": ["w","a","e"], "actual_aux_transit_times": 'mf"%s_WAUX"' % skim_name},
+            }
+            spec1 = {
+                "type": "EXTENDED_TRANSIT_MATRIX_RESULTS",
+                "by_mode_subset": {"modes": ["K","P"], 
+                "actual_aux_transit_times": 'mf"%s_DTIME"' % skim_name,
+                "distance": 'mf"%s_DDIST"' % skim_name},
+            }
+            spec2 = {
+                "type": "EXTENDED_TRANSIT_MATRIX_RESULTS",
+                "by_mode_subset": {"modes": ["a"], "actual_aux_transit_times": 'mf"%s_WACC"' % skim_name},
+            }
+            spec3 = {
+                "type": "EXTENDED_TRANSIT_MATRIX_RESULTS",
+                "by_mode_subset": {"modes": ["e"], "actual_aux_transit_times": 'mf"%s_WEGR"' % skim_name},
             }
             matrix_results(
                 spec,
@@ -1031,6 +1066,28 @@ class TransitAssignment(_Component):
                 scenario=scenario,
                 num_processors=num_processors,
             )
+
+            matrix_results(
+                spec1,
+                class_name=class_name,
+                scenario=scenario,
+                num_processors=num_processors,
+            )
+
+            matrix_results(
+                spec2,
+                class_name=class_name,
+                scenario=scenario,
+                num_processors=num_processors,
+            )
+
+            matrix_results(
+                spec3,
+                class_name=class_name,
+                scenario=scenario,
+                num_processors=num_processors,
+            )
+
 
         with self._emme_manager.logbook_trace("In-vehicle time by mode"):
             mode_combinations = [

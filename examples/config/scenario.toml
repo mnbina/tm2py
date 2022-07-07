@@ -4,7 +4,7 @@
     maz_landuse_file = "inputs\\landuse\\maz_data.csv"
 
 [run]
-    create_tod_scenarios = false
+    create_tod_scenarios = true
     active_modes = false
     air_passenger = false
     highway = [ false, false, false, false ]
@@ -14,7 +14,6 @@
     household = [ false, false, false ]
     internal_external = [ false, false, false ]
     truck = [ false, false, false ]
-
     global_iterations = 1
     start_iteration = 0
     end_iteration = 1
@@ -28,7 +27,6 @@ emme_scenario_id = 11
 [[periods]]
 name = "am"
 length_hours = 4
-duration = 4
 highway_capacity_factor = 3.65
 emme_scenario_id = 12
 
@@ -53,7 +51,7 @@ emme_scenario_id = 15
 [household]
     highway_demand_file = "demand_matrices\\highway\\household\\TAZ_Demand_{period}.omx"
     #transit_demand_file = "demand_matrices\\transit_onboard_survey_maz_tap_api\\TAP_Demand_{set}_{period}.omx"
-    transit_demand_file = "demand_matrices\\onboard_survey\\TAZ_Demand_{set}_{period}.omx"
+    transit_demand_file = "demand_matrices\\onboard_survey_consolidate_v12\\trn_demand_v12_trim_{period}.omx"
 
 [air_passenger]
     highway_demand_file = "demand_matrices\\highway\\air_passenger\\tripsAirPax{period}.omx"
@@ -356,15 +354,16 @@ emme_scenario_id = 15
     split_connectors_to_prevent_walk = false
     use_fares = false
     # for TAZ instead of TAPs
-    override_connector_times = false # don't run prepare connector
+    override_connector_times = true # don't run prepare connector
     input_connector_access_times_path = "inputs\\trn\\estimated_taz_access_connectors.csv"
     input_connector_egress_times_path = "inputs\\trn\\estimated_taz_egress_connectors.csv"
-    # output_stop_usage_path = "inputs\\trn\\stop_usage_{period}.csv"
+    output_stop_usage_path = "output_summaries\\stop_usage_{period}.csv"
+    output_transit_boardings_path = "output_summaries\\boardings_by_line_{period}.csv"
     # mask options
     mask_noncombo_allpen = false
     mask_over_3_xfers = false
     use_ccr = false
-    congested_tran_assn = false
+    congested_tran_assn = true
     capacitated_tran_assn = false
     station_capacity_tran_assn = false
 
