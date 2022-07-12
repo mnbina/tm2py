@@ -136,10 +136,12 @@ class HighwayAssignment(Component):
                 assign_classes = [
                     AssignmentClass(c, time, iteration) for c in self.config.classes
                 ]
-                if iteration > 0:
+                if (iteration > 0) & (self.controller.config.highway.run_maz_assignment):
                     self._copy_maz_flow(scenario)
-                else:
+                elif iteration == 0:
                     self._reset_background_traffic(scenario)
+                else:
+                    None
                 self._create_skim_matrices(scenario, assign_classes)
                 assign_spec = self._get_assignment_spec(assign_classes)
                 # self.logger.log_dict(assign_spec, level="DEBUG")
@@ -301,8 +303,8 @@ class HighwayAssignment(Component):
             skims: list of requested skims (from config)
         """
         for skim_name in skims:
-            if skim_name in ["time", "distance", "freeflowtime", "hovdist", "tolldist"]:
-                matrix_name = f"mf{time_period}_{class_name}_{skim_name}"
+            if skim_name in ["time", "distance", "bridgetoll", "valuetoll"]:
+                matrix_name = f"mf{time_period.lower()}_{class_name}_{skim_name}"
                 self.logger.debug(f"Setting intrazonals to 0.5*min for {matrix_name}")
                 data = self._matrix_cache.get_data(matrix_name)
                 # NOTE: sets values for external zones as well
@@ -319,14 +321,15 @@ class HighwayAssignment(Component):
         """
         # NOTE: skims in separate file by period
         omx_file_path = self.get_abs_path(
-            self.config.output_skim_path.format(period=time_period)
+            self.config.output_skim_path
         )
         self.logger.debug(
             f"export {len(self._skim_matrices)} skim matrices to {omx_file_path}"
         )
         os.makedirs(os.path.dirname(omx_file_path), exist_ok=True)
         with OMXManager(
-            omx_file_path, "w", scenario, matrix_cache=self._matrix_cache
+            os.path.join(omx_file_path, self.config.output_skim_filename_tmpl.format(time_period=time_period)), 
+            "w", scenario, matrix_cache=self._matrix_cache
         ) as omx_file:
             omx_file.write_matrices(self._skim_matrices)
 
@@ -395,7 +398,7 @@ class AssignmentClass:
             "results": {
                 "link_volumes": f"@flow_{self.name.lower()}",
                 "od_travel_times": {
-                    "shortest_paths": f"mf{self.time_period}_{self.name}_time"
+                    "shortest_paths": f"mf{self.time_period.lower()}_{self.name}_time"
                 },
             },
             "path_analyses": self.emme_class_analysis,
@@ -415,17 +418,14 @@ class AssignmentClass:
             class_analysis.append(
                 self.emme_analysis_spec(
                     f"@cost_{self.name}".lower(),
-                    f"mf{self.time_period}_{self.name}_cost",
+                    f"mf{self.time_period.lower()}_{self.name}_cost",
                 )
             )
         for skim_type in self.skims:
             if skim_type == "time":
                 continue
-            if "_" in skim_type:
-                skim_type, group = skim_type.split("_")
-            else:
-                group = ""
-            matrix_name = f"mf{self.time_period}_{self.name}_{skim_type}{group}"
+            group = self.name
+            matrix_name = f"mf{self.time_period.lower()}_{self.name}_{skim_type}"
             class_analysis.append(
                 self.emme_analysis_spec(
                     self.skim_analysis_link_attribute(skim_type, group),
@@ -441,18 +441,14 @@ class AssignmentClass:
         if "time" in self.skims:
             skim_matrices.extend(
                 [
-                    f"{self.time_period}_{self.name}_time",
-                    f"{self.time_period}_{self.name}_cost",
+                    f"{self.time_period.lower()}_{self.name}_time",
+                    f"{self.time_period.lower()}_{self.name}_cost",
                 ]
             )
         for skim_type in self.skims:
             if skim_type == "time":
                 continue
-            if "_" in skim_type:
-                skim_type, group = skim_type.split("_")
-            else:
-                group = ""
-            skim_matrices.append(f"{self.time_period}_{self.name}_{skim_type}{group}")
+            skim_matrices.append(f"{self.time_period.lower()}_{self.name}_{skim_type}")
         return skim_matrices
 
     @staticmethod
@@ -507,5 +503,9 @@ class AssignmentClass:
             "freeflowtime": "@free_flow_time",
             "bridgetoll": f"@bridgetoll_{group}",
             "valuetoll": f"@valuetoll_{group}",
+            "bridgetoll_vsm": "@bridgetoll_vsm",
+            "bridgetoll_sml": "@bridgetoll_sml",
+            "bridgetoll_med": "@bridgetoll_med",
+            "bridgetoll_lrg": "@bridgetoll_lrg",
         }
         return lookup[skim]

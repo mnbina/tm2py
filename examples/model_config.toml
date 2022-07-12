@@ -48,6 +48,7 @@
 [air_passenger]
     output_trip_table_directory = "demand_matrices/highway/air_passenger"
     outfile_trip_table_tmp = "tripsAirPax{period}.omx"
+    highway_demand_file = "demand_matrices/highway/air_passenger/tripsAirPax{period}.omx"
     input_demand_folder = "inputs/nonres"
     input_demand_filename_tmpl = "{year}_{direction}{airport}.csv"
     reference_start_year = "2007"
@@ -69,6 +70,7 @@
 [internal_external]
     output_trip_table_directory = "demand_matrices/highway/internal_external"
     outfile_trip_table_tmp = "tripsIx{period}.omx"
+    highway_demand_file = "demand_matrices/highway/internal_external/tripsIx{period}.omx"
     modes = ["da","sr2","sr3"]
     [internal_external.demand]
         input_demand_file = "inputs/nonres/IXDaily2006x4.may2208.new.omx"
@@ -150,8 +152,9 @@
             coeff = -0.088
 
 [truck]
-    output_trip_table_directory = "demand_matrices/highway/household"
-    outfile_trip_table_tmp = "TAZ_Demand_{period}.omx"
+    output_trip_table_directory = "demand_matrices/highway/commercial"
+    outfile_trip_table_tmp = "tripstrk{period}.omx"
+    highway_demand_file = "demand_matrices/highway/commercial/tripstrk{period}.omx"
     [[truck.classes]]
         name = "vsmtrk"
         description = "very small truck"
@@ -462,6 +465,7 @@
     output_skim_matrixname_tmpl = "{time_period}_{mode}_{property}"
     relative_gap = 0.0005
     max_iterations = 100
+    run_maz_assignment = false
     # labels entire highway network (any of the classes) + MAZ connectors
     generic_highway_mode_code = "c"
     # include other MAZs to estimate density (pop+jobs*2.5)/acres for each MAZ
@@ -475,7 +479,10 @@
         dst_vehicle_group_names = ["da", "sr2", "sr3", "vsm", "sml", "med", "lrg"]
         # tollbooth separates links with "bridge" tolls (index < this value)
         # (used in all classes) vs. "value" tolls (used in toll-available classes only)
-        tollbooth_start_index = 11
+        # TM2: TOLLBOOTH codes 11 and above (please see hwyParam.block which denotes this value) are reserved for so-called "value
+        # toll" facilities, which are currently used to model high-occupancy toll (HOT) lanes.  These variables can be used
+        # to toll specific links (each link with a different toll needs a different TOLLBOOTH code).
+        valuetoll_start_tollbooth_code = 11
     [highway.maz_to_maz]
         mode_code = "x"
         excluded_links = [ "is_toll_da", "is_sr",]
@@ -502,14 +509,14 @@
         name = "da"
         description = "drive alone"
         mode_code = "d"
-        excluded_links = [ "is_toll_da", "is_sr",]
+        excluded_links = [ "is_sr",]
         value_of_time = 18.93
         operating_cost_per_mile = 17.23
         toll = [ "@bridgetoll_da" ]
-        skims = [ "time", "dist", "freeflowtime", "bridgetoll_da",]
+        skims = [ "time", "dist", "freeflowtime", "bridgetoll",]
         [[highway.classes.demand]]
             source = "household"
-            name = "SOV_GP_{period}"
+            name = "da"
         [[highway.classes.demand]]
             source = "air_passenger"
             name = "da"
@@ -520,19 +527,15 @@
         name = "sr2"
         description = "shared ride 2"
         mode_code = "e"
-        excluded_links = [ "is_toll_sr2", "is_sr3",]
+        excluded_links = [ "is_sr3",]
         value_of_time = 18.93
         operating_cost_per_mile = 17.23
         toll = [ "@bridgetoll_sr2" ]
         toll_factor = 0.5714285714285714
-        skims = [ "time", "dist", "freeflowtime", "bridgetoll_sr2", "hovdist",]
+        skims = [ "time", "dist", "freeflowtime", "bridgetoll", "hovdist",]
         [[highway.classes.demand]]
             source = "household"
-            name = "SR2_GP_{period}"
-            factor = 0.5714285714285714
-        [[highway.classes.demand]]
-            source = "household"
-            name = "SR2_HOV_{period}"
+            name = "sr2"
             factor = 0.5714285714285714
         [[highway.classes.demand]]
             source = "air_passenger"
@@ -544,19 +547,15 @@
         name = "sr3"
         description = "shared ride 3+"
         mode_code = "f"
-        excluded_links = [ "is_toll_sr3",]
+        excluded_links = []
         value_of_time = 18.93
         operating_cost_per_mile = 17.23
         toll = ["@bridgetoll_sr3"]
         toll_factor = 0.4
-        skims = [ "time", "dist", "freeflowtime", "bridgetoll_sr3", "hovdist",]
+        skims = [ "time", "dist", "freeflowtime", "bridgetoll", "hovdist",]
         [[highway.classes.demand]]
             source = "household"
-            name = "SR3_GP_{period}"
-            factor = 0.4
-        [[highway.classes.demand]]
-            source = "household"
-            name = "SR3_HOV_{period}"
+            name = "sr3"
             factor = 0.4
         [[highway.classes.demand]]
             source = "air_passenger"
@@ -568,7 +567,7 @@
         name = "trk"
         description = "truck"
         mode_code = "t"
-        excluded_links = [ "is_toll_vsm", "is_toll_sml", "is_toll_med", "is_sr",]
+        excluded_links = ["is_sr",]
         value_of_time = 37.87
         operating_cost_per_mile = 31.28
         toll = ["@bridgetoll_sml"]
@@ -586,7 +585,7 @@
         name = "lrgtrk"
         description = "large truck"
         mode_code = "l"
-        excluded_links = [ "is_toll_lrg", "is_auto_only",]
+        excluded_links = ["is_auto_only"]
         value_of_time = 37.87
         operating_cost_per_mile = 31.28
         toll = ["@bridgetoll_lrg"]
@@ -595,87 +594,6 @@
         [[highway.classes.demand]]
             source = "truck"
             name = "lrgtrk"
-            factor = 2.0
-    [[highway.classes]]
-        name = "datoll"
-        description = "drive alone toll"
-        mode_code = "D"
-        excluded_links = [ "is_sr",]
-        value_of_time = 18.93
-        operating_cost_per_mile = 17.23
-        toll = [ "@valuetoll_da", "@bridgetoll_da" ]
-        skims = [ "time", "dist", "freeflowtime", "bridgetoll_da", "valuetoll_da", "tolldist",]
-        [[highway.classes.demand]]
-            source = "household"
-            name = "SOV_PAY_{period}"
-        [[highway.classes.demand]]
-            source = "internal_external"
-            name = "datoll"
-    [[highway.classes]]
-        name = "sr2toll"
-        description = "shared ride 2 toll"
-        mode_code = "E"
-        excluded_links = [ "is_sr3",]
-        value_of_time = 18.93
-        operating_cost_per_mile = 17.23
-        toll = [ "@valuetoll_sr2", "@bridgetoll_sr2" ]
-        toll_factor = 0.5714285714285714
-        skims = [ "time", "dist", "freeflowtime", "bridgetoll_sr2", "valuetoll_sr2", "hovdist", "tolldist",]
-        [[highway.classes.demand]]
-            source = "household"
-            name = "SR2_PAY_{period}"
-            factor = 0.5714285714285714
-        [[highway.classes.demand]]
-            source = "internal_external"
-            name = "sr2toll"
-    [[highway.classes]]
-        name = "sr3toll"
-        description = "shared ride 3+ toll"
-        mode_code = "F"
-        excluded_links = []
-        value_of_time = 18.93
-        operating_cost_per_mile = 17.23
-        toll = [ "@valuetoll_sr3", "@bridgetoll_sr3" ]
-        toll_factor = 0.4
-        skims = [ "time", "dist", "freeflowtime", "bridgetoll_sr3", "valuetoll_sr3", "hovdist", "tolldist",]
-        [[highway.classes.demand]]
-            source = "household"
-            name = "SR3_PAY_{period}"
-            factor = 0.4
-        [[highway.classes.demand]]
-            source = "internal_external"
-            name = "sr3toll"
-    [[highway.classes]]
-        name = "trktoll"
-        description = "truck toll"
-        mode_code = "T"
-        excluded_links = [ "is_sr",]
-        value_of_time = 37.87
-        operating_cost_per_mile = 31.28
-        toll = [ "@valuetoll_sml", "@bridgetoll_sml" ]
-        skims = [ "time", "dist", "freeflowtime", "bridgetoll_vsm", "bridgetoll_sml", "bridgetoll_med", "valuetoll_vsm", "valuetoll_sml", "valuetoll_med",]
-        [[highway.classes.demand]]
-            source = "truck"
-            name = "vsmtrktoll"
-        [[highway.classes.demand]]
-            source = "truck"
-            name = "smltrktoll"
-        [[highway.classes.demand]]
-            source = "truck"
-            name = "medtrktoll"
-    [[highway.classes]]
-        name = "lrgtrktoll"
-        description = "large truck toll"
-        mode_code = "L"
-        excluded_links = [ "is_auto_only", "is_sr",]
-        value_of_time = 37.87
-        operating_cost_per_mile = 31.28
-        pce = 2.0
-        toll = [ "@valuetoll_lrg", "@bridgetoll_lrg" ]
-        skims = [ "time", "dist", "freeflowtime", "bridgetoll_lrg", "valuetoll_lrg",]
-        [[highway.classes.demand]]
-            source = "truck"
-            name = "lrgtrktoll"
             factor = 2.0
 
 

@@ -18,7 +18,7 @@ The following keys and tables are used from the config:
         toll class values
     highway.tolls.dst_vehicle_group_names: corresponding names used in
         network attributes toll classes
-    highway.tolls.tollbooth_start_index: index to split point bridge tolls
+    highway.tolls.valuetoll_start_tollbooth_code: index to split point bridge tolls
         (< this value) from distance value tolls (>= this value)
     highway.classes: the list of assignment classes, see the notes under
         highway_assign for detailed explanation
@@ -163,7 +163,7 @@ class PrepareNetwork(Component):
         toll_index = self._get_toll_indices()
         src_veh_groups = self.config.tolls.src_vehicle_group_names
         dst_veh_groups = self.config.tolls.dst_vehicle_group_names
-        tollbooth_start_index = self.config.tolls.tollbooth_start_index
+        valuetoll_start_tollbooth_code = self.config.tolls.valuetoll_start_tollbooth_code
         for link in network.links():
             if link["@tollbooth"]:
                 index = (
@@ -180,15 +180,15 @@ class PrepareNetwork(Component):
                     continue  # tolls will remain at zero
                 # if index is below tollbooth start index then this is a bridge
                 # (point toll), available for all traffic assignment classes
-                if link["@tollbooth"] < tollbooth_start_index:
+                if link["@tollbooth"] < valuetoll_start_tollbooth_code:
                     for src_veh, dst_veh in zip(src_veh_groups, dst_veh_groups):
                         link[f"@bridgetoll_{dst_veh}"] = (
-                            data_row[f"toll{time_period.lower()}_{src_veh}"] * 100
+                            float(data_row[f"toll{time_period.lower()}_{src_veh}"]) * 100
                         )
                 else:  # else, this is a tollway with a per-mile charge
                     for src_veh, dst_veh in zip(src_veh_groups, dst_veh_groups):
                         link[f"@valuetoll_{dst_veh}"] = (
-                            data_row[f"toll{time_period.lower()}_{src_veh}"]
+                            float(data_row[f"toll{time_period.lower()}_{src_veh}"])
                             * link.length
                             * 100
                         )
@@ -253,11 +253,12 @@ class PrepareNetwork(Component):
             if mode is not None:
                 network.delete_mode(mode)
 
-        # Create special access/egress mode for MAZ connectors
-        maz_access_mode = network.create_mode(
-            "AUX_AUTO", self.config.maz_to_maz.mode_code
-        )
-        maz_access_mode.description = "MAZ access"
+        if self.config.maz_to_maz:
+            # Create special access/egress mode for MAZ connectors
+            maz_access_mode = network.create_mode(
+                "AUX_AUTO", self.config.maz_to_maz.mode_code
+            )
+            maz_access_mode.description = "MAZ access"
         # create modes from class spec
         # (duplicate mode codes allowed provided the excluded_links is the same)
         mode_excluded_links = {}
@@ -282,10 +283,11 @@ class PrepareNetwork(Component):
         dst_veh_groups = self.config.tolls.dst_vehicle_group_names
         for link in network.links():
             modes = set(m.id for m in link.modes)
-            if link.i_node["@maz_id"] + link.j_node["@maz_id"] > 0:
-                modes.add(maz_access_mode.id)
-                link.modes = modes
-                continue
+            if self.config.run_maz_assignment:
+                if link.i_node["@maz_id"] + link.j_node["@maz_id"] > 0:
+                    modes.add(maz_access_mode.id)
+                    link.modes = modes
+                    continue
             if not link["@drive_link"]:
                 continue
             exclude_links_map = {
@@ -298,12 +300,13 @@ class PrepareNetwork(Component):
                 exclude_links_map[f"is_toll_{dst_veh}"] = (
                     link[f"@valuetoll_{dst_veh}"] > 0
                 )
-            self._apply_exclusions(
-                self.config.maz_to_maz.excluded_links,
-                maz_access_mode.id,
-                modes,
-                exclude_links_map,
-            )
+            if self.config.maz_to_maz:
+                self._apply_exclusions(
+                    self.config.maz_to_maz.excluded_links,
+                    maz_access_mode.id,
+                    modes,
+                    exclude_links_map,
+                )
             for assign_class in self.config.classes:
                 self._apply_exclusions(
                     assign_class.excluded_links,
@@ -328,7 +331,7 @@ class PrepareNetwork(Component):
 
     def _calc_link_skim_lengths(self, network: EmmeNetwork):
         """Calculate the length attributes used in the highway skims."""
-        tollbooth_start_index = self.config.tolls.tollbooth_start_index
+        valuetoll_start_tollbooth_code = self.config.tolls.valuetoll_start_tollbooth_code
         for link in network.links():
             # distance in hov lanes / facilities
             if 2 <= link["@useclass"] <= 3:
@@ -336,7 +339,7 @@ class PrepareNetwork(Component):
             else:
                 link["@hov_length"] = 0
             # distance on non-bridge toll facilities
-            if link["@tollbooth"] > tollbooth_start_index:
+            if link["@tollbooth"] >= valuetoll_start_tollbooth_code:
                 link["@toll_length"] = link.length
             else:
                 link["@toll_length"] = 0

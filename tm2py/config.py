@@ -101,7 +101,7 @@ class RunConfig(ConfigItem):
         """Validate end_iteration greater than start_iteration."""
         if values.get("start_iteration"):
             assert (
-                value > values["start_iteration"]
+                value >= values["start_iteration"]
             ), f"'end_iteration' ({value}) must be greater than 'start_iteration'\
                 ({values['start_iteration']})"
         return value
@@ -294,6 +294,7 @@ class AirPassengerConfig(ConfigItem):
     outfile_trip_table_tmp: str
     input_demand_folder: pathlib.Path
     input_demand_filename_tmpl: str
+    highway_demand_file: str
     reference_start_year: str
     reference_end_year: str
     airport_names: List[str]
@@ -426,6 +427,7 @@ class InternalExternalConfig(ConfigItem):
 
     output_trip_table_directory: pathlib.Path
     outfile_trip_table_tmp: str
+    highway_demand_file: str
     modes: List[str]
     demand: DemandGrowth
     time_of_day: TimeOfDayConfig
@@ -542,6 +544,7 @@ class TruckConfig(ConfigItem):
     toll_choice: TollChoiceConfig
     output_trip_table_directory: pathlib.Path
     outfile_trip_table_tmp: str
+    highway_demand_file: str
 
     """
     @validator("classes")
@@ -694,7 +697,7 @@ class HighwayClassConfig(ConfigItem):
                 "dist": distance in miles
                 "hovdist": distance on HOV facilities (is_sr2 or is_sr3)
                 "tolldist": distance on toll facilities
-                    (@tollbooth > highway.tolls.tollbooth_start_index)
+                    (@tollbooth > highway.tolls.valuetoll_start_tollbooth_code)
                 "freeflowtime": free flow travel time in minutes
                 "bridgetoll_{vehicle}": bridge tolls, {vehicle} refers to toll group
                 "valuetoll_{vehicle}": other, non-bridge tolls, {vehicle} refers to toll group
@@ -721,7 +724,7 @@ class HighwayTollsConfig(ConfigItem):
 
     Properties:
         file_path: source relative file path for the highway tolls index CSV
-        tollbooth_start_index: tollbooth separates links with "bridge" tolls
+        valuetoll_start_tollbooth_code: tollbooth separates links with "bridge" tolls
             (index < this value) vs. "value" tolls. These toll attributes
             can then be referenced separately in the highway.classes[].tolls
             list
@@ -738,7 +741,7 @@ class HighwayTollsConfig(ConfigItem):
     """
 
     file_path: pathlib.Path = Field()
-    tollbooth_start_index: int = Field(gt=1)
+    valuetoll_start_tollbooth_code: int = Field(gt=1)
     src_vehicle_group_names: Tuple[str, ...] = Field()
     dst_vehicle_group_names: Tuple[str, ...] = Field()
 
@@ -863,6 +866,7 @@ class HighwayConfig(ConfigItem):
     maz_to_maz: HighwayMazToMazConfig = Field()
     classes: Tuple[HighwayClassConfig, ...] = Field()
     capclass_lookup: Tuple[HighwayCapClassConfig, ...] = Field()
+    run_maz_assignment: bool = Field(default=False)
 
     @validator("output_skim_filename_tmpl")
     def valid_skim_template(value):
@@ -933,7 +937,7 @@ class HighwayConfig(ConfigItem):
         """Validate classes .skims, .toll, and .excluded_links values."""
         if "tolls" not in values:
             return value
-        avail_skims = ["time", "dist", "hovdist", "tolldist", "freeflowtime"]
+        avail_skims = ["time", "dist", "hovdist", "tolldist", "freeflowtime", "bridgetoll", 'valuetoll']
         available_link_sets = ["is_sr", "is_sr2", "is_sr3", "is_auto_only"]
         avail_toll_attrs = []
         for name in values["tolls"].dst_vehicle_group_names:
