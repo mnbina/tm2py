@@ -16,12 +16,6 @@ from tm2py.emme.matrix import OMXManager
 if TYPE_CHECKING:
     from tm2py.controller import RunController
 
-# mployment category mappings, grouping into larger categories
-_land_use_aggregation = {
-    "RETEMPN": ["ret_loc", "ret_reg"],
-    "TOTEMP": ["emp_total"],
-}
-
 class HomeAccessibility(Component):
     """Computes relative, unite-less measures of accessibility for home loctn as f(skims,land use).
 
@@ -89,8 +83,8 @@ class HomeAccessibility(Component):
         
         self.config = self.controller.config.accessibility
         self.zones = self.emme_scenario.zone_numbers
-        self.maz_data_file = self.get_abs_path(
-            self.controller.config.scenario.maz_landuse_file
+        self.zonal_data_file = self.get_abs_path(
+            self.controller.config.scenario.landuse_file
         )
         
         tree = lambda: defaultdict(tree)
@@ -236,13 +230,14 @@ class HomeAccessibility(Component):
         TOTEMP, total employment (same regardless of classification system)
         RETEMPN, retail trade employment per the NAICS classification system
         """
-        lu_maz_df = pd.read_csv(self.maz_data_file)
+        lu_maz_df = pd.read_csv(self.zonal_data_file)
         
-        lu_maz_df = lu_maz_df[lu_maz_df["TAZ_ORIGINAL"].isin(self.zones)]
-        lu_taz_df = lu_maz_df.groupby(["TAZ_ORIGINAL"]).sum()
-        lu_taz_df = lu_taz_df.sort_values(by="TAZ_ORIGINAL")
+        lu_maz_df = lu_maz_df[lu_maz_df["ZONE"].isin(self.zones)]
+        lu_taz_df = lu_maz_df.groupby(["ZONE"]).sum()
+        lu_taz_df = lu_taz_df.sort_values(by="ZONE")
         # combine categories
         taz_landuse = pd.DataFrame()
+        _land_use_aggregation = self.config.land_use_aggregation
         for total_column, sub_categories in _land_use_aggregation.items():
             taz_landuse[total_column] = lu_taz_df[sub_categories].sum(axis=1)
         taz_landuse.reset_index(inplace=True)

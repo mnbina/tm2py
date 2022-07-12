@@ -44,12 +44,12 @@ class ScenarioConfig(ConfigItem):
         verify: optional, default False if specified as True components will run
             additional post-process verify step to validate results / outputs
             (not implemented yet)
-        maz_landuse_file: relative path to maz_landuse_file used by multiple
+        landuse_file: relative path to landuse_file used by multiple
             components
         year: model year, must be at least 2005
     """
 
-    maz_landuse_file: pathlib.Path
+    landuse_file: pathlib.Path
     year: int = Field(ge=2005)
     verify: Optional[bool] = Field(default=False)
 
@@ -493,6 +493,7 @@ class HomeAccessibilityConfig(ConfigItem):
     """Home Accessibility Parameters."""
 
     outfile: pathlib.Path
+    land_use_aggregation: Dict[str, list]
     dispersion_auto: float = -0.05
     dispersion_transit: float = -0.05
     dispersion_walk: float = -1.00

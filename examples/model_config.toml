@@ -44,6 +44,9 @@
 
 [accessibility]
     outfile = "inputs/accessibility.csv"
+    [accessibility.land_use_aggregation]
+        "RETEMPN" = ["RETEMPN"]
+        "TOTEMP" = ["TOTEMP"]
 
 [air_passenger]
     output_trip_table_directory = "demand_matrices/highway/air_passenger"

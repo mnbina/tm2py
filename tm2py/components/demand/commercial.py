@@ -256,7 +256,7 @@ class CommercialVehicleTripGeneration(Subcomponent):
         TOTHH, total households
         """
         maz_data_file = self.get_abs_path(
-            self.controller.config.scenario.maz_landuse_file
+            self.controller.config.scenario.landuse_file
         )
         maz_input_data = pd.read_csv(maz_data_file)
         zones = self.component.emme_scenario.zone_numbers
