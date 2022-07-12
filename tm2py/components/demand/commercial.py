@@ -22,39 +22,6 @@ if TYPE_CHECKING:
 
 NumpyArray = np.array
 
-
-# mployment category mappings, grouping into larger categories
-_land_use_aggregation = {
-    "AGREMPN": ["ag"],
-    "RETEMPN": ["ret_loc", "ret_reg"],
-    "FPSEMPN": ["fire", "info", "lease", "prof", "serv_bus"],
-    "HEREMPN": [
-        "art_rec",
-        "eat",
-        "ed_high",
-        "ed_k12",
-        "ed_oth",
-        "health",
-        "hotel",
-        "serv_pers",
-        "serv_soc",
-    ],
-    "MWTEMPN": [
-        "logis",
-        "man_bio",
-        "man_hvy",
-        "man_lgt",
-        "man_tech",
-        "natres",
-        "transp",
-        "util",
-    ],
-    "OTHEMPN": ["constr", "gov"],
-    "TOTEMP": ["emp_total"],
-    "TOTHH": ["HH"],
-}
-
-
 class CommercialVehicleModel(Component):
     """Commercial Vehicle demand model.
 
@@ -131,10 +98,13 @@ class CommercialVehicleModel(Component):
         self.trkclass_tp_demand_dict = self.sub_components["time of day"].run(
             self.daily_demand_dict
         )
-        self.trkclass_tp_toll_demand_dict = self.sub_components["toll choice"].run(
-            self.trkclass_tp_demand_dict
-        )
-        self._export_results_as_omx(self.trkclass_tp_toll_demand_dict)
+        if self.config.segment_demand_by_toll:
+            self.trkclass_tp_toll_demand_dict = self.sub_components["toll choice"].run(
+                self.trkclass_tp_demand_dict
+            )
+            self._export_results_as_omx(self.trkclass_tp_toll_demand_dict)
+        else:
+            self._export_results_as_omx(self.trkclass_tp_demand_dict)
 
     @property
     def emmebank(self):
@@ -255,16 +225,18 @@ class CommercialVehicleTripGeneration(Subcomponent):
         MWTEMPN, manufacturing, warehousing, and transportation employment per NAICS
         TOTHH, total households
         """
-        maz_data_file = self.get_abs_path(
+        zonal_data_file = self.get_abs_path(
             self.controller.config.scenario.landuse_file
         )
-        maz_input_data = pd.read_csv(maz_data_file)
+        zonal_index_column = self.controller.config.scenario.landuse_index_column
+        zonal_input_data = pd.read_csv(zonal_data_file)
         zones = self.component.emme_scenario.zone_numbers
-        maz_input_data = maz_input_data[maz_input_data["TAZ_ORIGINAL"].isin(zones)]
-        taz_input_data = maz_input_data.groupby(["TAZ_ORIGINAL"]).sum()
-        taz_input_data = taz_input_data.sort_values(by="TAZ_ORIGINAL")
+        zonal_input_data = zonal_input_data[zonal_input_data[zonal_index_column].isin(zones)]
+        taz_input_data = zonal_input_data.groupby([zonal_index_column]).sum()
+        taz_input_data = taz_input_data.sort_values(by=zonal_index_column)
         # combine categories
         taz_landuse = pd.DataFrame()
+        _land_use_aggregation = self.controller.config.truck.land_use_aggregation
         for total_column, sub_categories in _land_use_aggregation.items():
             taz_landuse[total_column] = taz_input_data[sub_categories].sum(axis=1)
         taz_landuse.reset_index(inplace=True)
@@ -813,7 +785,7 @@ class CommercialVehicleTimeOfDay(Subcomponent):
         _class_timeperiod = itertools.product(self.classes, self.time_period_names)
 
         for _t_class, _tp in _class_timeperiod:
-            trkclass_tp_demand_dict[_t_class][_tp] = np.around(
+            trkclass_tp_demand_dict[_tp][_t_class] = np.around(
                 self.class_period_splits[_t_class][_tp.lower()][self.split_factor]
                 * daily_demand[_t_class],
                 decimals=2,
@@ -901,7 +873,7 @@ class CommercialVehicleTollChoice(Subcomponent):
         for _time_period, _tclass in _tclass_time_combos:
 
             _split_demand = self._toll_choice.run(
-                trkclass_tp_demand_dict[_tclass][_time_period], _tclass, _time_period
+                trkclass_tp_demand_dict[_time_period][_tclass], _tclass, _time_period
             )
 
             class_demands[_time_period][_tclass] = _split_demand["no toll"]

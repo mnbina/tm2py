@@ -158,6 +158,16 @@
     output_trip_table_directory = "demand_matrices/highway/commercial"
     outfile_trip_table_tmp = "tripstrk{period}.omx"
     highway_demand_file = "demand_matrices/highway/commercial/tripstrk{period}.omx"
+    segment_demand_by_toll = false
+    [truck.land_use_aggregation]
+        "AGREMPN" = ["AGREMPN"]
+        "RETEMPN" = ["RETEMPN"]
+        "FPSEMPN" = ["FPSEMPN"]
+        "HEREMPN" = ["HEREMPN"]
+        "MWTEMPN" = ["MWTEMPN"]
+        "OTHEMPN" = ["OTHEMPN"]
+        "TOTEMP" = ["TOTEMP"]
+        "TOTHH" = ["TOTHH"]
     [[truck.classes]]
         name = "vsmtrk"
         description = "very small truck"
@@ -184,7 +194,7 @@
             "MD" = 0.6666666667
     [truck.trip_dist]
         k_factors_file = "inputs/nonres/truck_kfactors_taz.csv"
-        friction_factors_file = "inputs/nonres/truckFF.dat"
+        friction_factors_file = "inputs/nonres/truckFF.csv"
         max_balance_iterations = 999
         max_balance_relative_error = 0.0001
     [[truck.trip_dist.classes]]

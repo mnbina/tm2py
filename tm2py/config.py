@@ -50,6 +50,7 @@ class ScenarioConfig(ConfigItem):
     """
 
     landuse_file: pathlib.Path
+    landuse_index_column: str
     year: int = Field(ge=2005)
     verify: Optional[bool] = Field(default=False)
 
@@ -546,6 +547,8 @@ class TruckConfig(ConfigItem):
     output_trip_table_directory: pathlib.Path
     outfile_trip_table_tmp: str
     highway_demand_file: str
+    land_use_aggregation: Dict[str, list]
+    segment_demand_by_toll: bool = False
 
     """
     @validator("classes")
