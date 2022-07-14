@@ -35,7 +35,7 @@ class HouseholdModel(Component):
         commands = [
             "cd /d {}".format(self.controller.run_dir.__str__()),
             "CALL {}\\CTRAMP\\runtime\\SetPath.bat".format(self.controller.run_dir.__str__()),
-            "set HOST_IP=10.0.166.185",
+            "set HOST_IP={}".format(self.controller.config.run.host_ip_address),
             "start \"Household Manager\" java -Xms20000m -Xmx20000m -Dlog4j.configuration=log4j_hh.xml com.pb.mtc.ctramp.MtcHouseholdDataManager -hostname %HOST_IP%",
             "echo Hello World"
         ]
@@ -45,7 +45,7 @@ class HouseholdModel(Component):
         commands = [
             "cd /d {}".format(self.controller.run_dir.__str__()),
             "CALL {}\\CTRAMP\\runtime\\SetPath.bat".format(self.controller.run_dir.__str__()),
-            "set HOST_IP=10.0.166.185",
+            "set HOST_IP={}".format(self.controller.config.run.host_ip_address),
             "start \"Matrix Manager\" java -Xms14000m -Xmx140000m -Dlog4j.configuration=log4j_mtx.xml -Djava.library.path=\"CTRAMP/runtime\" com.pb.models.ctramp.MatrixDataServer -hostname %HOST_IP%",
         ]
         run_process(commands, name="start_matrix_manager")
@@ -68,7 +68,7 @@ class HouseholdModel(Component):
         commands = [
             "cd /d {}".format(self.controller.run_dir.__str__()),
             "CALL {}\\CTRAMP\\runtime\\SetPath.bat".format(self.controller.run_dir.__str__()),
-            "set HOST_IP=10.0.166.185",
+            "set HOST_IP={}".format(self.controller.config.run.host_ip_address),
             "start \"JPPF Server\" java -server -Xmx16m -Dlog4j.configuration=log4j-driver.properties -Djppf.config=jppf-driver.properties org.jppf.server.DriverLauncher",
         ]
         run_process(commands, name="start_jppf_driver")
@@ -77,7 +77,7 @@ class HouseholdModel(Component):
         commands = [
             "cd /d {}".format(self.controller.run_dir.__str__()),
             "CALL {}\\CTRAMP\\runtime\\SetPath.bat".format(self.controller.run_dir.__str__()),
-            "set HOST_IP=10.0.166.185",
+            "set HOST_IP={}".format(self.controller.config.run.host_ip_address),
             "start \"Node 0\" java -server -Xmx128m -Dlog4j.configuration=log4j-node0.xml -Djppf.config=jppf-node0.properties org.jppf.node.NodeLauncher",
         ]
         run_process(commands, name="start_jppf_node")
