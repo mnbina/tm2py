@@ -93,6 +93,7 @@ class RunConfig(ConfigItem):
     initial_components: Tuple[ComponentNames, ...]
     global_iteration_components: Tuple[ComponentNames, ...]
     final_components: Tuple[ComponentNames, ...]
+    ctramp_run_dir: str
     host_ip_address: str
     start_iteration: int = Field(ge=0)
     end_iteration: int = Field(gt=0)

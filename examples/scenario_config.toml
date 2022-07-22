@@ -5,7 +5,9 @@
 [scenario]
     year = 2015
     verify = false
-    maz_landuse_file = "inputs/landuse/maz_data.csv"
+    #maz_landuse_file = "inputs/landuse/maz_data.csv"
+    landuse_file = "inputs/landuse/maz_data.csv"
+    landuse_index_column = 'ZONE'
 
 [run]
     start_component = ""
@@ -34,3 +36,5 @@
     final_components = []
     start_iteration = 0
     end_iteration = 2
+    host_ip_address = "10.13.1.135"
+    ctramp_run_dir = 'C:\MTC_tmpy\TM2\2015_BaseY_PYT2015'
