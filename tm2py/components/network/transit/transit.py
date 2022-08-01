@@ -992,7 +992,7 @@ class TransitAssignment(Component):
         # REVIEW: separate method into smaller steps
         #     - specify class structure in config
         #     - specify skims by name
-        modeller = self.controller.emme_manager.modeller
+        modeller = self.controller.emme_manager.modeller()
         num_processors = self._num_processors
         matrix_calc = modeller.tool("inro.emme.matrix_calculation.matrix_calculator")
         network_calc = modeller.tool("inro.emme.network_calculation.network_calculator")
@@ -1409,7 +1409,7 @@ class TransitAssignment(Component):
 
     def export_connector_flows(self, scenario, period):
         # export boardings and alightings by stop (connector) and TAZ
-        modeller = self.controller.emme_manager.modeller
+        modeller = self.controller.emme_manager.modeller()
         network_results = modeller.tool(
             "inro.emme.transit_assignment.extended.network_results"
         )
