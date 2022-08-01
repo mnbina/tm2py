@@ -976,7 +976,7 @@ class HighwayConfig(ConfigItem):
 class TransitModeConfig(ConfigItem):
     """Transit mode definition (see also mode in the Emme API)."""
 
-    type: Literal["WALK", "ACCESS", "EGRESS", "LOCAL", "PREMIUM"]
+    type: Literal["WALK", "ACCESS", "EGRESS", "LOCAL", "PREMIUM", "PNR", "KNR"]
     assign_type: Literal["TRANSIT", "AUX_TRANSIT"]
     mode_id: str = Field(min_length=1, max_length=1)
     name: str = Field(max_length=10)
@@ -1047,7 +1047,14 @@ class TransitConfig(ConfigItem):
     output_stop_usage_path: Optional[pathlib.Path] = Field(default=None)
     output_skim_filename_tmpl: str = Field()
     output_skim_matrixname_tmpl: str = Field()
+    output_transit_boardings_path: str = Field()
     classes: Tuple[TransitClassConfig, ...] = Field()
+    use_ccr: bool = False
+    congested_transit_assignment: bool = False
+    capacitated_transit_assignment: bool = False
+    station_capacity_transit_assignment: bool = False
+    mask_noncombo_allpen: bool = False
+    mask_over_3_xfers: bool = False
 
 @dataclass(frozen=True)
 class EmmeConfig(ConfigItem):

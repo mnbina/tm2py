@@ -5,32 +5,37 @@
 [scenario]
     year = 2015
     verify = false
-    maz_landuse_file = "inputs/landuse/maz_data.csv"
+    landuse_file = "inputs/landuse/tazData.csv"
+    landuse_index_column = "ZONE"
 
 [run]
     start_component = ""
     initial_components = [
-        #"create_tod_scenarios",
-        #"active_modes",
-        "home_accessibility",
-        "air_passenger",
-        "prepare_network_highway",
-        "highway",
-        "highway_maz_skim",
-        #"prepare_network_transit",
-        #"transit_assign",
-        #"transit_skim"
+        #"create_tod_scenarios",            # runs in lasso
+        #"active_modes",                    # runs in lasso
+        #"home_accessibility",              # working
+        #"air_passenger",                   # not needed for BART, not tested
+        #"prepare_network_highway",         # Working!!
+        #"highway",                         # Working!!
+        #"highway_maz_skim",                # not needed for BART, not tested
+        #"prepare_network_transit",         # TO DO
+        #"transit_assign",                  # TO DO
+        #"transit_skim",                    # TO DO
+        #"transit"                          # zero demand is not working
     ]
     global_iteration_components = [
-        "household",
-        "internal_external",
-        "truck",
-        "highway_maz_assign",
-        "highway",
-        #"prepare_network_transit",
-        #"transit_assign",
-        #"transit_skim"
+        #"household",                       # can be called from tm2py
+        #"internal_external",               # not needed for BART, not tested
+        #"truck",                           # Working!!
+        #"highway_maz_assign",              # not needed for BART, not tested
+        #"prepare_network_highway",         # Working!!
+        #"highway",                         # Working!!
+        #"prepare_network_transit",         # TO DO
+        #"transit_assign",                  # TO DO
+        #"transit_skim"                     # TO DO
+        "transit"
     ]
     final_components = []
     start_iteration = 0
-    end_iteration = 2
+    end_iteration = 1
+    host_ip_address = "10.0.166.185"

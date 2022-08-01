@@ -105,6 +105,8 @@ def get_omx_skim_as_numpy(
         )
     elif skim_mode in _trn_classes.keys():
         _matrix_name = _config.output_skim_matrixname_tmpl.format(
+            time_period=time_period.lower(),
+            mode=skim_mode,
             property=property
         )
         _filename = _config.output_skim_filename_tmpl.format(

@@ -62,6 +62,25 @@ def union_city(examples_dir, root_dir, inro_context):
     controller.run()
     return controller
 
+@pytest.mark.menow
+def test_bart(examples_dir, root_dir, inro_context):
+    """Bart model run testing fixture."""
+    from tm2py.controller import RunController
+    from tm2py.examples import get_example
+
+    EXAMPLE = "9-county"
+    _example_root = os.path.join(examples_dir, EXAMPLE)
+
+    controller = RunController(
+        [
+            os.path.join(examples_dir, "scenario_config.toml"),
+            os.path.join(examples_dir, "model_config.toml"),
+        ],
+        run_dir=_example_root,
+    )
+    controller.run()
+    return controller
+
 
 def test_validate_input_fail(examples_dir, inro_context, temp_dir):
     """Test that validate_input fails when required inputs are missing."""
