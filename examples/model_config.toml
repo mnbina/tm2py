@@ -621,11 +621,11 @@
     transfer_boarding_penalty = 10
     max_transfers = 3
     use_ccr = false
-    congested_transit_assignment = true
+    congested_transit_assignment = false
     capacitated_transit_assignment = false
     station_capacity_transit_assignment = false
     output_skim_path = "skims/transit"
-    output_skim_filename_tmpl = "trnskm{time_period}_{mode}.omx"
+    output_skim_filename_tmpl = "{time_period}_{mode}.omx"
     output_skim_matrixname_tmpl = "{property}"
     output_stop_usage_path = "output_summaries\\stop_usage_{period}.csv"
     output_transit_boardings_path = "output_summaries\\boardings_by_line_{period}.csv"
