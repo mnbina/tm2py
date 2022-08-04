@@ -64,6 +64,7 @@ ComponentNames = Literal[
     "highway_maz_assign",
     "highway",
     "highway_maz_skim",
+    "prepare_network_transit",
     "transit",
     "household",
     "visitor",
@@ -1041,6 +1042,7 @@ class TransitConfig(ConfigItem):
     fare_matrix_path: pathlib.Path
     fare_max_transfer_distance_miles: float
     use_fares: bool
+    override_connectors: bool
     override_connector_times: bool
     input_connector_access_times_path: Optional[pathlib.Path] = Field(default=None)
     input_connector_egress_times_path: Optional[pathlib.Path] = Field(default=None)

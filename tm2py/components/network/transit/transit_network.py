@@ -1,4 +1,4 @@
-
+from __future__ import annotations
 
 from collections import defaultdict as _defaultdict
 from copy import deepcopy as _copy
@@ -10,37 +10,41 @@ import time as _time
 import traceback as _traceback
 import os
 import pandas as pd
+from typing import TYPE_CHECKING, Dict, List, Union
 
-from tm2py.core.component import Component as _Component, Controller as _Controller
-import tm2py.core.emme as _emme_tools
-from tm2py.core.logging import LogStartEnd
+from tm2py.components.component import Component
+from tm2py.emme.manager import EmmeManager
+from tm2py.logger import LogStartEnd
+from tm2py.emme.network import find_path, NoPathFound
+import inro.modeller as _m
 
-EmmeScenario = _emme_tools.EmmeScenario
+if TYPE_CHECKING:
+    from tm2py.controller import RunController
 
+class PrepareTransitNetwork(Component):
 
-class PrepareTransitNetwork(_Component):
-
-    def __init__(self, controller: _Controller):
+    def __init__(self, controller: RunController):
         """Initialize active mode skim component.
 
         Args:
             controller: parent Controller object
         """
         super().__init__(controller)
-        self._emme_manager = _emme_tools.EmmeManager()
-        self._num_processors = _emme_tools.parse_num_processors(
-            self.config.emme.num_processors
-        )
+
+    def validate_inputs(self):
+        #TODO
+        pass
 
     @LogStartEnd("prepare transit scenarios")
     def run(self):
-        emmebank_path = os.path.join(self.root_dir, self.config.emme.transit_database_path)
-        emmebank = self._emme_manager.emmebank(emmebank_path)
+        if not os.path.isabs(self.controller.config.emme.transit_database_path):
+            emmebank_path = self.get_abs_path(self.controller.config.emme.transit_database_path)
+        emmebank = self.controller.emme_manager.emmebank(emmebank_path)
 
         #ref_scenario = emmebank.scenario(self.config.emme.all_day_scenario_id)
         #network = ref_scenario.get_network()
 
-        for period in self.config.periods:
+        for period in self.controller.config.time_periods:
             with self.logger.log_start_end(f"period {period.name}"):
                 scenario = emmebank.scenario(period.emme_scenario_id)
                 attributes = {
@@ -54,14 +58,14 @@ class PrepareTransitNetwork(_Component):
                         scenario.create_extra_attribute(domain, name)
 
                 network = scenario.get_network()
-                if self.config.transit.get("override_connector_times", False):
+                if self.controller.config.transit.get("override_connectors", False):
                     self.prepare_connectors(network, period)
                 self.distribute_nntime(network)
                 self.update_link_trantime(network)
                 # self.calc_link_unreliability(network, period)
-                if self.config.transit.use_fares:
+                if self.controller.config.transit.use_fares:
                     self.apply_fares(scenario, network, period.name)
-                if self.config.transit.get("split_connectors_to_prevent_walk", False):
+                if self.controller.config.transit.get("split_connectors_to_prevent_walk", False):
                     self.split_tap_connectors_to_prevent_walk(network)
                 # TODO: missing the input data files for apply station attributes
                 # self.apply_station_attributes(input_dir, network)
@@ -76,14 +80,14 @@ class PrepareTransitNetwork(_Component):
         period_name = period.name.lower()
         access_modes = set()
         egress_modes = set()
-        for mode_data in self.config.transit.modes:
+        for mode_data in self.controller.config.transit.modes:
             if mode_data["type"] == "ACCESS":
-                access_modes.add(network.mode(mode_data["id"]))
+                access_modes.add(network.mode(mode_data["mode_id"]))
             if mode_data["type"] == "EGRESS":
-                egress_modes.add(network.mode(mode_data["id"]))
+                egress_modes.add(network.mode(mode_data["mode_id"]))
         tazs = dict((int(n["@taz_id"]), n) for n in network.centroids())
         nodes = dict((int(n["#node_id"]), n) for n in network.regular_nodes())
-        with open(os.path.join(self.root_dir, self.config.transit.input_connector_access_times_path), 'r') as f:
+        with open(self.get_abs_path(self.controller.config.transit.input_connector_access_times_path), 'r') as f:
             header = next(f).split(",")
             for line in f:
                 tokens = line.split(",")
@@ -93,7 +97,7 @@ class PrepareTransitNetwork(_Component):
                     stop = nodes[int(data["to_stop"])]
                     if network.link(taz, stop) is None:
                         connector = network.create_link(taz, stop, access_modes)
-        with open(os.path.join(self.root_dir, self.config.transit.input_connector_egress_times_path), 'r') as f:
+        with open(self.get_abs_path(self.controller.config.transit.input_connector_egress_times_path), 'r') as f:
             header = next(f).split(",")
             for line in f:
                 tokens = line.split(",")
@@ -141,17 +145,17 @@ class PrepareTransitNetwork(_Component):
         node_attributes.remove("y")
         link_attributes_reset = ["length"]
 
-        mode_table = self.config.transit.modes
+        mode_table = self.controller.config.transit.modes
         walk_modes = set()
         access_modes = set()
         egress_modes = set()
         for mode_data in mode_table:
             if mode_data["type"] == "WALK":
-                walk_modes.add(network.mode(mode_data["id"]))
+                walk_modes.add(network.mode(mode_data["mode_id"]))
             if mode_data["type"] == "ACCESS":
-                access_modes.add(network.mode(mode_data["id"]))
+                access_modes.add(network.mode(mode_data["mode_id"]))
             if mode_data["type"] == "EGRESS":
-                egress_modes.add(network.mode(mode_data["id"]))
+                egress_modes.add(network.mode(mode_data["mode_id"]))
 
         # Mark TAP adjacent stops and split TAP connectors
         for centroid in network.centroids():
@@ -365,9 +369,9 @@ class IDGenerator(object):
         return self.next()
 
 
-class ApplyFares(_Component):
+class ApplyFares(Component):
 
-    def __init__(self, controller: _Controller):
+    def __init__(self, controller: RunController):
         """Initialize component.
 
         Args:
@@ -379,8 +383,8 @@ class ApplyFares(_Component):
         self.network = None
         self.period = ""
 
-        self.dot_far_file = os.path.join(self.root_dir, self.config.transit.fares_path)
-        self.fare_matrix_file = os.path.join(self.root_dir, self.config.transit.fare_matrix_path)
+        self.dot_far_file = self.get_abs_path(self.config.transit.fares_path)
+        self.fare_matrix_file = self.get_abs_path(self.config.transit.fare_matrix_path)
 
         self._log = []
 
@@ -435,7 +439,7 @@ class ApplyFares(_Component):
             self.save_journey_levels("ALLPEN", journey_levels)
             local_modes = []
             premium_modes = []
-            for mode in self.config.transit.modes:
+            for mode in self.controller.config.transit.modes:
                 if mode.assign_type == "LOCAL":
                     local_modes.extend(mode_map[mode.id])
                 if mode.assign_type == "PREMIUM":
@@ -738,9 +742,9 @@ class ApplyFares(_Component):
                 if q == p or orig_node is None or dest_node is None or cost == "n/a":
                     continue
                 try:
-                    path_links = _emme_tools.find_path(
+                    path_links = find_path(
                         orig_node, dest_node, lambda l: l in valid_links, lambda l: l.length)
-                except _emme_tools.NoPathFound:
+                except NoPathFound:
                     continue
                 b.append(cost)
                 a_indices = [0]*index
@@ -790,11 +794,11 @@ class ApplyFares(_Component):
                 row.append("%s, UNUSED" % (cost))
             else:
                 try:
-                    path_links = _emme_tools.find_path(
+                    path_links = find_path(
                         orig_node, dest_node, lambda l: l in valid_links, lambda l: l.length)
                     path_cost = (path_links[0].board_cost + sum(l.invehicle_cost for l in path_links))
                     row.append("%s, $%.2f" % (cost, path_cost))
-                except _emme_tools.NoPathFound:
+                except NoPathFound:
                     row.append("%s, NO PATH" % (cost))
             prev_p = p
         table_content.append(row)
@@ -819,7 +823,7 @@ class ApplyFares(_Component):
             network.create_attribute(domain, name)
 
     def faresystem_distances(self, faresystems):
-        max_xfer_dist = self.config.transit.fare_max_transfer_distance_miles * 5280.0
+        max_xfer_dist = self.controller.config.transit.fare_max_transfer_distance_miles * 5280.0
         self._log.append(
             {"type": "header", "content": "Faresystem distances"})
         self._log.append(
@@ -1127,10 +1131,11 @@ class ApplyFares(_Component):
         return journey_levels
 
     def log_report(self):
-        manager = _emme_tools.EmmeManager()
-        emme_project = manager.project(os.path.join(self.root_dir, self.config.emme.project_path))
-        manager.init_modeller(emme_project)
-        report = _emme_tools.PageBuilder(title="Fare calculation report")
+        manager = EmmeManager()
+        emme_project = manager.project(self.get_abs_path(self.controller.config.emme.project_path))
+        manager.modeller(emme_project)
+        PageBuilder = _m.PageBuilder
+        report = PageBuilder(title="Fare calculation report")
         try:
             for item in self._log:
                 if item["type"] == "header":
@@ -1171,7 +1176,7 @@ class ApplyFares(_Component):
         manager.logbook_write("Apply fares report %s" % self.period, report.render())
 
     def log_text_report(self):
-        bank_dir = os.path.dirname(self.scenario.emmebank.path)
+        bank_dir = self.get_abs_path(self.controller.config.emme.transit_database_path)
         timestamp = _time.strftime("%Y%m%d-%H%M%S")
         path = os.path.join(bank_dir, "apply_fares_report_%s_%s.txt" % (self.period, timestamp))
         with open(path, 'w') as report:

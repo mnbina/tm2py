@@ -34,6 +34,7 @@ from tm2py.components.network.highway.highway_assign import HighwayAssignment
 from tm2py.components.network.highway.highway_maz import AssignMAZSPDemand, SkimMAZCosts
 from tm2py.components.network.highway.highway_network import PrepareNetwork
 from tm2py.components.network.transit.transit import TransitAssignment
+from tm2py.components.network.transit.transit_network import PrepareTransitNetwork
 from tm2py.config import Configuration
 from tm2py.emme.manager import EmmeManager
 from tm2py.logger import Logger
@@ -52,6 +53,7 @@ component_cls_map = {
     "truck": CommercialVehicleModel,
     "household": HouseholdModel,
     "transit": TransitAssignment,
+    "prepare_network_transit" : PrepareTransitNetwork,
 }
 
 # pylint: disable=too-many-instance-attributes
