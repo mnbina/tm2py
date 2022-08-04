@@ -323,7 +323,8 @@ class OMX:
         scenario: EmmeScenario = None,
         omx_key: str = "NAME",
         matrix_cache: MatrixCache = None,
-        mask_max_value: float = None
+        mask_max_value: float = None,
+        growth_factor: float = None
     ):  # pylint: disable=R0913
         """Write from Emmebank or Matrix Cache to OMX file, or read from OMX to Numpy.
 
@@ -340,12 +341,15 @@ class OMX:
                 from cache (instead of always reading from Emmmebank)
             mask_max_value: optional, max value above which to write
                 zero instead ("big to zero" behavior)
+            growth_factor:optional, grow the value in each cell by a factor
+                (e.g. write out ivt skim in minute*100)
         """
         self._file_path = file_path
         self._mode = mode
         self._scenario = scenario
         self._omx_key = omx_key
         self._mask_max_value = mask_max_value
+        self._growth_factor = growth_factor
         self._omx_file = None
         self._emme_matrix_cache = matrix_cache
         self._read_cache = {}
@@ -393,7 +397,7 @@ class OMX:
                 name: Emme matrix object/ Emme matrix ID
         """
         if isinstance(matrices, dict):
-            for key, matrix in matrices.iteritems():
+            for key, matrix in matrices.items():  # iteritems() was removed in python3
                 self.write_matrix(matrix, key)
         else:
             for matrix in matrices:
@@ -425,7 +429,7 @@ class OMX:
             n_zones = len(numpy_array)
             numpy_array = _np.resize(numpy_array, (n_zones, 1))
         attrs = {"description": matrix.description}
-        self.write_array(numpy_array, name, attrs)
+        self.write_array(numpy_array, name, "float32", attrs)
 
     def write_clipped_array(
         self,
@@ -448,10 +452,10 @@ class OMX:
             numpy_array = numpy_array.clip(a_min, a_max)
         else:
             numpy_array = numpy_array.clip(a_min)
-        self.write_array(numpy_array, name, attrs)
+        self.write_array(numpy_array, name, "float32", attrs)
 
     def write_array(
-        self, numpy_array: NumpyArray, name: str, attrs: Dict[str, str] = None
+        self, numpy_array: NumpyArray, name: str, data_type: str, attrs: Dict[str, str] = None
     ):
         """Write array with name and optional attrs to OMX file.
 
@@ -459,6 +463,7 @@ class OMX:
             numpy_array:
             name:
             attrs:
+            data_type: int, float32, float64, etc
         """
         if self._mode not in ["a", "w"]:
             raise Exception("{0}: open in read-only mode".format(self._file_path))
@@ -469,7 +474,9 @@ class OMX:
             chunkshape = None
         if self._mask_max_value:
             numpy_array[numpy_array > self._mask_max_value] = 0
-        numpy_array = numpy_array.astype(dtype="float64", copy=False)
+        if self._growth_factor:
+            numpy_array = numpy_array * self._growth_factor
+        numpy_array = numpy_array.astype(dtype=data_type, copy=False)  # set dtype as an argument
         self._omx_file.create_matrix(
             name, obj=numpy_array, chunkshape=chunkshape, attrs=attrs
         )

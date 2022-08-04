@@ -4,7 +4,7 @@
     maz_landuse_file = "inputs\\landuse\\maz_data.csv"
 
 [run]
-    create_tod_scenarios = true
+    create_tod_scenarios = false
     active_modes = false
     air_passenger = false
     highway = [ false, false, false, false ]
@@ -345,28 +345,34 @@ emme_scenario_id = 15
     initial_boarding_penalty = 10
     transfer_boarding_penalty = 10
     max_transfers = 3
-    output_skim_path = "skim_matrices\\transit\\transit_skims_{period}.omx"
+    output_skim_path = "skim_matrices\\transit\\trnskm{period}_{set_name}.omx"
     fares_path = "inputs\\trn\\fares.far"
     fare_matrix_path = "inputs\\trn\\fareMatrix.txt"
     # max expected transfer distance for mode-to-mode transfer fare table generation
     fare_max_transfer_distance_miles = 3.0
     # use with TAP assignment to control TAP access to rest of network, if TAP approach use True
     split_connectors_to_prevent_walk = false
-    use_fares = false
     # for TAZ instead of TAPs
-    override_connector_times = true # don't run prepare connector
+    override_connector_times = true
     input_connector_access_times_path = "inputs\\trn\\estimated_taz_access_connectors.csv"
     input_connector_egress_times_path = "inputs\\trn\\estimated_taz_egress_connectors.csv"
     output_stop_usage_path = "output_summaries\\stop_usage_{period}.csv"
     output_transit_boardings_path = "output_summaries\\boardings_by_line_{period}.csv"
+    output_transit_seg_shp_path = "output_summaries\\{period}_assn.shp"
     # mask options
     mask_noncombo_allpen = false
     mask_over_3_xfers = false
+    #
+    use_fares = true
+    #
     use_ccr = false
     congested_tran_assn = true
     capacitated_tran_assn = false
     station_capacity_tran_assn = false
-
+    #
+    use_peaking_factor = true
+    am_peaking_factor = 1.219
+    pm_peaking_factor = 1.262
 
 [emme]
     num_processors = "max-1"

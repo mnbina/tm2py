@@ -210,7 +210,7 @@ class CreateTODScenarios(_Component):
                 in_vehicle_factors[mode.id] = mode_data.get(
                     "in_vehicle_perception_factor", default_in_vehicle_factor)
 
-            # create vehicles   # already set up in Lasso
+            # create vehicles
             # vehicle_table = self.config.transit.vehicles
             # for veh_data in vehicle_table:
             #     vehicle = network.transit_vehicle(veh_data['id'])
@@ -242,9 +242,9 @@ class CreateTODScenarios(_Component):
                 #     link.length = 0.01  # 60.0 / 5280.0
             for line in network.transit_lines():
                 # TODO: may want to set transit line speeds (not necessarily used in the assignment though)
-                line_veh = network.transit_vehicle(line["#mode"])
+                line_veh = network.transit_vehicle(line["#vehtype"])  # use #vehtype here instead of #mode (#vehtype is vehtype_num in mtc_data\lookups\transitSeatCap.csv)
                 if line_veh is None:
-                    raise Exception(f"line {line.id} requires vehicle ('#mode') {line['#mode']} which does not exist")
+                    raise Exception(f"line {line.id} requires vehicle ('#vehtype') {line['#vehtype']} which does not exist")
                 line_mode = line_veh.mode.id
                 for seg in line.segments():
                     seg.link.modes |= {line_mode}

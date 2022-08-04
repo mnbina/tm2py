@@ -54,8 +54,8 @@ class PrepareTransitNetwork(_Component):
                         scenario.create_extra_attribute(domain, name)
 
                 network = scenario.get_network()
-                if self.config.transit.get("override_connector_times", False):
-                    self.prepare_connectors(network, period)
+                # if self.config.transit.get("override_connector_times", False):   # don't run prepare connector, connectors are created in lasso
+                    # self.prepare_connectors(network, period)
                 self.distribute_nntime(network)
                 self.update_link_trantime(network)
                 # self.calc_link_unreliability(network, period)
@@ -433,17 +433,17 @@ class ApplyFares(_Component):
             journey_levels, mode_map = self.generate_transfer_fares(
                 faresystems, faresystem_groups, network)
             self.save_journey_levels("ALLPEN", journey_levels)
-            local_modes = []
-            premium_modes = []
-            for mode in self.config.transit.modes:
-                if mode.assign_type == "LOCAL":
-                    local_modes.extend(mode_map[mode.id])
-                if mode.assign_type == "PREMIUM":
-                    premium_modes.extend(mode_map[mode.id])
-            local_levels = self.filter_journey_levels_by_mode(local_modes, journey_levels)
-            self.save_journey_levels("BUS", local_levels)
-            premium_levels = self.filter_journey_levels_by_mode(premium_modes, journey_levels)
-            self.save_journey_levels("PREM", premium_levels)
+            # local_modes = []
+            # premium_modes = []
+            # for mode in self.config.transit.modes:
+            #     if mode.assign_type == "LOCAL":
+            #         local_modes.extend(mode_map[mode.id])
+            #     if mode.assign_type == "PREMIUM":
+            #         premium_modes.extend(mode_map[mode.id])
+            # local_levels = self.filter_journey_levels_by_mode(local_modes, journey_levels)
+            # self.save_journey_levels("BUS", local_levels)
+            # premium_levels = self.filter_journey_levels_by_mode(premium_modes, journey_levels)
+            # self.save_journey_levels("PREM", premium_levels)
 
         except Exception as error:
             self._log.append({"type": "text", "content": "error during apply fares"})
@@ -658,10 +658,13 @@ class ApplyFares(_Component):
                     if board_cost is None:
                         # If this entry is missing from farematrix, 
                         # use next farezone if both previous stop and next stop are in different farezones
-                        next_seg = stop_segments[i+1]
-                        next_farezone = next_seg.i_node["@farezone"]
-                        if next_farezone != farezone and prev_farezone != farezone:
-                            board_cost = fare_matrix.get(farezone, {}).get(next_farezone)
+                        if i == len(stop_segments)-1:   # in case the last segment is missing fare
+                            board_cost = min(fare_matrix[farezone].values())
+                        else:
+                            next_seg = stop_segments[i+1]
+                            next_farezone = next_seg.i_node["@farezone"]
+                            if next_farezone != farezone and prev_farezone != farezone:
+                                board_cost = fare_matrix.get(farezone, {}).get(next_farezone)
                     if board_cost is None:
                         # use the smallest fare found from this farezone as best guess 
                         # as a reasonable boarding cost
@@ -1071,12 +1074,12 @@ class ApplyFares(_Component):
                             segment[boarding_cost_id] = max(xferboard_cost, 0)
             level += 1
 
-        for vehicle in network.transit_vehicles():
-            if vehicle.mode == meta_mode:
-                network.delete_transit_vehicle(vehicle)
-        for link in network.links():
-            link.modes -= set([meta_mode])
-        network.delete_mode(meta_mode)
+        # for vehicle in network.transit_vehicles():
+        #     if vehicle.mode == meta_mode:
+        #         network.delete_transit_vehicle(vehicle)
+        # for link in network.links():
+        #     link.modes -= set([meta_mode])
+        # network.delete_mode(meta_mode)
         self._log.append(
             {"type": "header", "content": "Mapping from original modes to modes for transition table"})
         for orig_mode, new_modes in mode_map.items():

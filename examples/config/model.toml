@@ -531,7 +531,7 @@
 [[transit.modes]]
     id = "p"
     name = "pnrdummy"
-    type = "PNR"
+    type = "PNR_dummy"
     assign_type = "TRANSIT"
 [[transit.modes]]
     id = "w"
@@ -581,290 +581,290 @@
     name = "comm_rail"
     type = "PREMIUM"
     assign_type = "TRANSIT"
-[[transit.vehicles]]
-    id = 11 
-    mode = "b"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 12 
-    mode = "b"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 14 
-    mode = "b"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 13 
-    mode = "b"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 16 
-    mode = "b"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 17 
-    mode = "b"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 20 
-    mode = "b"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 21 
-    mode = "b"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 24 
-    mode = "b"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 28 
-    mode = "b"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 30 
-    mode = "b"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 38 
-    mode = "b"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 42 
-    mode = "b"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 44 
-    mode = "b"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 46 
-    mode = "b"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 49 
-    mode = "b"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 52 
-    mode = "b"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 56 
-    mode = "b"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 60 
-    mode = "b"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 63 
-    mode = "b"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 66 
-    mode = "b"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 68 
-    mode = "b"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 70 
-    mode = "b"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 71 
-    mode = "b"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 80 
-    mode = "x"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 81 
-    mode = "x"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 84 
-    mode = "x"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 86 
-    mode = "x"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 87 
-    mode = "x"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 90 
-    mode = "x"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 91 
-    mode = "x"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 92 
-    mode = "x"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 94 
-    mode = "x"
-    name = ""
-    auto_equivalent = 2.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 101 
-    mode = "f"
-    name = ""
-    auto_equivalent = 0.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 103 
-    mode = "f"
-    name = ""
-    auto_equivalent = 0.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 110 
-    mode = "l"
-    name = ""
-    auto_equivalent = 0.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 111 
-    mode = "l"
-    name = ""
-    auto_equivalent = 0.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 120 
-    mode = "h"
-    name = ""
-    auto_equivalent = 0.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 130 
-    mode = "r"
-    name = ""
-    auto_equivalent = 0.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 131 
-    mode = "r"
-    name = ""
-    auto_equivalent = 0.0
-    seated_capacity = 1 
-    total_capacity = 2
-[[transit.vehicles]]
-    id = 133 
-    mode = "r"
-    name = ""
-    auto_equivalent = 0.0
-    seated_capacity = 1 
-    total_capacity = 2
+# [[transit.vehicles]]
+#     id = 11 
+#     mode = "b"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 12 
+#     mode = "b"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 14 
+#     mode = "b"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 13 
+#     mode = "b"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 16 
+#     mode = "b"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 17 
+#     mode = "b"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 20 
+#     mode = "b"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 21 
+#     mode = "b"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 24 
+#     mode = "b"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 28 
+#     mode = "b"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 30 
+#     mode = "b"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 38 
+#     mode = "b"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 42 
+#     mode = "b"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 44 
+#     mode = "b"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 46 
+#     mode = "b"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 49 
+#     mode = "b"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 52 
+#     mode = "b"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 56 
+#     mode = "b"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 60 
+#     mode = "b"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 63 
+#     mode = "b"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 66 
+#     mode = "b"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 68 
+#     mode = "b"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 70 
+#     mode = "b"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 71 
+#     mode = "b"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 80 
+#     mode = "x"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 81 
+#     mode = "x"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 84 
+#     mode = "x"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 86 
+#     mode = "x"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 87 
+#     mode = "x"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 90 
+#     mode = "x"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 91 
+#     mode = "x"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 92 
+#     mode = "x"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 94 
+#     mode = "x"
+#     name = ""
+#     auto_equivalent = 2.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 101 
+#     mode = "f"
+#     name = ""
+#     auto_equivalent = 0.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 103 
+#     mode = "f"
+#     name = ""
+#     auto_equivalent = 0.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 110 
+#     mode = "l"
+#     name = ""
+#     auto_equivalent = 0.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 111 
+#     mode = "l"
+#     name = ""
+#     auto_equivalent = 0.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 120 
+#     mode = "h"
+#     name = ""
+#     auto_equivalent = 0.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 130 
+#     mode = "r"
+#     name = ""
+#     auto_equivalent = 0.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 131 
+#     mode = "r"
+#     name = ""
+#     auto_equivalent = 0.0
+#     seated_capacity = 1 
+#     total_capacity = 2
+# [[transit.vehicles]]
+#     id = 133 
+#     mode = "r"
+#     name = ""
+#     auto_equivalent = 0.0
+#     seated_capacity = 1 
+#     total_capacity = 2
