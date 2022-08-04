@@ -1027,7 +1027,6 @@ class TransitAssignment(Component):
                         if m.type in ["TRANSIT", "AUX_TRANSIT"]
                     ],
                     "avg_boardings": 'mf"%s_XFERS"' % skim_name,
-                    "actual_aux_transit_times": 'mf"%s_TOTALWALK"' % skim_name,
                 },
             }
             if use_fares:
@@ -1338,16 +1337,29 @@ class TransitAssignment(Component):
         """Export skims to OMX files by period."""
         # NOTE: skims in separate file by period
         matrices = []
-        for skim in _skim_names:
-            matrices.append(f'mf"{skim}"')
-        omx_file_path = os.path.join(
-            self.controller.config.transit.output_skim_path.format(period=period))
-        os.makedirs(os.path.dirname(omx_file_path), exist_ok=True)
-        with OMXManager(
-                omx_file_path, "w", scenario, matrix_cache=self._matrix_cache, mask_max_value=1e7
-        ) as omx_file:
-            omx_file.write_matrices(matrices)
-        self._matrix_cache.clear()
+        skim_sets = [
+            ("PNR_TRN_WLK", "PNR access"),
+            ("WLK_TRN_PNR", "PNR egress"),
+            ("KNR_TRN_WLK", "KNR access"),
+            ("WLK_TRN_KNR", "KNR egress"),
+            ("WLK_TRN_WLK", "Walk access"),
+        ]
+        for set_name, set_desc in skim_sets:
+            for skim in _skim_names:
+                matrices.append(f'mf"{period}_{set_name}_{skim}"')
+            output_skim_path = self.get_abs_path(
+                self.controller.config.transit.output_skim_path
+            )
+            os.makedirs(os.path.dirname(output_skim_path), exist_ok=True)
+            omx_file_path = os.path.join(
+                output_skim_path,
+                self.controller.config.transit.output_skim_filename_tmpl.format(time_period=period, mode=set_name)
+            )
+            with OMXManager(
+                    omx_file_path, "w", scenario, matrix_cache=self._matrix_cache, mask_max_value=1e7
+            ) as omx_file:
+                omx_file.write_matrices(matrices)
+            self._matrix_cache.clear()
 
     def export_boardings_by_line(self, scenario, period):
     # def export_boardings_by_line(self, emme_app, output_transit_boardings_file):
