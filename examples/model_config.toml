@@ -635,7 +635,8 @@
     fare_max_transfer_distance_miles = 3.0
     use_fares = false
     # for TAZ instead of TAPs
-    override_connector_times = true # don't run prepare connector
+    override_connectors = false # don't run prepare connector
+    override_connector_times = true
     input_connector_access_times_path = "inputs\\trn\\estimated_taz_access_connectors.csv"
     input_connector_egress_times_path = "inputs\\trn\\estimated_taz_egress_connectors.csv"
     # mask options

@@ -28,6 +28,7 @@ pywin32==224 ; sys_platform == 'win32'
 pyyaml
 rtree
 shapely
+scipy
 tables
 toml
 typing_extensions
