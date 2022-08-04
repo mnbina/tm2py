@@ -11,7 +11,7 @@
 [run]
     start_component = ""
     initial_components = [
-        #"create_tod_scenarios",            # runs in lasso
+        #"create_tod_scenarios",            # TO DO
         #"active_modes",                    # runs in lasso
         #"home_accessibility",              # working
         #"air_passenger",                   # not needed for BART, not tested
