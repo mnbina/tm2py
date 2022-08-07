@@ -1,15 +1,20 @@
 """
 """
 
+from __future__ import annotations
+
 from collections import defaultdict as _defaultdict
 from contextlib import contextmanager as _context
 import os
-from typing import Dict, Any, Tuple, Union
+from typing import TYPE_CHECKING, Dict, Any, Tuple, Union
 
-from tm2py.core.component import Component as _Component, Controller as _Controller
-import tm2py.core.emme as _emme_tools
-from tm2py.core.logging import LogStartEnd
-from tm2py.core.tools import SpatialGridIndex
+from tm2py.components.component import Component
+import tm2py.emme as _emme_tools
+from tm2py.logger import LogStartEnd
+from tm2py.tools import SpatialGridIndex
+
+if TYPE_CHECKING:
+    from tm2py.controller import RunController
 
 _crs_wkt = '''PROJCS["NAD83(HARN) / California zone 6 (ftUS)",GEOGCS["NAD83(HARN)",
 DATUM["NAD83_High_Accuracy_Reference_Network",SPHEROID["GRS 1980",6378137,298.257222101,AUTHORITY["EPSG","7019"]],
@@ -21,10 +26,10 @@ PARAMETER["latitude_of_origin",32.16666666666666],PARAMETER["central_meridian",-
 "9003"]],AXIS["X",EAST],AXIS["Y",NORTH],AUTHORITY["EPSG","2875"]] '''
 
 
-class CreateTODScenarios(_Component):
+class CreateTODScenarios(Component):
     """Highway assignment and skims"""
 
-    def __init__(self, controller: _Controller):
+    def __init__(self, controller: RunController):
         """Highway assignment and skims.
 
         Args:
@@ -34,13 +39,17 @@ class CreateTODScenarios(_Component):
         self._emme_manager = None
         self._ref_auto_network = None
 
+    def validate_inputs(self):
+        #TODO
+        pass
+
     def run(self):
-        project_path = os.path.join(self.root_dir, self.config.emme.project_path)
-        self._emme_manager = _emme_tools.EmmeManager()
+        project_path = self.get_abs_path(self.controller.config.emme.project_path)
+        self._emme_manager = _emme_tools.manager.EmmeManager()
         emme_app = self._emme_manager.project(project_path)
-        self._emme_manager.init_modeller(emme_app)
+        self._emme_manager.modeller(emme_app)
         with self._setup():
-            # self._create_highway_scenarios() # comment out highway part
+            self._create_highway_scenarios()
             self._create_transit_scenarios()
 
     @_context
@@ -56,7 +65,7 @@ class CreateTODScenarios(_Component):
         project_coord = modeller.tool(
             "inro.emme.data.network.base.project_network_coordinates")
 
-        project_path = os.path.join(self.root_dir, self.config.emme.project_path)
+        project_path = self.get_abs_path(self.controller.config.emme.project_path)
         project_root = os.path.dirname(project_path)
         emme_app = self._emme_manager.project(project_path)
         src_prj_file = emme_app.project.spatial_reference_file
@@ -80,9 +89,9 @@ class CreateTODScenarios(_Component):
 
     @LogStartEnd("Create highway time of day scenarios.")
     def _create_highway_scenarios(self):
-        emmebank_path = os.path.join(self.root_dir, self.config.emme.highway_database_path)
+        emmebank_path = self.get_abs_path(self.controller.config.emme.highway_database_path)
         emmebank = self._emme_manager.emmebank(emmebank_path)
-        ref_scenario = emmebank.scenario(self.config.emme.all_day_scenario_id)
+        ref_scenario = emmebank.scenario(self.controller.config.emme.all_day_scenario_id)
         self._ref_auto_network = ref_scenario.get_network()
         self._emme_manager.change_emmebank_dimensions(
             emmebank,
@@ -116,7 +125,7 @@ class CreateTODScenarios(_Component):
             emmebank.delete_function("fd6")
         emmebank.create_function("fd6", fixed_tmplt)
 
-        ref_scenario = emmebank.scenario(self.config.emme.all_day_scenario_id)
+        ref_scenario = emmebank.scenario(self.controller.config.emme.all_day_scenario_id)
         attributes = {
             "LINK": ["@area_type", "@capclass", "@free_flow_speed", "@free_flow_time"]
         }
@@ -137,7 +146,7 @@ class CreateTODScenarios(_Component):
     @LogStartEnd("Create transit time of day scenarios.")
     def _create_transit_scenarios(self):
         with self.logger.log_start_end("prepare base scenario"):
-            emmebank_path = os.path.join(self.root_dir, self.config.emme.transit_database_path)
+            emmebank_path = self.get_abs_path(self.controller.config.emme.transit_database_path)
             emmebank = self._emme_manager.emmebank(emmebank_path)
             required_dims = {
                 "full_matrices": 9999,
@@ -157,7 +166,7 @@ class CreateTODScenarios(_Component):
             # segment travel time pre-calculated and stored in data1 (copied from @trantime_seg)
             emmebank.create_function("ft2", "us1")
 
-            ref_scenario = emmebank.scenario(self.config.emme.all_day_scenario_id)
+            ref_scenario = emmebank.scenario(self.controller.config.emme.all_day_scenario_id)
             attributes = {
                 "LINK": ["@trantime", "@area_type", "@capclass", "@free_flow_speed", "@free_flow_time"],
                 "TRANSIT_LINE": ["@invehicle_factor"]
@@ -179,18 +188,18 @@ class CreateTODScenarios(_Component):
             #     for attr in ["@area_type", "@capclass", "@free_flow_speed", "@free_flow_time"]:
             #         link[attr] = auto_link[attr]
 
-            mode_table = self.config.transit.modes
+            mode_table = self.controller.config.transit.modes
             in_vehicle_factors = {}
-            default_in_vehicle_factor = self.config.transit.get("in_vehicle_perception_factor", 1.0)
+            default_in_vehicle_factor = self.controller.config.transit.get("in_vehicle_perception_factor", 1.0)
             walk_modes = set()
             access_modes = set()
             egress_modes = set()
             local_modes = set()
             premium_modes = set()
             for mode_data in mode_table:
-                mode = network.mode(mode_data['id'])
+                mode = network.mode(mode_data['mode_id'])
                 if mode is None:
-                    mode = network.create_mode(mode_data['assign_type'], mode_data['id'])
+                    mode = network.create_mode(mode_data['assign_type'], mode_data['mode_id'])
                 elif mode.type != mode_data['assign_type']:
                     raise Exception(
                         f"mode {mode_data['id']} already exists with type {mode.type} instead of {mode_data['assign_type']}")
@@ -253,7 +262,7 @@ class CreateTODScenarios(_Component):
                 line["@invehicle_factor"] = in_vehicle_factors[line.vehicle.mode.id]
 
             # set link modes to the minimum set
-            auto_mode = {self.config.highway.generic_highway_mode_code}
+            auto_mode = {self.controller.config.highway.generic_highway_mode_code}
             for link in network.links():
                 # get used transit modes on link
                 modes = {seg.line.mode for seg in link.segments()}
@@ -284,7 +293,7 @@ class CreateTODScenarios(_Component):
         self._prepare_scenarios_and_attributes(emmebank)
 
         with self.logger.log_start_end("remove transit lines from other periods"):
-            for period in self.config.periods:
+            for period in self.controller.config.time_periods:
                 period_name = period.name.upper()
                 with self.logger.log_start_end(f"period {period_name}"):
                     scenario = emmebank.scenario(period.emme_scenario_id)
@@ -297,7 +306,7 @@ class CreateTODScenarios(_Component):
 
     @LogStartEnd("Copy base to period scenarios and set per-period attributes")
     def _prepare_scenarios_and_attributes(self, emmebank):
-        ref_scenario = emmebank.scenario(self.config.emme.all_day_scenario_id)
+        ref_scenario = emmebank.scenario(self.controller.config.emme.all_day_scenario_id)
         # self._project_coordinates(ref_scenario)
         # find all time-of-day attributes (ends with period name)
         tod_attr_groups = {
@@ -308,10 +317,10 @@ class CreateTODScenarios(_Component):
             "TRANSIT_SEGMENT": _defaultdict(lambda: []),
         }
         for attr in ref_scenario.extra_attributes():
-            for period in self.config.periods:
+            for period in self.controller.config.time_periods:
                 if attr.name.endswith(period.name):
                     tod_attr_groups[attr.type][attr.name[:-len(period.name)]].append(attr.name)
-        for period in self.config.periods:
+        for period in self.controller.config.time_periods:
             scenario = emmebank.scenario(period.emme_scenario_id)
             if scenario:
                 emmebank.delete_scenario(scenario)
@@ -336,32 +345,32 @@ class CreateTODScenarios(_Component):
     def _set_area_type(self, network):
         # set area type for links based on average density of MAZ closest to I or J node
         # the average density including all MAZs within the specified buffer distance
-        buff_dist = 5280 * self.config.highway.area_type_buffer_dist_miles
-        maz_data_file_path = os.path.join(self.root_dir, self.config.scenario.maz_landuse_file)
-        maz_landuse_data: Dict[int, Dict[Any, Union[str, int, Tuple[float, float]]]] = {}
-        with open(maz_data_file_path, 'r') as maz_data_file:
-            header = [h.strip() for h in next(maz_data_file).split(",")]
-            for line in maz_data_file:
+        buff_dist = 5280 * self.controller.config.highway.area_type_buffer_dist_miles
+        landuse_data_file_path = self.get_abs_path(self.controller.config.scenario.landuse_file)
+        landuse_data: Dict[int, Dict[Any, Union[str, int, Tuple[float, float]]]] = {}
+        with open(landuse_data_file_path, 'r') as landuse_data_file:
+            header = [h.strip() for h in next(landuse_data_file).split(",")]
+            for line in landuse_data_file:
                 data = dict(zip(header, line.split(",")))
-                maz_landuse_data[int(data["MAZ_ORIGINAL"])] = data
+                landuse_data[int(data[self.controller.config.scenario.landuse_index_column])] = data
         # Build spatial index of MAZ node coords
-        sp_index_maz = SpatialGridIndex(size=0.5 * 5280)
+        sp_index_zone = SpatialGridIndex(size=0.5 * 5280)
         for node in network.nodes():
-            if node["@maz_id"]:
+            if node[self.controller.config.scenario.landuse_index_in_network_column]:
                 x, y = node.x, node.y
-                maz_landuse_data[int(node["@maz_id"])]["coords"] = (x, y)
-                sp_index_maz.insert(int(node["@maz_id"]), x, y)
-        for maz_landuse in maz_landuse_data.values():
-            x, y = maz_landuse.get("coords", (None, None))
+                landuse_data[int(node[self.controller.config.scenario.landuse_index_in_network_column])]["coords"] = (x, y)
+                sp_index_zone.insert(int(node[self.controller.config.scenario.landuse_index_in_network_column]), x, y)
+        for landuse in landuse_data.values():
+            x, y = landuse.get("coords", (None, None))
             if x is None:
                 continue  # some MAZs in table might not be in network
             # Find all MAZs with the square buffer (including this one)
             # (note: square buffer instead of radius used to match earlier implementation)
-            other_maz_ids = sp_index_maz.within_square(x, y, buff_dist)
+            other_zone_ids = sp_index_zone.within_square(x, y, buff_dist)
             # Sum total landuse attributes within buffer distance
-            total_pop = sum(int(maz_landuse_data[maz_id]["POP"]) for maz_id in other_maz_ids)
-            total_emp = sum(int(maz_landuse_data[maz_id]["emp_total"]) for maz_id in other_maz_ids)
-            total_acres = sum(float(maz_landuse_data[maz_id]["ACRES"]) for maz_id in other_maz_ids)
+            total_pop = sum(int(landuse_data[zone_id][self.controller.config.scenario.landuse_total_population_column]) for zone_id in other_zone_ids)
+            total_emp = sum(int(landuse_data[zone_id][self.controller.config.scenario.landuse_total_employment_column]) for zone_id in other_zone_ids)
+            total_acres = sum(float(landuse_data[zone_id][self.controller.config.scenario.landuse_total_acre_column]) for zone_id in other_zone_ids)
             # calculate buffer area type
             if total_acres > 0:
                 density = (1 * total_pop + 2.5 * total_emp) / total_acres
@@ -369,25 +378,25 @@ class CreateTODScenarios(_Component):
                 density = 0
             # code area type class
             if density < 6:
-                maz_landuse["area_type"] = 5  # rural
+                landuse["area_type"] = 5  # rural
             elif density < 30:
-                maz_landuse["area_type"] = 4  # suburban
+                landuse["area_type"] = 4  # suburban
             elif density < 55:
-                maz_landuse["area_type"] = 3  # urban
+                landuse["area_type"] = 3  # urban
             elif density < 100:
-                maz_landuse["area_type"] = 2  # urban business
+                landuse["area_type"] = 2  # urban business
             elif density < 300:
-                maz_landuse["area_type"] = 1  # cbd
+                landuse["area_type"] = 1  # cbd
             else:
-                maz_landuse["area_type"] = 0  # regional core
+                landuse["area_type"] = 0  # regional core
         # Find nearest MAZ for each link, take min area type of i or j node
         for link in network.links():
             i_node, j_node = link.i_node, link.j_node
-            a_maz = sp_index_maz.nearest(i_node.x, i_node.y)
-            b_maz = sp_index_maz.nearest(j_node.x, j_node.y)
+            a_zone = sp_index_zone.nearest(i_node.x, i_node.y)
+            b_zone = sp_index_zone.nearest(j_node.x, j_node.y)
             link["@area_type"] = min(
-                maz_landuse_data[a_maz]["area_type"],
-                maz_landuse_data[b_maz]["area_type"]
+                landuse_data[a_zone]["area_type"],
+                landuse_data[b_zone]["area_type"]
             )
 
     @staticmethod
@@ -401,7 +410,7 @@ class CreateTODScenarios(_Component):
 
     def _set_speed(self, network):
         free_flow_speed_map = {}
-        for row in self.config.highway.capclass_lookup:
+        for row in self.controller.config.highway.capclass_lookup:
             if row.get("free_flow_speed") is not None:
                 free_flow_speed_map[row["capclass"]] = row.get("free_flow_speed")
         for link in network.links():

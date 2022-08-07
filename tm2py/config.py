@@ -51,6 +51,10 @@ class ScenarioConfig(ConfigItem):
 
     landuse_file: pathlib.Path
     landuse_index_column: str
+    landuse_index_in_network_column: str
+    landuse_total_population_column: str
+    landuse_total_employment_column: str
+    landuse_total_acre_column: str
     year: int = Field(ge=2005)
     verify: Optional[bool] = Field(default=False)
 
