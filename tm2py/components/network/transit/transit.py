@@ -1392,7 +1392,7 @@ class TransitAssignment(Component):
         # table.export(output_transit_boardings_file)
         # table.close()
         network = scenario.get_network()
-        path_boardings = os.path.join(self.controller.config.transit.output_transit_boardings_path)
+        path_boardings = self.get_abs_path(self.controller.config.transit.output_transit_boardings_path)
         with open(path_boardings.format(period=period.name), "w") as f:
             f.write(",".join(["line_name", 
                             "description", 
@@ -1448,7 +1448,7 @@ class TransitAssignment(Component):
 
         # TODO: optimization: partial network to only load links and certain attributes
         network = scenario.get_network()
-        path_tmplt = os.path.join(self.controller.config.transit.output_stop_usage_path)
+        path_tmplt = self.get_abs_path(self.controller.config.transit.output_stop_usage_path)
         with open(path_tmplt.format(period=period.name), "w") as f:
             f.write(",".join(["mode", "taz", "stop", "boardings", "alightings"]))
             for zone in network.centroids():

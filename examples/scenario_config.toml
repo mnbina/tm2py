@@ -23,9 +23,7 @@
         #"highway",                         # Working!!
         #"highway_maz_skim",                # not needed for BART, not tested
         #"prepare_network_transit",         # working
-        #"transit_assign",                  # TO DO
-        #"transit_skim",                    # TO DO
-        #"transit"                          # zero demand is not working
+        #"transit"                          
     ]
     global_iteration_components = [
         #"household",                       # can be called from tm2py
@@ -35,9 +33,7 @@
         #"prepare_network_highway",         # Working!!
         #"highway",                         # Working!!
         #"prepare_network_transit",         # Working
-        #"transit_assign",                  # TO DO
-        #"transit_skim"                     # TO DO
-        #"transit"
+        "transit"
     ]
     final_components = []
     start_iteration = 0
