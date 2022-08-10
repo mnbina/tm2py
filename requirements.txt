@@ -18,6 +18,7 @@ mkdocs-material
 mkdocstrings
 notebook
 numpy
+numexpr==2.7.1
 openmatrix
 osmnx >= 0.12
 pandas > 1.0
