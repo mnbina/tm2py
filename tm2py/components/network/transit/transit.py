@@ -1336,7 +1336,6 @@ class TransitAssignment(Component):
     def export_skims(self, period, scenario):
         """Export skims to OMX files by period."""
         # NOTE: skims in separate file by period
-        matrices = []
         skim_sets = [
             ("PNR_TRN_WLK", "PNR access"),
             ("WLK_TRN_PNR", "PNR egress"),
@@ -1345,6 +1344,7 @@ class TransitAssignment(Component):
             ("WLK_TRN_WLK", "Walk access"),
         ]
         for set_name, set_desc in skim_sets:
+            matrices = []
             for skim in _skim_names:
                 matrices.append(f'mf"{period}_{set_name}_{skim}"')
             output_skim_path = self.get_abs_path(
