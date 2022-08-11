@@ -40,7 +40,7 @@
 
 [household]
     highway_demand_file = "demand_matrices/highway/household/TAZ_Demand_{period}.omx"
-    transit_demand_file = "demand_matrices/transit/TAP_Demand_{set}_{period}.omx"
+    transit_demand_file = "demand_matrices/transit/trn_demand_v12_trim_{period}.omx"
 
 [accessibility]
     outfile = "inputs/accessibility.csv"
@@ -441,40 +441,40 @@
         roots = "MAZ"
         leaves = "MAZ"
         max_dist_miles = 3
-        output = "skim_matrices/non_motorized/ped_distance_maz_maz.txt"
+        output = "skims/non_motorized/ped_distance_maz_maz.txt"
     [[active_modes.shortest_path_skims]]
         mode = "walk"
         roots = "MAZ"
         leaves = "TAP"
         max_dist_miles = 0.5
-        output = "skim_matrices/non_motorized/ped_distance_maz_tap.txt"
+        output = "skims/non_motorized/ped_distance_maz_tap.txt"
     [[active_modes.shortest_path_skims]]
         mode = "bike"
         roots = "MAZ"
         leaves = "MAZ"
         max_dist_miles = 3
-        output = "skim_matrices/non_motorized/bike_distance_maz_maz.txt"
+        output = "skims/non_motorized/bike_distance_maz_maz.txt"
     [[active_modes.shortest_path_skims]]
         mode = "bike"
         roots = "MAZ"
         leaves = "TAP"
         max_dist_miles = 3
-        output = "skim_matrices/non_motorized/bike_distance_maz_tap.txt"
+        output = "skims/non_motorized/bike_distance_maz_tap.txt"
     [[active_modes.shortest_path_skims]]
         mode = "bike"
         roots = "TAZ"
         leaves = "TAZ"
-        output = "skim_matrices/non_motorized/bike_distance_taz_taz.txt"
+        output = "skims/non_motorized/bike_distance_taz_taz.txt"
     [[active_modes.shortest_path_skims]]
         mode = "walk"
         roots = "TAP"
         leaves = "TAP"
         max_dist_miles = 0.5
-        output = "skim_matrices/non_motorized/ped_distance_tap_tap.txt"
+        output = "skims/non_motorized/ped_distance_tap_tap.txt"
 
 [highway]
-    output_skim_path = "skim_matrices/highway"
-    output_skim_filename_tmpl = "HWYSKM{time_period}_taz.omx"
+    output_skim_path = "skims/highway"
+    output_skim_filename_tmpl = "HWYSKM{time_period}.omx"
     output_skim_matrixname_tmpl = "{time_period}_{mode}_{property}"
     relative_gap = 0.0005
     max_iterations = 100
@@ -501,7 +501,7 @@
         excluded_links = [ "is_toll_da", "is_sr",]
         operating_cost_per_mile = 18.93
         value_of_time = 17.23
-        output_skim_file = "skim_matrices/highway/HWYSKIM_MAZMAZ_DA.csv"
+        output_skim_file = "skims/highway/HWYSKIM_MAZMAZ_DA.csv"
         skim_period = "md"
         max_skim_cost = 11.0
             # based on ~= 5 miles @ 40 mph = 11
@@ -620,19 +620,28 @@
     initial_boarding_penalty = 10
     transfer_boarding_penalty = 10
     max_transfers = 3
-    output_skim_path = "skim_matrices/transit"
-    output_skim_filename_tmpl = "trnskm{time_period}_{mode}.omx"
+    use_ccr = false
+    congested_transit_assignment = false
+    capacitated_transit_assignment = false
+    station_capacity_transit_assignment = false
+    output_skim_path = "skims/transit"
+    output_skim_filename_tmpl = "{time_period}_{mode}.omx"
     output_skim_matrixname_tmpl = "{property}"
+    output_stop_usage_path = "output_summaries\\stop_usage_{period}.csv"
+    output_transit_boardings_path = "output_summaries\\boardings_by_line_{period}.csv"
     fares_path = "inputs/trn/fares.far"
     fare_matrix_path = "inputs/trn/fareMatrix.txt"
     # max expected transfer distance for mode-to-mode transfer fare table generation
     fare_max_transfer_distance_miles = 3.0
     use_fares = false
     # for TAZ instead of TAPs
-    override_connector_times = false
-    #input_connector_access_times_path = "inputs/trn/estimated_taz_access_connectors.csv"
-    #input_connector_egress_times_path = "inputs/trn/estimated_taz_egress_connectors.csv"
-    #output_stop_usage_path = "inputs/trn/stop_usage_{period}.csv"
+    override_connectors = false # don't run prepare connector
+    override_connector_times = true
+    input_connector_access_times_path = "inputs\\trn\\estimated_taz_access_connectors.csv"
+    input_connector_egress_times_path = "inputs\\trn\\estimated_taz_egress_connectors.csv"
+    # mask options
+    mask_noncombo_allpen = false
+    mask_over_3_xfers = false
     [[transit.classes]]
         name = "wlk_trn_wlk"
         description = "walk access to transit, walk egress from transit" 
@@ -644,7 +653,7 @@
     project_path = "emme_project/mtc_emme.emp"
     highway_database_path = "emme_project/Database_highway/emmebank"
     active_database_paths = [ "emme_project/Database_active_south/emmebank", "emme_project/Database_active_north/emmebank" ]
-    transit_database_path = "emme_project/Database_transit_taz/emmebank"
+    transit_database_path = "emme_project/Database_transit/emmebank"
 
 
 [[highway.capclass_lookup]]
@@ -1229,6 +1238,24 @@
 	free_flow_speed = 10
 	critical_speed = 3.0
 
+[[transit.modes]]
+    mode_id = "P"
+    name = "pnr"
+    type = "PNR"
+    assign_type = "AUX_TRANSIT"
+    speed_miles_per_hour = 40.0
+[[transit.modes]]
+    mode_id = "K"
+    name = "knr"
+    type = "KNR"
+    assign_type = "AUX_TRANSIT"
+    speed_miles_per_hour = 40.0
+[[transit.modes]]
+    mode_id = "p"
+    name = "pnrdummy"
+    type = "PNR"
+    assign_type = "TRANSIT"
+    in_vehicle_perception_factor = 1.0 # or should this be 0?
 [[transit.modes]]
     mode_id = "w"
     name = "walk"

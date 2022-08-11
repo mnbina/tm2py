@@ -18,6 +18,7 @@ mkdocs-material
 mkdocstrings
 notebook
 numpy
+numexpr==2.7.1
 openmatrix
 osmnx >= 0.12
 pandas > 1.0
@@ -28,6 +29,7 @@ pywin32==224 ; sys_platform == 'win32'
 pyyaml
 rtree
 shapely
+scipy
 tables
 toml
 typing_extensions

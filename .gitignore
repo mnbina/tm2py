@@ -50,6 +50,11 @@ examples/UnionCity/demand_matrices/
 examples/UnionCity/emme_project/
 examples/UnionCity/ref_skim_matrices/
 examples/UnionCity/skim_matrices
+examples/UnionCity/CTRAMP/
+examples/UnionCity/inputs/
+examples/UnionCity/__MACOSX/
+examples/UnionCity/logs/
+examples/9-county/
 
 #temp files
 tests/scratch/*
