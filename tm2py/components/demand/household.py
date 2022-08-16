@@ -95,7 +95,7 @@ class HouseholdModel(Component):
         "cd %PYTHON_PATH%",] + [
         f"set {key}={telecommute_parameters[key]}" for key in telecommute_parameters
         ] + [
-        "python CTRAMP\scripts\preprocess\updateTelecommuteConstants.py",
+        "python CTRAMP\\scripts\\preprocess\\updateTelecommuteConstants.py",
         "copy /Y main\telecommute_constants_00.csv main\telecommute_constants.csv"
         ]
         run_process(commands, name="update_telecommute_constants")
