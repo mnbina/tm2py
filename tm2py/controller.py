@@ -33,6 +33,9 @@ from tm2py.components.demand.internal_external import InternalExternal
 from tm2py.components.network.highway.highway_assign import HighwayAssignment
 from tm2py.components.network.highway.highway_maz import AssignMAZSPDemand, SkimMAZCosts
 from tm2py.components.network.highway.highway_network import PrepareNetwork
+from tm2py.components.network.transit.transit import TransitAssignment
+from tm2py.components.network.transit.transit_network import PrepareTransitNetwork
+from tm2py.components.network.create_tod_scenarios import CreateTODScenarios
 from tm2py.config import Configuration
 from tm2py.emme.manager import EmmeManager
 from tm2py.logger import Logger
@@ -41,6 +44,7 @@ from tm2py.tools import emme_context
 # mapping from names referenced in config.run to imported classes
 # NOTE: component names also listed as literal in tm2py.config for validation
 component_cls_map = {
+    "create_tod_scenarios" : CreateTODScenarios,
     "prepare_network_highway": PrepareNetwork,
     "highway": HighwayAssignment,
     "highway_maz_assign": AssignMAZSPDemand,
@@ -50,6 +54,8 @@ component_cls_map = {
     "internal_external": InternalExternal,
     "truck": CommercialVehicleModel,
     "household": HouseholdModel,
+    "transit": TransitAssignment,
+    "prepare_network_transit" : PrepareTransitNetwork,
 }
 
 # pylint: disable=too-many-instance-attributes
