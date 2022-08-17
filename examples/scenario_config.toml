@@ -40,3 +40,4 @@
     end_iteration = 1
     host_ip_address = "10.0.166.185"
     ctramp_run_dir = 'C:\MTC_tmpy\TM2\2015_BaseY_PYT2015'
+	sample_rate_iteration = [0.50]

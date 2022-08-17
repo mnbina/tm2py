@@ -100,6 +100,7 @@ class RunConfig(ConfigItem):
     final_components: Tuple[ComponentNames, ...]
     ctramp_run_dir: str
     host_ip_address: str
+    sample_rate_iteration: list
     start_iteration: int = Field(ge=0)
     end_iteration: int = Field(gt=0)
     start_component: Optional[Union[ComponentNames, EmptyString]] = Field(default="")
