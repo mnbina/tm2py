@@ -24,11 +24,11 @@ class HouseholdModel(Component):
             3. Starts resident travel model (CTRAMP).
             4. Cleans up CTRAMP java.
         """
+        self._update_telecommute_constants()
         self._start_household_manager()
         self._start_matrix_manager()
         self._start_jppf_driver()
         self._start_jppf_node0()
-        self._update_telecommute_constants()
         self._run_resident_model()
         self._stop_java()
 
@@ -52,7 +52,8 @@ class HouseholdModel(Component):
         run_process(commands, name="start_matrix_manager")
 
     def _run_resident_model(self):
-        sample_rate_iteration = self.controller.config.run.sample_rate_iteration
+        sample_rate_iteration_values = self.controller.config.run.sample_rate_iteration
+        sample_rate_iteration = dict(zip(range(1, len(sample_rate_iteration_values) +1), sample_rate_iteration_values))
         iteration = self.controller.iteration
         sample_rate = sample_rate_iteration[iteration]
         seed = 0
@@ -91,10 +92,10 @@ class HouseholdModel(Component):
         commands = [
         "cd /d {}".format(self.controller.config.run.ctramp_run_dir),
         "CALL {}\\CTRAMP\\runtime\\SetPath.bat".format(self.controller.config.run.ctramp_run_dir),
-        "cd %PYTHON_PATH%",] + [
+        ] + [
         f"set {key}={telecommute_parameters[key]}" for key in telecommute_parameters
         ] + [
-        "python CTRAMP\\scripts\\preprocess\\updateTelecommuteConstants.py",
+        "%PYTHON_PATH%\\python {}\\CTRAMP\\scripts\\preprocess\\updateTelecommuteConstants.py".format(self.controller.config.run.ctramp_run_dir),
         "copy /Y main\\telecommute_constants_00.csv main\\telecommute_constants.csv"
         ]
         run_process(commands, name="update_telecommute_constants")
