@@ -52,8 +52,7 @@ class HouseholdModel(Component):
         run_process(commands, name="start_matrix_manager")
 
     def _run_resident_model(self):
-        #sample_rate_iteration = {1: 0.3, 2: 0.5, 3: 1, 4: 0.02, 5: 0.02}
-        sample_rate_iteration = {1: 0.01, 2: 0.01}
+        sample_rate_iteration = self.controller.config.run.sample_rate_iteration
         iteration = self.controller.iteration
         sample_rate = sample_rate_iteration[iteration]
         seed = 0
@@ -96,6 +95,6 @@ class HouseholdModel(Component):
         f"set {key}={telecommute_parameters[key]}" for key in telecommute_parameters
         ] + [
         "python CTRAMP\\scripts\\preprocess\\updateTelecommuteConstants.py",
-        "copy /Y main\telecommute_constants_00.csv main\telecommute_constants.csv"
+        "copy /Y main\\telecommute_constants_00.csv main\\telecommute_constants.csv"
         ]
         run_process(commands, name="update_telecommute_constants")

@@ -26,7 +26,7 @@
         #"transit"                          
     ]
     global_iteration_components = [
-        #"household",                       # can be called from tm2py
+        "household",                       # can be called from tm2py
         #"internal_external",               # not needed for BART, not tested
         #"truck",                           # Working!!
         #"highway_maz_assign",              # not needed for BART, not tested
@@ -38,6 +38,6 @@
     final_components = []
     start_iteration = 0
     end_iteration = 1
-    host_ip_address = "10.0.166.185"
-    ctramp_run_dir = 'C:\MTC_tmpy\TM2\2015_BaseY_PYT2015'
+    host_ip_address = "10.0.143.35"
+    ctramp_run_dir = 'C:\MTC_tmpy\TM2\2015_BaseY_P2Y2015'
 	sample_rate_iteration = [0.50]
