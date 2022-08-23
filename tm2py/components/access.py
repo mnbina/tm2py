@@ -82,7 +82,6 @@ class HomeAccessibility(Component):
         super().__init__(controller)
         
         self.config = self.controller.config.accessibility
-        self.zones = self.emme_scenario.zone_numbers
         self.zonal_data_file = self.get_abs_path(
             self.controller.config.scenario.landuse_file
         )
@@ -194,33 +193,33 @@ class HomeAccessibility(Component):
         """
         #TODO move skim specs to config
         if time_period == 'peak':
-            ivt = get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"AM",'ivt') + \
-                get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"PM",'ivt').T
+            ivt = get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"AM",'TOTALIVTT') + \
+                get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"PM",'TOTALIVTT').T
             
-            ovt = get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"AM",'iwait') + \
-                get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"PM",'iwait').T + \
-                get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"AM",'xwait') + \
-                get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"PM",'xwait').T + \
-                get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"AM",'waux') + \
-                get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"PM",'waux').T
-                #get_omx_skim_as_numpy(self.controller,'wlk',"AM",'wacc') + \
-                #get_omx_skim_as_numpy(self.controller,'wlk',"PM",'wacc').T + \
-                #get_omx_skim_as_numpy(self.controller,'wlk',"AM",'wegr') + \
-                #get_omx_skim_as_numpy(self.controller,'wlk',"PM",'wegr').T
+            ovt = get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"AM",'FIRSTWAIT') + \
+                get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"PM",'FIRSTWAIT').T + \
+                get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"AM",'XFERWAIT') + \
+                get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"PM",'XFERWAIT').T + \
+                get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"AM",'WAUX') + \
+                get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"PM",'WAUX').T + \
+                get_omx_skim_as_numpy(self.controller,'wlk',"AM",'WACC') + \
+                get_omx_skim_as_numpy(self.controller,'wlk',"PM",'WACC').T + \
+                get_omx_skim_as_numpy(self.controller,'wlk',"AM",'WEGR') + \
+                get_omx_skim_as_numpy(self.controller,'wlk',"PM",'WEGR').T
         else:
-            ivt = get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"MD",'ivt') + \
-                get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"MD",'ivt').T
+            ivt = get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"MD",'TOTALIVTT') + \
+                get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"MD",'TOTALIVTT').T
             
-            ovt = get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"MD",'iwait') + \
-                get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"MD",'iwait').T + \
-                get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"MD",'xwait') + \
-                get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"MD",'xwait').T + \
-                get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"MD",'waux') + \
-                get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"MD",'waux').T
-                #get_omx_skim_as_numpy(self.controller,'wlk',"MD",'wacc') + \
-                #get_omx_skim_as_numpy(self.controller,'wlk',"MD",'wacc').T + \
-                #get_omx_skim_as_numpy(self.controller,'wlk',"MD",'wegr') + \
-                #get_omx_skim_as_numpy(self.controller,'wlk',"MD",'wegr').T
+            ovt = get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"MD",'FIRSTWAIT') + \
+                get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"MD",'FIRSTWAIT').T + \
+                get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"MD",'XFERWAIT') + \
+                get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"MD",'XFERWAIT').T + \
+                get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"MD",'WAUX') + \
+                get_omx_skim_as_numpy(self.controller,'wlk_trn_wlk',"MD",'WAUX').T + \
+                get_omx_skim_as_numpy(self.controller,'wlk',"MD",'WACC') + \
+                get_omx_skim_as_numpy(self.controller,'wlk',"MD",'WACC').T + \
+                get_omx_skim_as_numpy(self.controller,'wlk',"MD",'WEGR') + \
+                get_omx_skim_as_numpy(self.controller,'wlk',"MD",'WEGR').T
             
         return (ivt + self.config.__dict__['out_of_vehicle_time_weight'] * ovt)/100
 
@@ -284,6 +283,7 @@ class HomeAccessibility(Component):
         time_periods = ['peak','offpeak']
         attraction_type = ['total','retail']
         _mode_period_type = itertools.product(modes,time_periods,attraction_type)
+        self.zones = self.emme_scenario.zone_numbers
 
         for _mode,_period,_type in _mode_period_type:
             self.logsums_df[f'{_mode}_{_period}_{_type}'] = HomeAccessibility.origin_logsum(

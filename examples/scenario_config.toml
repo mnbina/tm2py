@@ -5,7 +5,7 @@
 [scenario]
     year = 2015
     verify = false
-    landuse_file = "inputs/landuse/tazData.csv"
+    landuse_file = "landuse/tazData.csv"
     landuse_index_column = "ZONE"
     landuse_index_in_network_column = "@taz_id"
     landuse_total_population_column = "TOTPOP"
@@ -17,7 +17,7 @@
     initial_components = [
         #"create_tod_scenarios",            # working
         #"active_modes",                    # runs in lasso
-        #"home_accessibility",              # working
+        "home_accessibility",              # working
         #"air_passenger",                   # not needed for BART, not tested
         #"prepare_network_highway",         # Working!!
         #"highway",                         # Working!!
@@ -33,7 +33,7 @@
         #"prepare_network_highway",         # Working!!
         #"highway",                         # Working!!
         #"prepare_network_transit",         # Working
-        "transit"
+        #"transit"
     ]
     final_components = []
     start_iteration = 0
