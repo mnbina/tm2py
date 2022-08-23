@@ -696,8 +696,24 @@
     [[transit.classes]]
         name = "wlk_trn_wlk"
         description = "walk access to transit, walk egress from transit" 
-        skims = ['boards', 'fare', 'ivt', 'ivtCOM', 'ivtEXP', 'ivtFRY', 'ivtHVY', 'ivtLOC', 'ivtLRT', 'iwait', 'wait', 'waux', 'xwait', 'xwaux',
-			'IVT', 'IWAIT', 'XWAIT', 'WAUX']
+        skims = ['BOARDS', 'DDIST', 'DTIME', 'FARE', 'IVT', 'IVTCOM', 'IVTEXP', 'IVTFRY', 'IVTHVY', 'IVTLOC', 'IVTLRT', 'IWAIT', 'PIVTCOM', 'PIVTEXP', 'PIVTFRY', 'PIVTHVY', 'PIVTLOC', 'PIVTLRT', 'WACC', 'WAIT', 'WAUX', 'WEGR', 'XWAIT']
+    [[transit.classes]]
+        name = "pnr_trn_wlk"
+        description = "pnr access to transit, walk egress from transit" 
+        skims = ['BOARDS', 'DDIST', 'DTIME', 'FARE', 'IVT', 'IVTCOM', 'IVTEXP', 'IVTFRY', 'IVTHVY', 'IVTLOC', 'IVTLRT', 'IWAIT', 'PIVTCOM', 'PIVTEXP', 'PIVTFRY', 'PIVTHVY', 'PIVTLOC', 'PIVTLRT', 'WACC', 'WAIT', 'WAUX', 'WEGR', 'XWAIT']
+    [[transit.classes]]
+        name = "wlk_trn_pnr"
+        description = "walk access to transit, pnr egress from transit" 
+        skims = ['BOARDS', 'DDIST', 'DTIME', 'FARE', 'IVT', 'IVTCOM', 'IVTEXP', 'IVTFRY', 'IVTHVY', 'IVTLOC', 'IVTLRT', 'IWAIT', 'PIVTCOM', 'PIVTEXP', 'PIVTFRY', 'PIVTHVY', 'PIVTLOC', 'PIVTLRT', 'WACC', 'WAIT', 'WAUX', 'WEGR', 'XWAIT']
+    [[transit.classes]]
+        name = "knr_trn_wlk"
+        description = "knr access to transit, walk egress from transit" 
+        skims = ['BOARDS', 'DDIST', 'DTIME', 'FARE', 'IVT', 'IVTCOM', 'IVTEXP', 'IVTFRY', 'IVTHVY', 'IVTLOC', 'IVTLRT', 'IWAIT', 'PIVTCOM', 'PIVTEXP', 'PIVTFRY', 'PIVTHVY', 'PIVTLOC', 'PIVTLRT', 'WACC', 'WAIT', 'WAUX', 'WEGR', 'XWAIT']
+    [[transit.classes]]
+        name = "wlk_trn_knr"
+        description = "walk access to transit, knr egress from transit" 
+        skims = ['BOARDS', 'DDIST', 'DTIME', 'FARE', 'IVT', 'IVTCOM', 'IVTEXP', 'IVTFRY', 'IVTHVY', 'IVTLOC', 'IVTLRT', 'IWAIT', 'PIVTCOM', 'PIVTEXP', 'PIVTFRY', 'PIVTHVY', 'PIVTLOC', 'PIVTLRT', 'WACC', 'WAIT', 'WAUX', 'WEGR', 'XWAIT']
+
 
 [emme]
     num_processors = "MAX-1"

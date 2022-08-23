@@ -82,7 +82,6 @@ class HomeAccessibility(Component):
         super().__init__(controller)
         
         self.config = self.controller.config.accessibility
-        self.zones = self.emme_scenario.zone_numbers
         self.zonal_data_file = self.get_abs_path(
             self.controller.config.scenario.landuse_file
         )
@@ -255,7 +254,8 @@ class HomeAccessibility(Component):
         attraction_type = ['total','retail']
         
         _mode_period_type = itertools.product(modes,time_periods,attraction_type)
-        
+        self.zones = self.emme_scenario.zone_numbers
+
         for _mode,_period,_type in _mode_period_type:
             formulas = self.config.__dict__[f'formula_{_mode}']
             self.logsums_df[f'{self.config.mode_names[_mode]}{_period.title()}{_type.title()}'] = HomeAccessibility.origin_logsum(
