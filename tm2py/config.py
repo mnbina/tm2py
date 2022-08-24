@@ -1,7 +1,7 @@
 """Config implementation and schema."""
 # pylint: disable=too-many-instance-attributes
 
-import pathlib, os
+import pathlib
 from abc import ABC
 from pickletools import floatnl
 from typing import Dict, List, Optional, Tuple, Union
@@ -98,9 +98,7 @@ class RunConfig(ConfigItem):
     initial_components: Tuple[ComponentNames, ...]
     global_iteration_components: Tuple[ComponentNames, ...]
     final_components: Tuple[ComponentNames, ...]
-    ctramp_run_dir: str
     host_ip_address: str
-    sample_rate_iteration: list
     start_iteration: int = Field(ge=0)
     end_iteration: int = Field(gt=0)
     start_component: Optional[Union[ComponentNames, EmptyString]] = Field(default="")
@@ -133,15 +131,7 @@ class RunConfig(ConfigItem):
                 ), f"'start_component' ({value}) must be one of the components listed in\
                     global_iteration_components if 'start_iteration > 0'"
         return value
-    
-    @validator("ctramp_run_dir", allow_reuse=True)
-    def ctramp_run_dir_exists(cls, value, values):
-        """Validate CT-RAMP run folder exists."""
-        if not value:
-            return value
-        assert os.path.exists(value),  f"'ctramp_run_dir' ({value})\
-            must be an existing folder)"
-        return value
+
 
 LogLevel = Literal[
     "TRACE", "DEBUG", "DETAIL", "INFO", "STATUS", "WARN", "ERROR", "FATAL"
@@ -511,12 +501,6 @@ class HomeAccessibilityConfig(ConfigItem):
 
     outfile: pathlib.Path
     land_use_aggregation: Dict[str, list]
-    formula_auto: Dict[str, Union[str,List[str], List]]
-    formula_transit: Dict[str, Union[str,List[str], List]]
-    formula_walk: Dict[str, Union[str,List[str], List]]
-    
-    mode_names: Dict[str, str]
-    
     dispersion_auto: float = -0.05
     dispersion_transit: float = -0.05
     dispersion_walk: float = -1.00
@@ -615,24 +599,12 @@ class ActiveModeShortestPathSkimConfig(ConfigItem):
 
 
 @dataclass(frozen=True)
-class ActiveModeClassConfig(ConfigItem):
-    """Active mode skim entry for accessibility calculations only."""
-    
-    name: str
-    description: str
-    mode_code: str
-    skims: Tuple[str, ...] = Field()
-
-@dataclass(frozen=True)
 class ActiveModesConfig(ConfigItem):
     """Active Mode skim parameters."""
 
     emme_scenario_id: int
     shortest_path_skims: Tuple[ActiveModeShortestPathSkimConfig, ...]
-    classes: Tuple[ActiveModeClassConfig, ...]
-    output_skim_path: str
-    output_skim_filename_tmpl: str
-    output_skim_matrixname_tmpl: str
+
 
 @dataclass(frozen=True)
 class HighwayCapClassConfig(ConfigItem):

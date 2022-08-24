@@ -134,7 +134,7 @@ class PrepareHighwayDemand(PrepareDemand):
                  "factor": <factor to apply to demand in this file>}
             time_period (str): the time time_period ID (name)
         """
-        scenario = self.get_emme_scenario(self._emmebank.path, time_period)
+        scenario = self.get_emme_scenario(self._emmebank_path, time_period)
         num_zones = len(scenario.zone_numbers)
         demand = self._read_demand(demand_config[0], time_period, num_zones)
         for file_config in demand_config[1:]:
