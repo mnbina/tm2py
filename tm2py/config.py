@@ -1,7 +1,7 @@
 """Config implementation and schema."""
 # pylint: disable=too-many-instance-attributes
 
-import pathlib
+import pathlib, os
 from abc import ABC
 from pickletools import floatnl
 from typing import Dict, List, Optional, Tuple, Union
@@ -133,7 +133,15 @@ class RunConfig(ConfigItem):
                 ), f"'start_component' ({value}) must be one of the components listed in\
                     global_iteration_components if 'start_iteration > 0'"
         return value
-
+    
+    @validator("ctramp_run_dir", allow_reuse=True)
+    def ctramp_run_dir_exists(cls, value, values):
+        """Validate CT-RAMP run folder exists."""
+        if not value:
+            return value
+        assert os.path.exists(value),  f"'ctramp_run_dir' ({value})\
+            must be an existing folder)"
+        return value
 
 LogLevel = Literal[
     "TRACE", "DEBUG", "DETAIL", "INFO", "STATUS", "WARN", "ERROR", "FATAL"

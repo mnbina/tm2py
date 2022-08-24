@@ -1,6 +1,7 @@
 """Placeholder docstring for CT-RAMP related components for household residents' model."""
 
 import shutil as _shutil
+import os, pathlib, itertools
 
 from tm2py.components.component import Component
 from tm2py.logger import LogStartEnd
@@ -19,11 +20,15 @@ class HouseholdModel(Component):
         """Run the the household resident travel demand model.
 
         Steps:
-            1. Starts household manager.
-            2. Starts matrix manager.
-            3. Starts resident travel model (CTRAMP).
-            4. Cleans up CTRAMP java.
+            1. Moves inputs to CT-RAMP directory if ctramp_run_dir is different from the main model directory
+            2. Updates telecommute constants
+            3. Starts household manager.
+            4. Starts matrix manager.
+            5. Starts resident travel model (CTRAMP).
+            6. Cleans up CTRAMP java.
+            7. Moves outputs to main model directory if ctramp_run_dir is different from the main model directory
         """
+        #self._move_inputs_to_run_dir()
         self._update_telecommute_constants()
         self._start_household_manager()
         self._start_matrix_manager()
@@ -31,6 +36,81 @@ class HouseholdModel(Component):
         self._start_jppf_node0()
         self._run_resident_model()
         self._stop_java()
+        self._move_outputs_to_main_dir()
+        
+    def _move_inputs_to_run_dir(self):
+        if not os.path.samefile(self.controller.config.run.ctramp_run_dir,
+            os.path.abspath(self.controller.run_dir)):
+            
+            root_src_dir = os.path.abspath(self.controller.run_dir)
+            root_dst_dir = self.controller.config.run.ctramp_run_dir
+
+            # Folders that should already exist: CT-RAMP, popsyn, logsums, INPUT\\params.properties
+            # Folders that need to be populated: landuse, skims
+            
+            # Move land use file
+            dst_dir = pathlib.Path(root_dst_dir) / 'landuse'
+            if not os.path.exists(dst_dir):
+                os.mkdir(dst_dir)
+            
+            src_file = self.get_abs_path(
+                pathlib.Path(root_src_dir) / self.controller.config.scenario.landuse_file
+            )
+            
+            dst_file = pathlib.Path(dst_dir) / os.path.basename(src_file)
+            if os.path.exists(dst_file):
+                os.remove(dst_file)
+            _shutil.copy(src_file, dst_file)
+            
+            # Move skims
+            dst_dir = pathlib.Path(root_dst_dir) / 'skims'
+            if not os.path.exists(dst_dir):
+                os.mkdir(dst_dir)
+            
+            # Nonmotorized skim
+            src_file = (pathlib.Path(root_src_dir) / self.controller.config.active_modes.output_skim_path / 
+                self.controller.config.active_modes.output_skim_filename_tmpl)
+            
+            dst_file = pathlib.Path(dst_dir) / os.path.basename(src_file)
+            if os.path.exists(dst_file):
+                os.remove(dst_file)
+            _shutil.copy(src_file, dst_file)
+                
+            
+            # Transit skims
+            periods = [c.name for c in self.controller.config.time_periods]
+            trn_classes = [c.name for c in self.controller.config.transit.classes]
+            for _period, _class in itertools.product(periods, trn_classes):
+                src_file = (pathlib.Path(root_src_dir) / self.controller.config.transit.output_skim_path / 
+                    self.controller.config.transit.output_skim_filename_tmpl.format(
+                        time_period = _period, mode = _class)
+                        )
+                dst_file = pathlib.Path(dst_dir) / os.path.basename(src_file)
+                if os.path.exists(dst_file):
+                    os.remove(dst_file)
+                _shutil.copy(src_file, dst_file)
+            
+            # Highway skims
+            periods = [c.name for c in self.controller.config.time_periods]
+            for _period  in periods:
+                src_file = (pathlib.Path(root_src_dir) / self.controller.config.highway.output_skim_path / 
+                    self.controller.config.highway.output_skim_filename_tmpl.format(
+                        time_period = _period)
+                        )
+                dst_file = pathlib.Path(dst_dir) / os.path.basename(src_file)
+                if os.path.exists(dst_file):
+                    os.remove(dst_file)
+                _shutil.copy(src_file, dst_file)
+            
+            # Accessibility file
+            src_file = pathlib.Path(root_src_dir) / self.controller.config.accessibility.outfile
+            dst_file = pathlib.Path(dst_dir) / os.path.basename(src_file)
+            if os.path.exists(dst_file):
+                os.remove(dst_file)
+            _shutil.copy(src_file, dst_file)
+            
+    def _move_outputs_to_main_dir(self):
+        pass
 
     def _start_household_manager(self):
         commands = [
