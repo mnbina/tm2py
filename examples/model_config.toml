@@ -475,7 +475,7 @@
 [highway]
     output_skim_path = "skims/highway"
     output_skim_filename_tmpl = "HWYSKM{time_period}.omx"
-    output_skim_matrixname_tmpl = "{time_period}_{mode}_{property}"
+    output_skim_matrixname_tmpl = "{property_name}{class_name}"
     relative_gap = 0.0005
     max_iterations = 100
     run_maz_assignment = false
@@ -526,7 +526,8 @@
         value_of_time = 18.93
         operating_cost_per_mile = 17.23
         toll = [ "@bridgetoll_da" ]
-        skims = [ "time", "dist", "freeflowtime", "bridgetoll",]
+        skims = [ "time", "dist", "freeflowtime", "btoll", "vtoll",]
+        output_skim_matrixname_tmpl = "{property_name}{class_name}"
         [[highway.classes.demand]]
             source = "household"
             name = "da"
@@ -545,7 +546,8 @@
         operating_cost_per_mile = 17.23
         toll = [ "@bridgetoll_sr2" ]
         toll_factor = 0.5714285714285714
-        skims = [ "time", "dist", "freeflowtime", "bridgetoll", "hovdist",]
+        skims = [ "time", "dist", "freeflowtime", "btoll", "vtoll",]
+        output_skim_matrixname_tmpl = "{property_name}{class_name}"
         [[highway.classes.demand]]
             source = "household"
             name = "sr2"
@@ -565,7 +567,8 @@
         operating_cost_per_mile = 17.23
         toll = ["@bridgetoll_sr3"]
         toll_factor = 0.4
-        skims = [ "time", "dist", "freeflowtime", "bridgetoll", "hovdist",]
+        skims = [ "time", "dist", "freeflowtime", "btoll", "vtoll",]
+        output_skim_matrixname_tmpl = "{property_name}{class_name}"
         [[highway.classes.demand]]
             source = "household"
             name = "sr3"
@@ -584,7 +587,8 @@
         value_of_time = 37.87
         operating_cost_per_mile = 31.28
         toll = ["@bridgetoll_sml"]
-        skims = [ "time", "dist", "freeflowtime", "bridgetoll_vsm", "bridgetoll_sml", "bridgetoll_med",]
+        skims = [ "time", "dist", "freeflowtime", "btoll_vsm", "btoll_sml", "btoll_med",]
+        output_skim_matrixname_tmpl = "{property_name}{class_name}"
         [[highway.classes.demand]]
             source = "truck"
             name = "vsmtrk"
@@ -603,7 +607,8 @@
         operating_cost_per_mile = 31.28
         toll = ["@bridgetoll_lrg"]
         pce = 2.0
-        skims = [ "time", "dist", "freeflowtime", "bridgetoll_lrg",]
+        skims = [ "time", "dist", "freeflowtime", "btoll_lrg",]
+        output_skim_matrixname_tmpl = "{property_name}{class_name}"
         [[highway.classes.demand]]
             source = "truck"
             name = "lrgtrk"
