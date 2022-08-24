@@ -303,8 +303,8 @@ class HighwayAssignment(Component):
             skims: list of requested skims (from config)
         """
         for skim_name in skims:
-            if skim_name in ["time", "distance", "bridgetoll", "valuetoll"]:
-                matrix_name = f"mf{time_period.lower()}_{class_name}_{skim_name}"
+            if skim_name in ["time", "dist", "btoll", "vtoll"]:
+                matrix_name = f"{skim_name.upper()}{class_name.upper()}"
                 self.logger.debug(f"Setting intrazonals to 0.5*min for {matrix_name}")
                 data = self._matrix_cache.get_data(matrix_name)
                 # NOTE: sets values for external zones as well
@@ -425,7 +425,7 @@ class AssignmentClass:
             if skim_type == "time":
                 continue
             group = self.name
-            matrix_name = f"mf{self.time_period.lower()}_{self.name}_{skim_type}"
+            matrix_name = f"{skim_type}{self.name}"
             class_analysis.append(
                 self.emme_analysis_spec(
                     self.skim_analysis_link_attribute(skim_type, group),
@@ -441,14 +441,13 @@ class AssignmentClass:
         if "time" in self.skims:
             skim_matrices.extend(
                 [
-                    f"{self.time_period.lower()}_{self.name}_time",
-                    f"{self.time_period.lower()}_{self.name}_cost",
+                    f"TIME{self.name.upper()}",
                 ]
             )
         for skim_type in self.skims:
             if skim_type == "time":
                 continue
-            skim_matrices.append(f"{self.time_period.lower()}_{self.name}_{skim_type}")
+            skim_matrices.append(f"{skim_type.upper()}{self.name.upper()}")
         return skim_matrices
 
     @staticmethod
@@ -498,14 +497,7 @@ class AssignmentClass:
         """
         lookup = {
             "dist": "length",  # NOTE: length must be in miles
-            "hovdist": "@hov_length",
-            "tolldist": "@toll_length",
-            "freeflowtime": "@free_flow_time",
-            "bridgetoll": f"@bridgetoll_{group}",
-            "valuetoll": f"@valuetoll_{group}",
-            "bridgetoll_vsm": "@bridgetoll_vsm",
-            "bridgetoll_sml": "@bridgetoll_sml",
-            "bridgetoll_med": "@bridgetoll_med",
-            "bridgetoll_lrg": "@bridgetoll_lrg",
+            "btoll": f"@bridgetoll_{group}",
+            "vtoll": f"@valuetoll_{group}",
         }
         return lookup[skim]
