@@ -36,7 +36,7 @@
     log_file_level = "DETAIL"
     log_on_error_file_path = "log_error.txt"
     notify_slack = false
-    use_emme_logbook = false
+    use_emme_logbook = true
 
 [household]
     highway_demand_file = "demand_matrices/highway/household/TAZ_Demand_{period}.omx"
