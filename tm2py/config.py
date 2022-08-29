@@ -98,9 +98,6 @@ class RunConfig(ConfigItem):
     initial_components: Tuple[ComponentNames, ...]
     global_iteration_components: Tuple[ComponentNames, ...]
     final_components: Tuple[ComponentNames, ...]
-    ctramp_run_dir: str
-    host_ip_address: str
-    sample_rate_iteration: list
     start_iteration: int = Field(ge=0)
     end_iteration: int = Field(gt=0)
     start_component: Optional[Union[ComponentNames, EmptyString]] = Field(default="")
@@ -134,14 +131,7 @@ class RunConfig(ConfigItem):
                     global_iteration_components if 'start_iteration > 0'"
         return value
     
-    @validator("ctramp_run_dir", allow_reuse=True)
-    def ctramp_run_dir_exists(cls, value, values):
-        """Validate CT-RAMP run folder exists."""
-        if not value:
-            return value
-        assert os.path.exists(value),  f"'ctramp_run_dir' ({value})\
-            must be an existing folder)"
-        return value
+
 
 LogLevel = Literal[
     "TRACE", "DEBUG", "DETAIL", "INFO", "STATUS", "WARN", "ERROR", "FATAL"
@@ -203,6 +193,7 @@ class TimePeriodConfig(ConfigItem):
     """
 
     name: str = Field(max_length=4)
+    start_hour: float = Field(gt=0)
     length_hours: float = Field(gt=0)
     highway_capacity_factor: float = Field(gt=0)
     emme_scenario_id: int = Field(ge=1)
@@ -264,7 +255,34 @@ class HouseholdConfig(ConfigItem):
 
     highway_demand_file: pathlib.Path
     transit_demand_file: pathlib.Path
-
+    active_demand_file: pathlib.Path
+    ctramp_run_dir: pathlib.Path
+    host_ip_address: str
+    sample_rate_iteration: list
+    ctramp_indiv_trip_file: pathlib.Path
+    ctramp_joint_trip_file: pathlib.Path
+    rideshare_mode_split: Dict[str,float]
+    taxi_split: Dict[str,float]
+    single_tnc_split: Dict[str,float]
+    shared_tnc_split: Dict[str,float]
+    ctramp_mode_names: Dict[float,str]
+    
+    
+    @validator("ctramp_mode_names", allow_reuse=True)
+    def valid_ctramp_mode_codes(value):
+        """Validate ctramp mode codes go up to 9."""
+        
+        assert max(value) <= 9, "The CT-RAMP mode key must not exceed 9"
+        return value
+        
+    @validator("ctramp_run_dir", allow_reuse=True)
+    def ctramp_run_dir_exists(cls, value, values):
+        """Validate CT-RAMP run folder exists."""
+        if not value:
+            return value
+        assert os.path.exists(value),  f"'ctramp_run_dir' ({value})\
+            must be an existing folder)"
+        return value
 
 @dataclass(frozen=True)
 class AirPassengerDemandAggregationConfig(ConfigItem):

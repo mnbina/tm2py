@@ -256,7 +256,7 @@ class RunController:
             "Components already queued, returning without re-queuing."
             return
 
-        print("RUN COMPOMENTS", run_components)
+        print("RUN COMPONENTS", run_components)
         _initial_components = self.config.run.initial_components
         _global_iter_components = self.config.run.global_iteration_components
         _final_components = self.config.run.final_components
