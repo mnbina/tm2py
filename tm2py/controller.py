@@ -36,6 +36,7 @@ from tm2py.components.network.highway.highway_network import PrepareNetwork
 from tm2py.components.network.transit.transit import TransitAssignment
 from tm2py.components.network.transit.transit_network import PrepareTransitNetwork
 from tm2py.components.network.create_tod_scenarios import CreateTODScenarios
+from tm2py.components.network.network_convergence import ConvergenceReport
 from tm2py.config import Configuration
 from tm2py.emme.manager import EmmeManager
 from tm2py.logger import Logger
@@ -56,6 +57,7 @@ component_cls_map = {
     "household": HouseholdModel,
     "transit": TransitAssignment,
     "prepare_network_transit" : PrepareTransitNetwork,
+    "convergence_report": ConvergenceReport
 }
 
 # pylint: disable=too-many-instance-attributes

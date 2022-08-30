@@ -697,7 +697,8 @@
             source = "truck"
             name = "lrgtrk"
             factor = 2.0
-
+	[highway.convergence]
+		output_convergence_report_path = "output_summaries/highway_convergence_report.xlsx"
 
 [transit]
     apply_msa_demand = false

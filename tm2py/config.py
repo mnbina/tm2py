@@ -74,6 +74,7 @@ ComponentNames = Literal[
     "visitor",
     "internal_external",
     "truck",
+    "convergence_report"
 ]
 EmptyString = Literal[""]
 
@@ -885,6 +886,14 @@ class HighwayMazToMazConfig(ConfigItem):
         assert len(group_ids) == len(set(group_ids)), "-> number value must be unique"
         return value
 
+@dataclass(frozen=True)
+class ConvergenceReportConfig(ConfigItem):
+    """Highway assignment convergence reporting parameters.
+    
+    Properties:
+        output_convergence_report_path: file path to Excel file containing convergence reports from every iteration.
+    """
+    output_convergence_report_path: pathlib.Path = Field()
 
 @dataclass(frozen=True)
 class HighwayConfig(ConfigItem):
@@ -924,6 +933,7 @@ class HighwayConfig(ConfigItem):
     classes: Tuple[HighwayClassConfig, ...] = Field()
     capclass_lookup: Tuple[HighwayCapClassConfig, ...] = Field()
     run_maz_assignment: bool = Field(default=False)
+    convergence: ConvergenceReportConfig = Field()
 
     @validator("output_skim_filename_tmpl")
     def valid_skim_template(value):

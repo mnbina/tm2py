@@ -19,15 +19,17 @@
         "prepare_network_highway",
         "highway",
         "prepare_network_transit",
-        "transit"                          
+        "transit",
+		"convergence_report"		
     ]
     global_iteration_components = [
         "home_accessibility",
         "household", 
         "truck",
         "highway",
-        "transit"
+        "transit",
+		"convergence_report"	
     ]
     final_components = []
     start_iteration = 0
-    end_iteration = 2
+    end_iteration = 1
