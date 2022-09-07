@@ -161,8 +161,8 @@ class PrepareHighwayDemand(PrepareDemand):
         """Prepares highway and transit household demand matrices from trip lists produced by CT-RAMP.
         """
         
-        indiv_trip_file = pathlib.Path(self.controller.config.household.ctramp_run_dir) / self.controller.config.household.ctramp_indiv_trip_file
-        joint_trip_file = pathlib.Path(self.controller.config.household.ctramp_run_dir) / self.controller.config.household.ctramp_joint_trip_file
+        indiv_trip_file = pathlib.Path(self.controller.config.household.ctramp_run_dir) / self.controller.config.household.ctramp_indiv_trip_file.format(iteration=self.controller.iteration)
+        joint_trip_file = pathlib.Path(self.controller.config.household.ctramp_run_dir) / self.controller.config.household.ctramp_joint_trip_file.format(iteration=self.controller.iteration)
         it_full, jt_full = pd.read_csv(indiv_trip_file), pd.read_csv(joint_trip_file)
         
         # Add time period, expanded count
