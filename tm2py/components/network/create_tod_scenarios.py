@@ -251,9 +251,9 @@ class CreateTODScenarios(Component):
                 #     link.length = 0.01  # 60.0 / 5280.0
             for line in network.transit_lines():
                 # TODO: may want to set transit line speeds (not necessarily used in the assignment though)
-                line_veh = network.transit_vehicle(line["#mode"])
+                line_veh = network.transit_vehicle(line["#vehtype"]) # use #vehtype here instead of #mode (#vehtype is vehtype_num in Lasso\mtc_data\lookups\transitSeatCap.csv)
                 if line_veh is None:
-                    raise Exception(f"line {line.id} requires vehicle ('#mode') {line['#mode']} which does not exist")
+                    raise Exception(f"line {line.id} requires vehicle ('#vehtype') {line['#vehtype']} which does not exist")
                 line_mode = line_veh.mode.id
                 for seg in line.segments():
                     seg.link.modes |= {line_mode}
