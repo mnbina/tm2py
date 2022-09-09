@@ -739,7 +739,7 @@ class TransitAssignment(Component):
             with open(
                     os.path.join(
                         project_dir, "Specifications", "%s_ALLPEN_journey_levels.ems" % period.name
-                    )
+                    ),
                     "r",
             ) as f:
                 journey_levels = _json.load(f)["journey_levels"]
