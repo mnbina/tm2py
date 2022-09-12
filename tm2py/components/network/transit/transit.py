@@ -364,9 +364,9 @@ class TransitAssignment(Component):
 
         # hard code connetor time for now
         for link in network.links():
-            if (link.modes == "a") or (link.modes == "e"):
+            if (link.modes == set([network.mode('a')])) or (link.modes == set([network.mode('e')])):
                 link['@connector_time_all'] = 60*link['length']/3
-            if (link.modes == "P") or (link.modes == "K"):
+            if (link.modes == set([network.mode('P')])) or (link.modes == set([network.mode('K')])):
                 link['@connector_time_all'] = 60*link['length']/40
 
         # lookup adjacent real stop to account for connector splitting
