@@ -267,7 +267,6 @@ class TransitAssignment(Component):
 
                 scenario.publish_network(network)
 
-                use_fares = self.controller.config.transit.use_fares
                 self.assign_and_skim(
                     scenario,
                     network,
@@ -308,7 +307,7 @@ class TransitAssignment(Component):
                     ea_df["line_name_am"]  = ea_df["line_name"].str.replace('EA','AM')
 
                 if self.controller.config.transit.get("output_transit_boardings_path"):
-                    self.export_boardings_by_line(scenario, period)
+                    self.export_boardings_by_line(scenario, period, use_fares)
                 if self.controller.config.transit.get("output_stop_usage_path"):
                     self.export_connector_flows(scenario, period)
 
@@ -1481,7 +1480,7 @@ class TransitAssignment(Component):
 
             self._matrix_cache.clear()
 
-    def export_boardings_by_line(self, scenario, period):
+    def export_boardings_by_line(self, scenario, period, use_fares):
         network = scenario.get_network()
         path_boardings = self.get_abs_path(self.controller.config.transit.output_transit_boardings_path)
         with open(path_boardings.format(period=period.name), "w") as f:
@@ -1501,7 +1500,10 @@ class TransitAssignment(Component):
                 capacity = line.vehicle.total_capacity
                 hdw = line.headway
                 line_hour_cap = 60*capacity/hdw
-                
+                if use_fares:
+                    mode = line['#src_mode']
+                else:
+                    mode = line.mode
                 for segment in line.segments(include_hidden=True):
                     boardings += segment.transit_boardings  
                 f.write(",".join([str(x) for x in [line.id, 
@@ -1509,7 +1511,7 @@ class TransitAssignment(Component):
                                                 boardings, 
                                                 line_hour_cap,    
                                                 line['#mode'], 
-                                                line['#src_mode'],  
+                                                mode,  
                                                 line.headway,
                                                 line['#faresystem'],  
                                                 ]]))
