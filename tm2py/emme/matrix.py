@@ -266,7 +266,7 @@ class OMXManager:
         self.write_array(numpy_array, name, "float32", attrs)
 
     def write_array(
-        self, numpy_array: NumpyArray, name: str, data_type: str, attrs: Dict[str, str] = None
+        self, numpy_array: NumpyArray, name: str, data_type: str = "float32", attrs: Dict[str, str] = None
     ):
         """Write array with name and optional attrs to OMX file.
 
@@ -296,7 +296,7 @@ class OMXManager:
         """Read OMX data as numpy array (standard interface).
 
         Caches matrix data (arrays) already read from disk.
-
+        
         Args:
             name: name of OMX matrix
 
@@ -305,9 +305,15 @@ class OMXManager:
         """
         if name in self._read_cache:
             return self._read_cache[name]
-        data = self._omx_file[name].read()
-        self._read_cache[name] = data
-        return data
+        if name in self._omx_file.list_matrices():
+            data = self._omx_file[name].read()
+            self._read_cache[name] = data
+            return data
+        elif name.lower() in [s.lower() for s in self._omx_file.list_matrices()]:
+            name_alt = [s for s in self._omx_file.list_matrices() if s.lower() == name.lower()][0] # TODO: finds the first matrix name that has the exact same spelling but different cases
+            data = self._omx_file[name_alt].read()
+            self._read_cache[name] = data
+            return data
 
     def read_hdf5(self, path: str) -> NumpyArray:
         """Read data directly from PyTables interface.
