@@ -263,20 +263,3 @@ class TransitPostprocessor():
                 os.remove(dst_fn)
                 shutil.copy(src_fn, dst_fn)
                 os.remove(src_fn)
-
-
-class AccessibilityPostprocessor():
-    def __init__(self, min_value = 1):
-        """Constructor for the AcessibilityPostprocessor.
-
-        Args:
-            min_value: minimum value to replace auto accessibility with.
-        """
-        self.min_value = min_value
-        
-    def replace_zero_auto_acccessibility(self, access_component):
-        acc_file_path = access_component.get_abs_path(access_component.config.outfile)
-        df = pd.read_csv(acc_file_path)
-        cols_to_replace = [c for c in df.columns if 'auto' in c.lower()]
-        df[cols_to_replace] = df[cols_to_replace].replace(0, self.min_value)
-        df.to_csv(acc_file_path, index = False)

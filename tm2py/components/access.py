@@ -10,7 +10,7 @@ from numpy import array as NumpyArray
 
 from tm2py.components.component import Component
 from tm2py.components.network.skims import get_omx_skim_as_numpy, get_summed_skims
-from tm2py.components.network.postprocess_skims import HighwayPostprocessor, TransitPostprocessor, AccessibilityPostprocessor
+from tm2py.components.network.postprocess_skims import HighwayPostprocessor, TransitPostprocessor
 from tm2py.logger import LogStartEnd
 from tm2py.emme.matrix import OMXManager
 
@@ -293,8 +293,8 @@ class HomeAccessibility(Component):
     
     def run(self):
     
-#        self._highway_postprocess()
-#        self._transit_postprocess()
+        self._highway_postprocess()
+        self._transit_postprocess()
 
         self._generate_accessibility_file()
 
