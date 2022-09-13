@@ -261,13 +261,6 @@ class HomeAccessibility(Component):
         tp = TransitPostprocessor(skim_path, skim_path)
         tp.update_skim_names()
     
-    def _auto_accessibility_postprocess(self):
-        """
-        Temporary fix for now until highway network is no longer severely disconnected.
-        """
-        ap = AccessibilityPostprocessor(1)
-        ap.replace_zero_auto_acccessibility(self)
-    
     def _generate_accessibility_file(self):
         modes = [
         'auto',
@@ -300,13 +293,11 @@ class HomeAccessibility(Component):
     
     def run(self):
     
-        self._highway_postprocess()
-        self._transit_postprocess()
+#        self._highway_postprocess()
+#        self._transit_postprocess()
 
         self._generate_accessibility_file()
 
-        #self._auto_accessibility_postprocess() # This causes CT-RAMP to perform mode choice on otherwise non-accessible destinations and crash
-        
     @property
     def estimation_docs(self):
         """Original Estimation Calculation script.

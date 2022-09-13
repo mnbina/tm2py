@@ -260,8 +260,8 @@ class HouseholdConfig(ConfigItem):
     ctramp_run_dir: pathlib.Path
     host_ip_address: str
     sample_rate_iteration: list
-    ctramp_indiv_trip_file: pathlib.Path
-    ctramp_joint_trip_file: pathlib.Path
+    ctramp_indiv_trip_file: str
+    ctramp_joint_trip_file: str
     rideshare_mode_split: Dict[str,float]
     taxi_split: Dict[str,float]
     single_tnc_split: Dict[str,float]

@@ -51,7 +51,7 @@
 	ctramp_joint_trip_file = "main/jointTripData_{iteration}.csv"
 	host_ip_address = "10.0.143.35"
     ctramp_run_dir = 'C:\MTC_tmpy\TM2\2015_BaseY_P3Y2015'
-	sample_rate_iteration = [0.01, 0.05]
+	sample_rate_iteration = [0.50]
 	[household.rideshare_mode_split]
 	"taxi"=0.08
 	"single_tnc"=0.72
