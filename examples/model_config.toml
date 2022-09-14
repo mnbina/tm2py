@@ -4,26 +4,31 @@
 
 [[time_periods]]
     name = "ea"
+	start_hour = 3
     length_hours = 3
     highway_capacity_factor = 3
     emme_scenario_id = 11
 [[time_periods]]
     name = "am"
+	start_hour = 6
     length_hours = 4
     highway_capacity_factor = 3.65
     emme_scenario_id = 12
 [[time_periods]]
     name = "md"
+	start_hour = 10
     length_hours = 5
     highway_capacity_factor = 5
     emme_scenario_id = 13
 [[time_periods]]
     name = "pm"
+	start_hour = 15
     length_hours = 4
     highway_capacity_factor = 3.65
     emme_scenario_id = 14
 [[time_periods]]
     name = "ev"
+	start_hour = 19
     length_hours = 8
     highway_capacity_factor = 8
     emme_scenario_id = 15
@@ -41,6 +46,39 @@
 [household]
     highway_demand_file = "demand_matrices/highway/household/TAZ_Demand_{period}.omx"
     transit_demand_file = "demand_matrices/transit/trn_demand_v12_trim_{period}.omx"
+	active_demand_file = "demand_matrices/active/nm_demand_{period}.omx"
+	ctramp_indiv_trip_file = "main/indivTripData_{iteration}.csv"
+	ctramp_joint_trip_file = "main/jointTripData_{iteration}.csv"
+	host_ip_address = "10.0.143.35"
+    ctramp_run_dir = 'C:\MTC_tmpy\TM2\2015_BaseY_P3Y2015'
+	sample_rate_iteration = [0.50]
+	[household.rideshare_mode_split]
+	"taxi"=0.08
+	"single_tnc"=0.72
+	"shared_tnc"=0.20
+	[household.taxi_split]
+	"da"= 0.00
+	"sr2"= 0.53
+	"sr3"= 0.47
+	[household.single_tnc_split]
+	"da"= 0.00
+	"sr2"= 0.53
+	"sr3"= 0.47
+	[household.shared_tnc_split]
+	"da"= 0.00
+	"sr2"= 0.18
+	"sr3"= 0.82
+	[household.ctramp_mode_names]
+	1 = 'da'
+	2 = 'sr2'
+	3 = 'sr3'
+	4 = 'WALK'
+	5 = 'BIKE'
+	6 = 'wlk'
+	7 = 'pnr'
+	8 = 'knr'
+	9 = 'RIDEHAIL'
+
 
 [accessibility]
     outfile = "inputs/accessibility.csv"
@@ -55,10 +93,10 @@
 	[accessibility.formula_auto]
 		# second element of list contains matrices to be transposed
 		# formatted as a list of [mode name, time period]
-		"peak" = [[['DA','AM']],
-			[['DA', 'PM']]]
-		"offpeak" = [[['DA','MD']],
-			[['DA', 'MD']]]
+		"peak" = [[['da','AM']],
+			[['da', 'PM']]]
+		"offpeak" = [[['da','MD']],
+			[['da', 'MD']]]
 		"prop" = 'TIME'
 	[accessibility.formula_transit]
 		"peak" = [[['wlk_trn_wlk','AM']],
@@ -85,7 +123,7 @@
     reference_end_year = "2035"
     airport_names = [ "SFO", "OAK", "SJC",]
     [[air_passenger.demand_aggregation]]
-        name = "DA"
+        name = "da"
         mode = "da"
         access_modes = [ "ES", "PK", "RN", "TX", "LI",]
     [[air_passenger.demand_aggregation]]
@@ -565,7 +603,7 @@
             counties = ["Solano", "Napa", "Sonoma", "Marin"]
 
     [[highway.classes]]
-        name = "DA"
+        name = "da"
         description = "drive alone"
         mode_code = "d"
         excluded_links = [ "is_sr",]
@@ -659,7 +697,8 @@
             source = "truck"
             name = "lrgtrk"
             factor = 2.0
-
+	[highway.convergence]
+		output_convergence_report_path = "output_summaries/highway_convergence_report.xlsx"
 
 [transit]
     apply_msa_demand = false

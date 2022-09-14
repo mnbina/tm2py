@@ -1344,9 +1344,12 @@ class TransitAssignment(Component):
             ("WLK_TRN_WLK", "Walk access"),
         ]
         for set_name, set_desc in skim_sets:
-            matrices = []
+            #matrices = []
+            matrices = {}
             for skim in _skim_names:
-                matrices.append(f'mf"{period}_{set_name}_{skim}"')
+                #matrices.append(f'mf"{period}_{set_name}_{skim}"')
+                matrices[self.controller.config.transit.output_skim_matrixname_tmpl.format(property=skim.upper())] = f'mf"{period}_{set_name}_{skim}"'
+                # OMX matrix cores need to follow naming convention from config
             output_skim_path = self.get_abs_path(
                 self.controller.config.transit.output_skim_path
             )

@@ -15,29 +15,21 @@
 [run]
     start_component = ""
     initial_components = [
-        #"create_tod_scenarios",            # working
-        #"active_modes",                    # runs in lasso
-        #"home_accessibility",              # working
-        #"air_passenger",                   # not needed for BART, not tested
-        "prepare_network_highway",         # Working!!
-        "highway",                         # Working!!
-        #"highway_maz_skim",                # not needed for BART, not tested
-        #"prepare_network_transit",         # working
-        "transit"                          
+        "create_tod_scenarios",
+        "prepare_network_highway",
+        "highway",
+        "prepare_network_transit",
+        "transit",
+		"convergence_report"		
     ]
     global_iteration_components = [
-        "household",                       # can be called from tm2py
-        #"internal_external",               # not needed for BART, not tested
-        "truck",                           # Working!!
-        #"highway_maz_assign",              # not needed for BART, not tested
-        #"prepare_network_highway",         # Working!!
-        #"highway",                         # Working!!
-        #"prepare_network_transit",         # Working
-        #"transit"
+        "home_accessibility",
+        "household", 
+        "truck",
+        "highway",
+        "transit",
+		"convergence_report"	
     ]
     final_components = []
     start_iteration = 0
-    end_iteration = 2
-    host_ip_address = "10.0.143.35"
-    ctramp_run_dir = 'C:\MTC_tmpy\TM2\2015_BaseY_P2Y2015'
-	sample_rate_iteration = [1.0]
+    end_iteration = 1
