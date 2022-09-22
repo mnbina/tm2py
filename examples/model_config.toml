@@ -4,31 +4,31 @@
 
 [[time_periods]]
     name = "ea"
-	start_hour = 3
+    start_hour = 3
     length_hours = 3
     highway_capacity_factor = 3
     emme_scenario_id = 11
 [[time_periods]]
     name = "am"
-	start_hour = 6
+    start_hour = 6
     length_hours = 4
     highway_capacity_factor = 3.65
     emme_scenario_id = 12
 [[time_periods]]
     name = "md"
-	start_hour = 10
+    start_hour = 10
     length_hours = 5
     highway_capacity_factor = 5
     emme_scenario_id = 13
 [[time_periods]]
     name = "pm"
-	start_hour = 15
+    start_hour = 15
     length_hours = 4
     highway_capacity_factor = 3.65
     emme_scenario_id = 14
 [[time_periods]]
     name = "ev"
-	start_hour = 19
+    start_hour = 19
     length_hours = 8
     highway_capacity_factor = 8
     emme_scenario_id = 15
@@ -45,39 +45,39 @@
 
 [household]
     highway_demand_file = "demand_matrices/highway/household/TAZ_Demand_{period}.omx"
-    transit_demand_file = "demand_matrices/transit/trn_demand_v12_trim_{period}.omx"
-	active_demand_file = "demand_matrices/active/nm_demand_{period}.omx"
-	ctramp_indiv_trip_file = "main/indivTripData_{iteration}.csv"
-	ctramp_joint_trip_file = "main/jointTripData_{iteration}.csv"
-	host_ip_address = "10.0.143.35"
+    transit_demand_file = "demand_matrices/onboard_survey_consolidate_v12/trn_demand_v12_trim_{period}.omx"
+    active_demand_file = "demand_matrices/active/nm_demand_{period}.omx"
+    ctramp_indiv_trip_file = "main/indivTripData_{iteration}.csv"
+    ctramp_joint_trip_file = "main/jointTripData_{iteration}.csv"
+    host_ip_address = "10.0.143.35"
     ctramp_run_dir = 'C:\MTC_tmpy\TM2\2015_BaseY_P3Y2015'
-	sample_rate_iteration = [0.50]
-	[household.rideshare_mode_split]
-	"taxi"=0.08
-	"single_tnc"=0.72
-	"shared_tnc"=0.20
-	[household.taxi_split]
-	"da"= 0.00
-	"sr2"= 0.53
-	"sr3"= 0.47
-	[household.single_tnc_split]
-	"da"= 0.00
-	"sr2"= 0.53
-	"sr3"= 0.47
-	[household.shared_tnc_split]
-	"da"= 0.00
-	"sr2"= 0.18
-	"sr3"= 0.82
-	[household.ctramp_mode_names]
-	1 = 'da'
-	2 = 'sr2'
-	3 = 'sr3'
-	4 = 'WALK'
-	5 = 'BIKE'
-	6 = 'wlk'
-	7 = 'pnr'
-	8 = 'knr'
-	9 = 'RIDEHAIL'
+    sample_rate_iteration = [0.50]
+    [household.rideshare_mode_split]
+    "taxi"=0.08
+    "single_tnc"=0.72
+    "shared_tnc"=0.20
+    [household.taxi_split]
+    "da"= 0.00
+    "sr2"= 0.53
+    "sr3"= 0.47
+    [household.single_tnc_split]
+    "da"= 0.00
+    "sr2"= 0.53
+    "sr3"= 0.47
+    [household.shared_tnc_split]
+    "da"= 0.00
+    "sr2"= 0.18
+    "sr3"= 0.82
+    [household.ctramp_mode_names]
+    1 = 'da'
+    2 = 'sr2'
+    3 = 'sr3'
+    4 = 'WALK'
+    5 = 'BIKE'
+    6 = 'wlk'
+    7 = 'pnr'
+    8 = 'knr'
+    9 = 'RIDEHAIL'
 
 
 [accessibility]
@@ -86,32 +86,32 @@
     [accessibility.land_use_aggregation]
         "RETEMPN" = ["RETEMPN"]
         "TOTEMP" = ["TOTEMP"]
-	[accessibility.mode_names]
-		"auto" = "auto"
-		"transit" = "transit"
-		"walk" = "nonMotorized"
-	[accessibility.formula_auto]
-		# second element of list contains matrices to be transposed
-		# formatted as a list of [mode name, time period]
-		"peak" = [[['da','AM']],
-			[['da', 'PM']]]
-		"offpeak" = [[['da','MD']],
-			[['da', 'MD']]]
-		"prop" = 'TIME'
-	[accessibility.formula_transit]
-		"peak" = [[['wlk_trn_wlk','AM']],
-			[['wlk_trn_wlk', 'PM']]]
-		"offpeak" = [[['wlk_trn_wlk','MD']], 
-			[['wlk_trn_wlk', 'MD']]]
-		"ivt" = ["IVT"]
-		"ovt" = ['IWAIT', 'XWAIT','WAUX']
-		"prop" = 'TIME'
-	[accessibility.formula_walk]
-		"peak" = [[['WALK','MD']],
-			[['WALK','MD']]]
-		"offpeak" = [[['WALK','MD']],
-			[['WALK','MD']]]
-		"prop" = 'DIST'
+    [accessibility.mode_names]
+        "auto" = "auto"
+        "transit" = "transit"
+        "walk" = "nonMotorized"
+    [accessibility.formula_auto]
+        # second element of list contains matrices to be transposed
+        # formatted as a list of [mode name, time period]
+        "peak" = [[['da','AM']],
+            [['da', 'PM']]]
+        "offpeak" = [[['da','MD']],
+            [['da', 'MD']]]
+        "prop" = 'TIME'
+    [accessibility.formula_transit]
+        "peak" = [[['wlk_trn_wlk','AM']],
+            [['wlk_trn_wlk', 'PM']]]
+        "offpeak" = [[['wlk_trn_wlk','MD']], 
+            [['wlk_trn_wlk', 'MD']]]
+        "ivt" = ["IVT"]
+        "ovt" = ['IWAIT', 'XWAIT','WAUX']
+        "prop" = 'TIME'
+    [accessibility.formula_walk]
+        "peak" = [[['WALK','MD']],
+            [['WALK','MD']]]
+        "offpeak" = [[['WALK','MD']],
+            [['WALK','MD']]]
+        "prop" = 'DIST'
 
 [air_passenger]
     output_trip_table_directory = "demand_matrices/highway/air_passenger"
@@ -501,25 +501,25 @@
 
 [active_modes]
     emme_scenario_id = 1
-	output_skim_path = "skims/active"
+    output_skim_path = "skims/active"
     output_skim_filename_tmpl = "nonmotskm.omx"
     output_skim_matrixname_tmpl = "{property}{mode}"
-	
-	[[active_modes.classes]]
-	# for accessibility calculations
+    
+    [[active_modes.classes]]
+    # for accessibility calculations
         name = "WALK"
         description = "walk"
         mode_code = "nmw"
         skims = ["DIST"]
-	
-	[[active_modes.classes]]
-	# for accessibility calculations
+    
+    [[active_modes.classes]]
+    # for accessibility calculations
         name = "BIKE"
         description = "bike"
         mode_code = "nmb"
         skims = ["DIST"]
-	
-	[[active_modes.shortest_path_skims]]
+    
+    [[active_modes.shortest_path_skims]]
         mode = "walk"
         roots = "MAZ"
         leaves = "MAZ"
@@ -697,8 +697,9 @@
             source = "truck"
             name = "lrgtrk"
             factor = 2.0
-	[highway.convergence]
-		output_convergence_report_path = "output_summaries/highway_convergence_report.xlsx"
+
+    [highway.convergence]
+        output_convergence_report_path = "output_summaries/highway_convergence_report.xlsx"
 
 [transit]
     apply_msa_demand = false
@@ -729,13 +730,13 @@
     mask_noncombo_allpen = false
     mask_over_3_xfers = false
     #
-    use_fares = true
+    use_fares = true # temp
     #
     congested_transit_assignment = true
     capacitated_transit_assignment = false
     station_capacity_transit_assignment = false
     #
-    use_peaking_factor = true
+    use_peaking_factor = false  # temp
     am_peaking_factor = 1.219
     pm_peaking_factor = 1.262
 
@@ -760,12 +761,11 @@
         description = "walk access to transit, knr egress from transit" 
         skims = ['BOARDS', 'DDIST', 'DTIME', 'FARE', 'IVT', 'IVTCOM', 'IVTEXP', 'IVTFRY', 'IVTHVY', 'IVTLOC', 'IVTLRT', 'IWAIT', 'PIVTCOM', 'PIVTEXP', 'PIVTFRY', 'PIVTHVY', 'PIVTLOC', 'PIVTLRT', 'WACC', 'WAIT', 'WAUX', 'WEGR', 'XWAIT']
 
-
 [emme]
     num_processors = "MAX-1"
     all_day_scenario_id = 1
     project_path = "emme_taz_transit_network\\emme_taz_transit_network.emp"
-    highway_database_path = "emme_project/Database_highway/emmebank"
+    highway_database_path = "emme_bank_highway\\Database\\emmebank"
     active_database_paths = [ "emme_project/Database_active_south/emmebank", "emme_project/Database_active_north/emmebank" ]
     transit_database_path = "emme_taz_transit_network\\Database\\emmebank"
 
