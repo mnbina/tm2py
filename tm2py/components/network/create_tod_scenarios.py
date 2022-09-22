@@ -93,9 +93,10 @@ class CreateTODScenarios(Component):
         emmebank = self._emme_manager.emmebank(emmebank_path)
         ref_scenario = emmebank.scenario(self.controller.config.emme.all_day_scenario_id)
         self._ref_auto_network = ref_scenario.get_network()
+        n_time_periods = len(self.controller.config.time_periods)
         self._emme_manager.change_emmebank_dimensions(
             emmebank,
-            {"full_matrices": 9999, "extra_attribute_values": 60000000})
+            {"scenarios": 1 + n_time_periods, "full_matrices": 9999, "extra_attribute_values": 60000000})
         # create VDFs & set cross-reference function parameters
         emmebank.extra_function_parameters.el1 = "@free_flow_time"
         emmebank.extra_function_parameters.el2 = "@capacity"
@@ -148,9 +149,10 @@ class CreateTODScenarios(Component):
         with self.logger.log_start_end("prepare base scenario"):
             emmebank_path = self.get_abs_path(self.controller.config.emme.transit_database_path)
             emmebank = self._emme_manager.emmebank(emmebank_path)
+            n_time_periods = len(self.controller.config.time_periods)
             required_dims = {
                 "full_matrices": 9999,
-                "scenarios": 6,
+                "scenarios": 1 + n_time_periods,
                 "regular_nodes": 650000,
                 "links": 1900000,
                 "transit_vehicles": 600, # pnr vechiles

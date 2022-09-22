@@ -20,6 +20,7 @@ notebook
 numpy
 numexpr==2.7.1
 openmatrix
+openpyxl
 osmnx >= 0.12
 pandas > 1.0
 pydantic

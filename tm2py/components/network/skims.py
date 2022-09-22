@@ -93,7 +93,7 @@ def get_omx_skim_as_numpy(
     else:
         raise NotImplementedError("Haven't implemented non highway/transit/non-motorized skim access")
 
-    if property not in _mode_config["skims"]:
+    if property not in list(_mode_config["skims"]) + [e.upper() for e in _mode_config["skims"]]: #TODO: this needs to be case-insensitive
         raise ValueError(
             f"Property {property} not an available skim in mode {skim_mode}.\
             Available skims are:  {_mode_config['skims']}"

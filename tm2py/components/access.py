@@ -1,6 +1,6 @@
 """Accessibility Components"""
 
-import itertools
+import itertools, pathlib, os
 from collections import defaultdict
 from typing import TYPE_CHECKING, Collection, Mapping, Union
 
@@ -10,6 +10,7 @@ from numpy import array as NumpyArray
 
 from tm2py.components.component import Component
 from tm2py.components.network.skims import get_omx_skim_as_numpy, get_summed_skims
+from tm2py.components.network.postprocess_skims import HighwayPostprocessor, TransitPostprocessor
 from tm2py.logger import LogStartEnd
 from tm2py.emme.matrix import OMXManager
 
@@ -134,6 +135,7 @@ class HomeAccessibility(Component):
             ivt_matrix_names_T = [dict(zip(['skim_mode','time_period','property'], matrix_name[0] + [matrix_name[1]])) for matrix_name in itertools.product(formulas[time_period][1], formulas['ivt'])]
             ovt_matrix_names = [dict(zip(['skim_mode','time_period','property'], matrix_name[0] + [matrix_name[1]])) for matrix_name in itertools.product(formulas[time_period][0], formulas['ovt'])]
             ovt_matrix_names_T = [dict(zip(['skim_mode','time_period','property'], matrix_name[0] + [matrix_name[1]])) for matrix_name in itertools.product(formulas[time_period][1], formulas['ovt'])]
+            
             ivt = np.add.reduce([get_omx_skim_as_numpy(self.controller, **matrix) for matrix in ivt_matrix_names]) + np.add.reduce([get_omx_skim_as_numpy(self.controller, **matrix) for matrix in ivt_matrix_names_T]).T
             ovt =  np.add.reduce([get_omx_skim_as_numpy(self.controller, **matrix) for matrix in ovt_matrix_names]) + np.add.reduce([get_omx_skim_as_numpy(self.controller, **matrix) for matrix in ovt_matrix_names_T]).T
             return ivt, ovt
@@ -241,14 +243,30 @@ class HomeAccessibility(Component):
         
         return logsum
     
+    def _highway_postprocess(self):
+        """
+        Temporary fix for now until the zone system is updated.
+        """
+        root_src_dir = os.path.abspath(self.controller.run_dir)
+        skim_path = pathlib.Path(root_src_dir) / self.controller.config.highway.output_skim_path
+        hp = HighwayPostprocessor(skim_path, skim_path)
+        hp.update_skim_values()
 
-    def run(self):
+    def _transit_postprocess(self):
+        """
+        Temporary fix for now until transit assignment uses correct matrix names.
+        """
+        root_src_dir = os.path.abspath(self.controller.run_dir)
+        skim_path = pathlib.Path(root_src_dir) / self.controller.config.transit.output_skim_path
+        tp = TransitPostprocessor(skim_path, skim_path)
+        tp.update_skim_names()
+    
+    def _generate_accessibility_file(self):
         modes = [
         'auto',
         'transit',
         'walk'
             ]
-        
         
         time_periods = ['peak','offpeak']
         attraction_type = ['total','retail']
@@ -264,13 +282,21 @@ class HomeAccessibility(Component):
                 self.config.__dict__[f'dispersion_{_mode}'],
             )
             
+        self.logsums_df.reset_index(drop = True, inplace = True)
         self.logsums_df.index.name = 'taz'
         self.logsums_df.index = self.logsums_df.index + 1
         
         # drop peak vs. off peak columns for non-motorized
         self.logsums_df.drop(['nonMotorizedOffpeakTotal','nonMotorizedOffpeakRetail'], axis = 1, inplace = True)
         self.logsums_df.rename(columns = {'nonMotorizedPeakTotal':'nonMotorizedTotal','nonMotorizedPeakRetail':'nonMotorizedRetail'}, inplace = True)
-        self.logsums_df.to_csv(self.get_abs_path(self.config.outfile))
+        self.logsums_df.to_csv(self.get_abs_path(self.config.outfile))  
+    
+    def run(self):
+    
+        self._highway_postprocess()
+        self._transit_postprocess()
+
+        self._generate_accessibility_file()
 
     @property
     def estimation_docs(self):
