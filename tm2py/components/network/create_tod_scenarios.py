@@ -49,7 +49,7 @@ class CreateTODScenarios(Component):
         emme_app = self._emme_manager.project(project_path)
         self._emme_manager.modeller(emme_app)
         with self._setup():
-            self._create_highway_scenarios()
+            # self._create_highway_scenarios()
             self._create_transit_scenarios()
 
     @_context
@@ -277,10 +277,10 @@ class CreateTODScenarios(Component):
                 # if link["@rail_link"] and not modes:
                 #     modes |= premium_modes
                 # add access, egress or walk mode (auxilary transit modes)
-                if (link.i_node.is_centroid) and (link["@drive_link"]!=2) and (link["@drive_link"]!=3):
+                if (link.i_node.is_centroid) and (link["@drive_link"]!=5):
                     # modes |= access_modes  # switch access and egress mode previous settings might be wrong
                     link.modes = "a"
-                elif (link.j_node.is_centroid) and (link["@drive_link"]!=2) and (link["@drive_link"]!=3):
+                elif (link.j_node.is_centroid) and (link["@drive_link"]!=5):
                     # modes |= egress_modes  # switch access and egress mode previous settings might be wrong
                     link.modes = "e"
                 # elif link["@walk_link"]:

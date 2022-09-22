@@ -195,7 +195,7 @@ class TransitAssignment(Component):
                 station_capacity_transit_assignment = self.controller.config.transit.station_capacity_transit_assignment
                 
                 network = scenario.get_network()
-                # self.update_auto_times(network, period) # comment out for now, will test it in the next iteration
+                self.update_auto_times(network, period)
                 if self.controller.config.transit.get("override_connector_times", False):
                     self.update_connector_times(scenario, network, period)
                 # TODO: could set attribute_values instead of full publish
@@ -271,7 +271,7 @@ class TransitAssignment(Component):
                     scenario,
                     network,
                     period=period,
-                    assignment_only=False,
+                    assignment_only=False,  # temp
                     use_fares=use_fares,
                     use_ccr=use_ccr,
                     congested_transit_assignment=congested_transit_assignment,
@@ -316,7 +316,7 @@ class TransitAssignment(Component):
         with self.logger.log_start_end(f"period {period.name}"):
             with self.controller.emme_manager.logbook_trace(f"Transit assignments for period {period.name}"):
                 self._matrix_cache = _emme_tools.matrix.MatrixCache(scenario)
-                self._skim_matrices = []
+                self._skim_matrices = []	
                 try:
                     yield
                 finally:
@@ -341,8 +341,32 @@ class TransitAssignment(Component):
                     continue
                 # TODO: may need to remove "reliability" factor in future versions of VDF definition
                 auto_time = auto_link.auto_time
-                if auto_time >= 0:
-                    tran_link["@trantime"] = auto_time
+                area_type = auto_link['@area_type']
+                if auto_time > 0:
+                    # work in progress https://github.com/BayAreaMetro/travel-model-one/blob/master/model-files/scripts/skims/PrepHwyNet.job#L106
+                    tran_speed = 60 * tran_link.length/auto_time
+                    if (tran_link['@ft']<=4 or tran_link['@ft']==8) and tran_speed<6:
+                        tran_speed = 6
+                        tran_link["@trantime"] = 60 * tran_link.length/tran_speed
+                    elif tran_speed<3:
+                        tran_speed = 3
+                        tran_link["@trantime"] = 60 * tran_link.length/tran_speed
+                    else:
+                        tran_link["@trantime"] = auto_time
+                # TODO: add bus time calculation below
+                    if tran_link["@ft"] in [1,2,3,8]:
+                        delayfactor = 0.0
+                    else:
+                        if area_type in [0,1]: 
+                            delayfactor = 2.46
+                        elif area_type in [2,3]: 
+                            delayfactor = 1.74
+                        elif area_type==4:
+                            delayfactor = 1.14
+                        else:
+                            delayfactor = 0.08
+                    bus_time = tran_link["@trantime"] + (delayfactor * tran_link.length)
+                    tran_link["@trantime"] = bus_time
 
         # set us1 (segment data1), used in ttf expressions, from @trantime
         for segment in transit_network.transit_segments():
@@ -365,9 +389,9 @@ class TransitAssignment(Component):
         # hard code connetor time for now
         for link in network.links():
             if (link.modes == set([network.mode('a')])) or (link.modes == set([network.mode('e')])):
-                link['@connector_time_all'] = 60*link['length']/3
+                link['@connector_time_all'] = 60 * link.length/3
             if (link.modes == set([network.mode('P')])) or (link.modes == set([network.mode('K')])):
-                link['@connector_time_all'] = 60*link['length']/40
+                link['@connector_time_all'] = 60 * link.length/40
 
         # lookup adjacent real stop to account for connector splitting
         # connectors = _defaultdict(lambda: {})
@@ -1511,7 +1535,7 @@ class TransitAssignment(Component):
                                                 boardings, 
                                                 line_hour_cap,    
                                                 line['#mode'], 
-                                                mode,  
+                                                mode,
                                                 line.headway,
                                                 line['#faresystem'],  
                                                 ]]))

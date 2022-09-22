@@ -1188,15 +1188,15 @@ class Configuration(ConfigItem):
             _merge_dicts(data, _load_toml(path_item))
         return cls(**data)
 
-    @validator("highway")
-    def maz_skim_period_exists(value, values):
-        """Validate highway.maz_to_maz.skim_period refers to a valid period."""
-        if "time_periods" in values:
-            time_period_names = set(time.name for time in values["time_periods"])
-            assert (
-                value.maz_to_maz.skim_period in time_period_names
-            ), "maz_to_maz -> skim_period -> name not found in time_periods list"
-        return value
+    # @validator("highway")
+    # def maz_skim_period_exists(value, values):
+    #     """Validate highway.maz_to_maz.skim_period refers to a valid period."""
+    #     if "time_periods" in values:
+    #         time_period_names = set(time.name for time in values["time_periods"])
+    #         assert (
+    #             value.maz_to_maz.skim_period in time_period_names
+    #         ), "maz_to_maz -> skim_period -> name not found in time_periods list"
+    #     return value
 
 
 def _load_toml(path: pathlib.Path) -> dict:
