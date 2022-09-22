@@ -692,7 +692,7 @@
     #
     use_fares = true
     #
-    congested_transit_assignment = false
+    congested_transit_assignment = true
     capacitated_transit_assignment = false
     station_capacity_transit_assignment = false
     #
