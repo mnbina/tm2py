@@ -663,7 +663,7 @@
 
 [transit]
     apply_msa_demand = false
-    value_of_time = 16.2
+    value_of_time = 48.6
     effective_headway_source = "hdw"
     initial_wait_perception_factor = 1.5
     transfer_wait_perception_factor = 3.0
@@ -1354,13 +1354,13 @@
     name = "local_bus"
     type = "LOCAL"
     assign_type = "TRANSIT"
-    in_vehicle_perception_factor = 1.0
+    in_vehicle_perception_factor = 2.0
 [[transit.modes]]
     mode_id = "x"
     name = "exp_bus"
     type = "PREMIUM"
     assign_type = "TRANSIT"
-    in_vehicle_perception_factor = 1.0
+    in_vehicle_perception_factor = 2.0
 [[transit.modes]]
     mode_id = "f"
     name = "ferry"
@@ -1372,19 +1372,19 @@
     name = "light_rail"
     type = "PREMIUM"
     assign_type = "TRANSIT"
-    in_vehicle_perception_factor = 1.0
+    in_vehicle_perception_factor = 0.9
 [[transit.modes]]
     mode_id = "h"
     name = "heavy_rail"
     type = "PREMIUM"
     assign_type = "TRANSIT"
-    in_vehicle_perception_factor = 1.0
+    in_vehicle_perception_factor = 0.5
 [[transit.modes]]
     mode_id = "r"
     name = "comm_rail"
     type = "PREMIUM"
     assign_type = "TRANSIT"
-    in_vehicle_perception_factor = 1.0
+    in_vehicle_perception_factor = 0.75
 
 # [[transit.vehicles]]
 #     vehicle_id = 12
