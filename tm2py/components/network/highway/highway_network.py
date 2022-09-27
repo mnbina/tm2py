@@ -220,7 +220,7 @@ class PrepareNetwork(Component):
             for tp in self.controller.config.time_periods
         }
         period_capacity_factor = tp_mapping[time_period]
-        akcelik_vdfs = [3, 4, 5, 7, 8, 10, 11, 12, 13, 14]
+        akcelik_vdfs = [3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 99]
         for link in network.links():
             cap_lanehour = capacity_map[link["@capclass"]]
             link["@capacity"] = cap_lanehour * period_capacity_factor * link["@lanes"]

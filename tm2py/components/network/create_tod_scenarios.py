@@ -114,17 +114,17 @@ class CreateTODScenarios(Component):
             # "(el1 + 60 * (0.25 *(put(put((volau + volad)/el2) - 1) + "
             # "(((get(2)*get(2) + (16 * el3 * get(1)^0.5))))"
         )
-        for f_id in ["fd1", "fd2", "fd9"]:
+        for f_id in ["fd1", "fd2"]:
             if emmebank.function(f_id):
                 emmebank.delete_function(f_id)
             emmebank.create_function(f_id, bpr_tmplt)
-        for f_id in ["fd3", "fd4", "fd5", "fd7", "fd8", "fd10", "fd11", "fd12", "fd13", "fd14"]:
+        for f_id in ["fd3", "fd4", "fd5", "fd6", "fd7", "fd9", "fd10", "fd11", "fd12", "fd13", "fd14", "fd99"]:
             if emmebank.function(f_id):
                 emmebank.delete_function(f_id)
             emmebank.create_function(f_id, akcelik_tmplt)
-        if emmebank.function("fd6"):
-            emmebank.delete_function("fd6")
-        emmebank.create_function("fd6", fixed_tmplt)
+        if emmebank.function("fd8"):
+            emmebank.delete_function("fd8")
+        emmebank.create_function("fd8", fixed_tmplt)
 
         ref_scenario = emmebank.scenario(self.controller.config.emme.all_day_scenario_id)
         attributes = {
