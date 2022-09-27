@@ -1035,7 +1035,7 @@ class HighwayConfig(ConfigItem):
 class TransitModeConfig(ConfigItem):
     """Transit mode definition (see also mode in the Emme API)."""
 
-    type: Literal["WALK", "ACCESS", "EGRESS", "LOCAL", "PREMIUM", "PNR", "KNR"]
+    type: Literal["WALK", "ACCESS", "EGRESS", "LOCAL", "PREMIUM", "PNR", "KNR", "PNR_dummy"] # add PNR_dummy to differentiate between the transit/transit aux modes
     assign_type: Literal["TRANSIT", "AUX_TRANSIT"]
     mode_id: str = Field(min_length=1, max_length=1)
     name: str = Field(max_length=10)
@@ -1088,6 +1088,8 @@ class TransitConfig(ConfigItem):
 
     apply_msa_demand: bool
     value_of_time: float
+    am_peaking_factor: float
+    pm_peaking_factor: float
     effective_headway_source: str
     initial_wait_perception_factor: float
     transfer_wait_perception_factor: float
@@ -1115,6 +1117,7 @@ class TransitConfig(ConfigItem):
     station_capacity_transit_assignment: bool = False
     mask_noncombo_allpen: bool = False
     mask_over_3_xfers: bool = False
+    use_peaking_factor: bool = False
 
 @dataclass(frozen=True)
 class EmmeConfig(ConfigItem):
@@ -1185,15 +1188,15 @@ class Configuration(ConfigItem):
             _merge_dicts(data, _load_toml(path_item))
         return cls(**data)
 
-    @validator("highway")
-    def maz_skim_period_exists(value, values):
-        """Validate highway.maz_to_maz.skim_period refers to a valid period."""
-        if "time_periods" in values:
-            time_period_names = set(time.name for time in values["time_periods"])
-            assert (
-                value.maz_to_maz.skim_period in time_period_names
-            ), "maz_to_maz -> skim_period -> name not found in time_periods list"
-        return value
+    # @validator("highway")
+    # def maz_skim_period_exists(value, values):
+    #     """Validate highway.maz_to_maz.skim_period refers to a valid period."""
+    #     if "time_periods" in values:
+    #         time_period_names = set(time.name for time in values["time_periods"])
+    #         assert (
+    #             value.maz_to_maz.skim_period in time_period_names
+    #         ), "maz_to_maz -> skim_period -> name not found in time_periods list"
+    #     return value
 
 
 def _load_toml(path: pathlib.Path) -> dict:
