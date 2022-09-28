@@ -359,9 +359,10 @@ class CreateTODScenarios(Component):
         sp_index_zone = SpatialGridIndex(size=0.5 * 5280)
         for node in network.nodes():
             if node[self.controller.config.scenario.landuse_index_in_network_column]:
-                x, y = node.x, node.y
-                landuse_data[int(node[self.controller.config.scenario.landuse_index_in_network_column])]["coords"] = (x, y)
-                sp_index_zone.insert(int(node[self.controller.config.scenario.landuse_index_in_network_column]), x, y)
+                if node[self.controller.config.scenario.landuse_index_in_network_column] in landuse_data.keys():
+                    x, y = node.x, node.y
+                    landuse_data[int(node[self.controller.config.scenario.landuse_index_in_network_column])]["coords"] = (x, y)
+                    sp_index_zone.insert(int(node[self.controller.config.scenario.landuse_index_in_network_column]), x, y)
         for landuse in landuse_data.values():
             x, y = landuse.get("coords", (None, None))
             if x is None:
