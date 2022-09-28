@@ -45,12 +45,12 @@
 
 [household]
     highway_demand_file = "demand_matrices/highway/household/TAZ_Demand_{period}.omx"
-    transit_demand_file = "demand_matrices/onboard_survey_consolidate_v12/trn_demand_v12_trim_{period}.omx"
+    transit_demand_file = "demand_matrices/transit/trn_demand_v12_trim_{period}.omx"
     active_demand_file = "demand_matrices/active/nm_demand_{period}.omx"
     ctramp_indiv_trip_file = "main/indivTripData_{iteration}.csv"
     ctramp_joint_trip_file = "main/jointTripData_{iteration}.csv"
     host_ip_address = "10.0.143.35"
-    ctramp_run_dir = 'C:\MTC_tmpy\TM2\2015_BaseY_P3Y2015'
+    ctramp_run_dir = 'D:\github\camsys-tm2py\examples\9-county'
     sample_rate_iteration = [0.50]
     [household.rideshare_mode_split]
     "taxi"=0.08
@@ -764,10 +764,10 @@
 [emme]
     num_processors = "MAX-1"
     all_day_scenario_id = 1
-    project_path = "emme_taz_transit_network\\emme_taz_transit_network.emp"
-    highway_database_path = "emme_bank_highway\\Database\\emmebank"
+    project_path = "emme_project\\mtc_emme.emp"
+    highway_database_path = "emme_project\\Database_highway\\emmebank"
     active_database_paths = [ "emme_project/Database_active_south/emmebank", "emme_project/Database_active_north/emmebank" ]
-    transit_database_path = "emme_taz_transit_network\\Database\\emmebank"
+    transit_database_path = "emme_project\\Database_transit\\emmebank"
 
 
 [[highway.capclass_lookup]]
