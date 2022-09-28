@@ -15,21 +15,26 @@
 [run]
     start_component = ""
     initial_components = [
-        "create_tod_scenarios",
-        "prepare_network_highway",
-        "highway",
-        "prepare_network_transit",
-        "transit",
-		"convergence_report"		
+        #"create_tod_scenarios",            # working
+        #"active_modes",                    # runs in lasso
+        # "home_accessibility",              # working
+        #"air_passenger",                   # not needed for BART, not tested
+        #"prepare_network_highway",         # Working!!
+        #"highway",                         # Working!!
+        #"highway_maz_skim",                # not needed for BART, not tested
+        #"prepare_network_transit",         # working
+        #"transit"                          
     ]
     global_iteration_components = [
-        "home_accessibility",
-        "household", 
-        "truck",
-        "highway",
-        "transit",
-		"convergence_report"	
+        #"household",                       # can be called from tm2py
+        #"internal_external",               # not needed for BART, not tested
+        #"truck",                           # Working!!
+        #"highway_maz_assign",              # not needed for BART, not tested
+        #"prepare_network_highway",         # Working!!
+        #"highway",                         # Working!!
+        "prepare_network_transit",         # Working
+        "transit"
     ]
     final_components = []
     start_iteration = 0
-    end_iteration = 1
+    end_iteration = 2

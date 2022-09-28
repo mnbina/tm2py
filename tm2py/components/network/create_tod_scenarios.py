@@ -114,17 +114,17 @@ class CreateTODScenarios(Component):
             # "(el1 + 60 * (0.25 *(put(put((volau + volad)/el2) - 1) + "
             # "(((get(2)*get(2) + (16 * el3 * get(1)^0.5))))"
         )
-        for f_id in ["fd1", "fd2", "fd9"]:
+        for f_id in ["fd1", "fd2"]:
             if emmebank.function(f_id):
                 emmebank.delete_function(f_id)
             emmebank.create_function(f_id, bpr_tmplt)
-        for f_id in ["fd3", "fd4", "fd5", "fd7", "fd8", "fd10", "fd11", "fd12", "fd13", "fd14"]:
+        for f_id in ["fd3", "fd4", "fd5", "fd6", "fd7", "fd9", "fd10", "fd11", "fd12", "fd13", "fd14", "fd99"]:
             if emmebank.function(f_id):
                 emmebank.delete_function(f_id)
             emmebank.create_function(f_id, akcelik_tmplt)
-        if emmebank.function("fd6"):
-            emmebank.delete_function("fd6")
-        emmebank.create_function("fd6", fixed_tmplt)
+        if emmebank.function("fd8"):
+            emmebank.delete_function("fd8")
+        emmebank.create_function("fd8", fixed_tmplt)
 
         ref_scenario = emmebank.scenario(self.controller.config.emme.all_day_scenario_id)
         attributes = {
@@ -253,9 +253,9 @@ class CreateTODScenarios(Component):
                 #     link.length = 0.01  # 60.0 / 5280.0
             for line in network.transit_lines():
                 # TODO: may want to set transit line speeds (not necessarily used in the assignment though)
-                line_veh = network.transit_vehicle(line["#mode"])
+                line_veh = network.transit_vehicle(line["#vehtype"]) # use #vehtype here instead of #mode (#vehtype is vehtype_num in Lasso\mtc_data\lookups\transitSeatCap.csv)
                 if line_veh is None:
-                    raise Exception(f"line {line.id} requires vehicle ('#mode') {line['#mode']} which does not exist")
+                    raise Exception(f"line {line.id} requires vehicle ('#vehtype') {line['#vehtype']} which does not exist")
                 line_mode = line_veh.mode.id
                 for seg in line.segments():
                     seg.link.modes |= {line_mode}
@@ -277,10 +277,10 @@ class CreateTODScenarios(Component):
                 # if link["@rail_link"] and not modes:
                 #     modes |= premium_modes
                 # add access, egress or walk mode (auxilary transit modes)
-                if (link.i_node.is_centroid) and (link["@drive_link"]!=2) and (link["@drive_link"]!=3):
+                if (link.i_node.is_centroid) and (link["@drive_link"]!=5):
                     # modes |= access_modes  # switch access and egress mode previous settings might be wrong
                     link.modes = "a"
-                elif (link.j_node.is_centroid) and (link["@drive_link"]!=2) and (link["@drive_link"]!=3):
+                elif (link.j_node.is_centroid) and (link["@drive_link"]!=5):
                     # modes |= egress_modes  # switch access and egress mode previous settings might be wrong
                     link.modes = "e"
                 # elif link["@walk_link"]:
@@ -359,9 +359,10 @@ class CreateTODScenarios(Component):
         sp_index_zone = SpatialGridIndex(size=0.5 * 5280)
         for node in network.nodes():
             if node[self.controller.config.scenario.landuse_index_in_network_column]:
-                x, y = node.x, node.y
-                landuse_data[int(node[self.controller.config.scenario.landuse_index_in_network_column])]["coords"] = (x, y)
-                sp_index_zone.insert(int(node[self.controller.config.scenario.landuse_index_in_network_column]), x, y)
+                if node[self.controller.config.scenario.landuse_index_in_network_column] in landuse_data.keys():
+                    x, y = node.x, node.y
+                    landuse_data[int(node[self.controller.config.scenario.landuse_index_in_network_column])]["coords"] = (x, y)
+                    sp_index_zone.insert(int(node[self.controller.config.scenario.landuse_index_in_network_column]), x, y)
         for landuse in landuse_data.values():
             x, y = landuse.get("coords", (None, None))
             if x is None:

@@ -58,8 +58,8 @@ class PrepareTransitNetwork(Component):
                         scenario.create_extra_attribute(domain, name)
 
                 network = scenario.get_network()
-                if self.controller.config.transit.get("override_connectors", False):
-                    self.prepare_connectors(network, period)
+                # if self.controller.config.transit.get("override_connectors", False): # don't run prepare connector, connectors are created in lasso
+                #     self.prepare_connectors(network, period)
                 self.distribute_nntime(network)
                 self.update_link_trantime(network)
                 # self.calc_link_unreliability(network, period)
@@ -383,10 +383,14 @@ class ApplyFares(Component):
         self.network = None
         self.period = ""
 
-        self.dot_far_file = self.get_abs_path(self.config.transit.fares_path)
-        self.fare_matrix_file = self.get_abs_path(self.config.transit.fare_matrix_path)
+        self.dot_far_file = self.get_abs_path(self.controller.config.transit.fares_path)
+        self.fare_matrix_file = self.get_abs_path(self.controller.config.transit.fare_matrix_path)
 
         self._log = []
+
+    def validate_inputs(self):
+        #TODO
+        pass
 
     def run(self):
         self._log = []
@@ -437,17 +441,17 @@ class ApplyFares(Component):
             journey_levels, mode_map = self.generate_transfer_fares(
                 faresystems, faresystem_groups, network)
             self.save_journey_levels("ALLPEN", journey_levels)
-            local_modes = []
-            premium_modes = []
-            for mode in self.controller.config.transit.modes:
-                if mode.assign_type == "LOCAL":
-                    local_modes.extend(mode_map[mode.id])
-                if mode.assign_type == "PREMIUM":
-                    premium_modes.extend(mode_map[mode.id])
-            local_levels = self.filter_journey_levels_by_mode(local_modes, journey_levels)
-            self.save_journey_levels("BUS", local_levels)
-            premium_levels = self.filter_journey_levels_by_mode(premium_modes, journey_levels)
-            self.save_journey_levels("PREM", premium_levels)
+            # local_modes = []
+            # premium_modes = []
+            # for mode in self.controller.config.transit.modes:
+            #     if mode.assign_type == "LOCAL":
+            #         local_modes.extend(mode_map[mode.id])
+            #     if mode.assign_type == "PREMIUM":
+            #         premium_modes.extend(mode_map[mode.id])
+            # local_levels = self.filter_journey_levels_by_mode(local_modes, journey_levels)
+            # self.save_journey_levels("BUS", local_levels)
+            # premium_levels = self.filter_journey_levels_by_mode(premium_modes, journey_levels)
+            # self.save_journey_levels("PREM", premium_levels)
 
         except Exception as error:
             self._log.append({"type": "text", "content": "error during apply fares"})
@@ -662,10 +666,13 @@ class ApplyFares(Component):
                     if board_cost is None:
                         # If this entry is missing from farematrix, 
                         # use next farezone if both previous stop and next stop are in different farezones
-                        next_seg = stop_segments[i+1]
-                        next_farezone = next_seg.i_node["@farezone"]
-                        if next_farezone != farezone and prev_farezone != farezone:
-                            board_cost = fare_matrix.get(farezone, {}).get(next_farezone)
+                        if i == len(stop_segments)-1:   # in case the last segment has missing fare
+                            board_cost = min(fare_matrix[farezone].values())
+                        else:
+                            next_seg = stop_segments[i+1]
+                            next_farezone = next_seg.i_node["@farezone"]
+                            if next_farezone != farezone and prev_farezone != farezone:
+                                board_cost = fare_matrix.get(farezone, {}).get(next_farezone)
                     if board_cost is None:
                         # use the smallest fare found from this farezone as best guess 
                         # as a reasonable boarding cost
@@ -1075,12 +1082,12 @@ class ApplyFares(Component):
                             segment[boarding_cost_id] = max(xferboard_cost, 0)
             level += 1
 
-        for vehicle in network.transit_vehicles():
-            if vehicle.mode == meta_mode:
-                network.delete_transit_vehicle(vehicle)
-        for link in network.links():
-            link.modes -= set([meta_mode])
-        network.delete_mode(meta_mode)
+        # for vehicle in network.transit_vehicles():
+        #     if vehicle.mode == meta_mode:
+        #         network.delete_transit_vehicle(vehicle)
+        # for link in network.links():
+        #     link.modes -= set([meta_mode])
+        # network.delete_mode(meta_mode)
         self._log.append(
             {"type": "header", "content": "Mapping from original modes to modes for transition table"})
         for orig_mode, new_modes in mode_map.items():
@@ -1089,7 +1096,7 @@ class ApplyFares(Component):
         return journey_levels, mode_map
 
     def save_journey_levels(self, name, journey_levels):
-        spec_dir = os.path.join(self.root_dir, os.path.dirname(self.config.emme.project_path), "Specifications")
+        spec_dir = os.path.join(os.path.dirname(self.get_abs_path(self.controller.config.emme.project_path)), "Specifications")
         path = os.path.join(spec_dir, "%s_%s_journey_levels.ems" % (self.period, name))
         with open(path, 'w') as jl_spec_file:
             spec = {"type": "EXTENDED_TRANSIT_ASSIGNMENT", "journey_levels": journey_levels}
@@ -1176,7 +1183,7 @@ class ApplyFares(Component):
         manager.logbook_write("Apply fares report %s" % self.period, report.render())
 
     def log_text_report(self):
-        bank_dir = self.get_abs_path(self.controller.config.emme.transit_database_path)
+        bank_dir = os.path.dirname(self.get_abs_path(self.controller.config.emme.transit_database_path))
         timestamp = _time.strftime("%Y%m%d-%H%M%S")
         path = os.path.join(bank_dir, "apply_fares_report_%s_%s.txt" % (self.period, timestamp))
         with open(path, 'w') as report:
