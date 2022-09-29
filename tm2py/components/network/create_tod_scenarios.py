@@ -49,7 +49,7 @@ class CreateTODScenarios(Component):
         emme_app = self._emme_manager.project(project_path)
         self._emme_manager.modeller(emme_app)
         with self._setup():
-            self._create_highway_scenarios()
+            #self._create_highway_scenarios()
             self._create_transit_scenarios()
 
     @_context
@@ -103,13 +103,16 @@ class CreateTODScenarios(Component):
         emmebank.extra_function_parameters.el3 = "@ja"
         # TODO: should have just 3 functions, and map the FT to the vdf
         # TODO: could optimize expression (to review)
-        bpr_tmplt = "el1 * (1 + 0.20 * ((volau + volad)/el2/0.75))^6"
+        # bpr curve from https://github.com/BayAreaMetro/travel-model-one/blob/master/model-files/scripts/block/SpeedFlowCurve.block
+        bpr_tmplt = "el1 * (1 + 0.20 * ((volau + volad)/el2/0.75)^6)"
         # "el1 * (1 + 0.20 * put(put((volau + volad)/el2/0.75))*get(1))*get(2)*get(2)"
         fixed_tmplt = "el1"
+        # akcelik curve from https://github.com/BayAreaMetro/travel-model-one/blob/master/model-files/scripts/block/SpeedFlowCurve.block
+        # tm1 ja10000 calculation from https://github.com/BayAreaMetro/travel-model-one/blob/4141ffb4b0f392f5b3dc94df4dff69adbd29d504/model-files/scripts/block/FreeFlowSpeed.block#L85
+        # tm2py ja calculation is in highway_network._set_vdf_attributes()
         akcelik_tmplt = (
-            "(el1 + 60 * (0.25 *((((volau + volad)/el2) - 1) + "
-            "((((((volau + volad)/el2) - 1)^2) + (16 * el3 * ("
-            "(volau + volad)/el2)))^0.5))))"
+            "(el1 + 60 * (0.25 *((volau + volad)/el2 - 1 + "
+            "(((volau + volad)/el2 - 1)^2 + el3 * (volau + volad)/el2)^0.5)))"
 
             # "(el1 + 60 * (0.25 *(put(put((volau + volad)/el2) - 1) + "
             # "(((get(2)*get(2) + (16 * el3 * get(1)^0.5))))"
