@@ -49,7 +49,7 @@ class CreateTODScenarios(Component):
         emme_app = self._emme_manager.project(project_path)
         self._emme_manager.modeller(emme_app)
         with self._setup():
-            #self._create_highway_scenarios()
+            self._create_highway_scenarios()
             self._create_transit_scenarios()
 
     @_context
