@@ -15,19 +15,20 @@
 [run]
     start_component = ""
     initial_components = [
-        #"create_tod_scenarios",
-        #"home_accessibility",
-        #"prepare_network_highway",
-        #"highway",
-        #"prepare_network_transit",
-        #"transit"                          
+		"create_tod_scenarios",
+		"prepare_network_highway",
+		"highway",
+		"prepare_network_transit",
+		"transit",
+		"convergence_report"		
     ]
     global_iteration_components = [
-        #"household",
-        #"truck",
-        #"prepare_network_highway", # TODO remove if it is not needed in global feedback
-        #"highway",
-        #"transit"
+		"home_accessibility", # needs to be updated everytime after skims are updated
+		"household", 
+		"truck",
+		"highway",
+		"transit",
+		"convergence_report"	
     ]
     final_components = []
     start_iteration = 1

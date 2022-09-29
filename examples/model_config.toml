@@ -104,7 +104,7 @@
         "offpeak" = [[['wlk_trn_wlk','MD']], 
             [['wlk_trn_wlk', 'MD']]]
         "ivt" = ["IVT"]
-        "ovt" = ['IWAIT', 'XWAIT','WAUX']
+        "ovt" = ['IWAIT', 'XWAIT','WAUX', 'WACC', 'WEGR']
         "prop" = 'TIME'
     [accessibility.formula_walk]
         "peak" = [[['WALK','MD']],
