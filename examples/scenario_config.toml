@@ -23,7 +23,7 @@
 		"convergence_report"		
     ]
     global_iteration_components = [
-		"home_accessibility",
+		"home_accessibility", # needs to be updated everytime after skims are updated
 		"household", 
 		"truck",
 		"highway",
@@ -31,5 +31,5 @@
 		"convergence_report"	
     ]
     final_components = []
-    start_iteration = 0
-    end_iteration = 2
+    start_iteration = 1
+    end_iteration = 1
