@@ -47,11 +47,13 @@
     highway_demand_file = "demand_matrices/highway/household/TAZ_Demand_{period}.omx"
     transit_demand_file = "demand_matrices/transit/trn_demand_v12_trim_{period}.omx"
     active_demand_file = "demand_matrices/active/nm_demand_{period}.omx"
-    ctramp_indiv_trip_file = "main/indivTripData_{iteration}.csv"
-    ctramp_joint_trip_file = "main/jointTripData_{iteration}.csv"
+    ctramp_indiv_trip_file = "main/indivTripData_1.csv"
+    ctramp_joint_trip_file = "main/jointTripData_1.csv"
+	ctramp_hh_file = "main/householdData_1.csv"
     host_ip_address = "10.0.143.35"
-    ctramp_run_dir = 'D:\github\camsys-tm2py\examples\9-county'
-    sample_rate_iteration = [0.50]
+	ctramp_run_dir = 'C:\MTC_tmpy\TM2\calibration'
+    sample_rate_iteration = [0.20]
+	copy_from_examples = true
     [household.rideshare_mode_split]
     "taxi"=0.08
     "single_tnc"=0.72
@@ -78,7 +80,10 @@
     7 = 'pnr'
     8 = 'knr'
     9 = 'RIDEHAIL'
-
+	[household.income_segment]
+	enabled = false
+	segment_suffixes = ["LowInc", "MedInc", "HighInc", "XHighInc"]
+	cutoffs = [0, 30000, 60000, 100000]
 
 [accessibility]
     outfile = "inputs/accessibility.csv"
@@ -713,7 +718,7 @@
     max_transfers = 3
     use_ccr = false
     output_skim_path = "skims/transit"
-    output_skim_filename_tmpl = "trnskm{period}_{set_name}.omx"
+    output_skim_filename_tmpl = "trnskm{time_period}_{set_name}.omx"
     output_skim_matrixname_tmpl = "{property}"
     output_stop_usage_path = "output_summaries\\stop_usage_{period}.csv"
     output_transit_boardings_path = "output_summaries\\boardings_by_line_{period}.csv"

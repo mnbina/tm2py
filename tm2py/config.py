@@ -262,11 +262,14 @@ class HouseholdConfig(ConfigItem):
     sample_rate_iteration: list
     ctramp_indiv_trip_file: str
     ctramp_joint_trip_file: str
+    ctramp_hh_file: str
     rideshare_mode_split: Dict[str,float]
     taxi_split: Dict[str,float]
     single_tnc_split: Dict[str,float]
     shared_tnc_split: Dict[str,float]
     ctramp_mode_names: Dict[float,str]
+    copy_from_examples: bool
+    income_segment: Dict[str, Union[float, str, list]]
     
     
     @validator("ctramp_mode_names", allow_reuse=True)

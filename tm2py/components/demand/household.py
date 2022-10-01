@@ -29,8 +29,8 @@ class HouseholdModel(Component):
             6. Cleans up CTRAMP java.
             7. Produce household demand matrices for highway and transit assignment.
         """
-        
-        self._move_inputs_to_run_dir()
+        if self.controller.config.household.copy_from_examples:
+            self._move_inputs_to_run_dir()
         self._update_telecommute_constants()
         self._start_household_manager()
         self._start_matrix_manager()
@@ -38,7 +38,7 @@ class HouseholdModel(Component):
         self._start_jppf_node0()
         self._run_resident_model()
         self._stop_java()
-        self._prepare_demand_for_assignment()
+        #self._prepare_demand_for_assignment()
         
     def _move_inputs_to_run_dir(self):
         if not os.path.samefile(self.controller.config.household.ctramp_run_dir,
@@ -85,7 +85,7 @@ class HouseholdModel(Component):
             for _period, _class in itertools.product(periods, trn_classes):
                 src_file = (pathlib.Path(root_src_dir) / self.controller.config.transit.output_skim_path / 
                     self.controller.config.transit.output_skim_filename_tmpl.format(
-                        time_period = _period, mode = _class)
+                        time_period = _period, set_name = _class)
                         )
                 dst_file = pathlib.Path(dst_dir) / os.path.basename(src_file)
                 if os.path.exists(dst_file):

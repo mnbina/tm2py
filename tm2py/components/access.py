@@ -135,7 +135,7 @@ class HomeAccessibility(Component):
             ivt_matrix_names_T = [dict(zip(['skim_mode','time_period','property'], matrix_name[0] + [matrix_name[1]])) for matrix_name in itertools.product(formulas[time_period][1], formulas['ivt'])]
             ovt_matrix_names = [dict(zip(['skim_mode','time_period','property'], matrix_name[0] + [matrix_name[1]])) for matrix_name in itertools.product(formulas[time_period][0], formulas['ovt'])]
             ovt_matrix_names_T = [dict(zip(['skim_mode','time_period','property'], matrix_name[0] + [matrix_name[1]])) for matrix_name in itertools.product(formulas[time_period][1], formulas['ovt'])]
-            
+           
             ivt = np.add.reduce([get_omx_skim_as_numpy(self.controller, **matrix) for matrix in ivt_matrix_names]) + np.add.reduce([get_omx_skim_as_numpy(self.controller, **matrix) for matrix in ivt_matrix_names_T]).T
             ovt =  np.add.reduce([get_omx_skim_as_numpy(self.controller, **matrix) for matrix in ovt_matrix_names]) + np.add.reduce([get_omx_skim_as_numpy(self.controller, **matrix) for matrix in ovt_matrix_names_T]).T
             return ivt, ovt
@@ -294,7 +294,7 @@ class HomeAccessibility(Component):
     def run(self):
     
         self._highway_postprocess()
-        self._transit_postprocess()
+        # self._transit_postprocess()
 
         self._generate_accessibility_file()
 
