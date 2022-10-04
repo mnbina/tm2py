@@ -283,6 +283,7 @@ class HighwayAssignment(Component):
         od_travel_times = emme_class_spec["results"]["od_travel_times"][
             "shortest_paths"
         ]
+        times = f'mfTIME{emme_class_spec["mode"].upper()}'
         if od_travel_times is not None:
             # Total link costs is always the first analysis
             cost = emme_class_spec["path_analyses"][0]["results"]["od_values"]
@@ -290,7 +291,7 @@ class HighwayAssignment(Component):
             gencost_data = self._matrix_cache.get_data(od_travel_times)
             cost_data = self._matrix_cache.get_data(cost)
             time_data = gencost_data - (factor * cost_data)
-            self._matrix_cache.set_data(od_travel_times, time_data)
+            self._matrix_cache.set_data(times, time_data)
 
     def _set_intrazonal_values(
         self, time_period: str, class_name: str, skims: List[str]
@@ -400,7 +401,7 @@ class AssignmentClass:
             "results": {
                 "link_volumes": f"@flow_{self.name.lower()}",
                 "od_travel_times": {
-                    "shortest_paths": f"mfTIME{self.name.upper()}"
+                    "shortest_paths": f"mfGCTIME{self.name.upper()}"
                 },
             },
             "path_analyses": self.emme_class_analysis,
@@ -447,6 +448,7 @@ class AssignmentClass:
             skim_matrices.extend(
                 [
                     f"TIME{self.name.upper()}",
+                    f"GCTIME{self.name.upper()}",
                     f"COST{self.name.upper()}",
                 ]
             )
