@@ -1041,6 +1041,8 @@ class TransitModeConfig(ConfigItem):
     name: str = Field(max_length=10)
     in_vehicle_perception_factor: Optional[float] = Field(default=None, ge=0)
     speed_miles_per_hour: Optional[float] = Field(default=None, gt=0)
+    initial_boarding_penalty: Optional[float] = Field(default=None, ge=0)
+    transfer_boarding_penalty: Optional[float] = Field(default=None, ge=0)
 
     @validator("in_vehicle_perception_factor", always=True)
     def in_vehicle_perception_factor_valid(value, values):
@@ -1056,14 +1058,27 @@ class TransitModeConfig(ConfigItem):
             assert value is not None, "must be specified when assign_type==AUX_TRANSIT"
         return value
 
+    @validator("initial_boarding_penalty", always=True)
+    def initial_boarding_penalty_valid(value, values):
+        """Validate initial_boarding_penalty exists if assign_type is TRANSIT."""
+        if "assign_type" in values and values["assign_type"] == "TRANSIT":
+            assert value is not None, "must be specified when assign_type==TRANSIT"
+        return value
+
+    @validator("transfer_boarding_penalty", always=True)
+    def transfer_boarding_penalty_valid(value, values):
+        """Validate transfer_boarding_penalty exists if assign_type is TRANSIT."""
+        if "assign_type" in values and values["assign_type"] == "TRANSIT":
+            assert value is not None, "must be specified when assign_type==TRANSIT"
+        return value
 
 @dataclass(frozen=True)
 class TransitVehicleConfig(ConfigItem):
     """Transit vehicle definition (see also transit vehicle in the Emme API)."""
 
-    vehicle_id: int
-    mode: str
-    name: str
+    vehicle_id: Optional[int] = Field(default=None, ge=0)
+    mode: Optional[str] = Field(default="")
+    name: Optional[str] = Field(default="")
     auto_equivalent: Optional[float] = Field(default=0, ge=0)
     seated_capacity: Optional[int] = Field(default=None, ge=0)
     total_capacity: Optional[int] = Field(default=None, ge=0)
@@ -1084,7 +1099,6 @@ class TransitConfig(ConfigItem):
     """Transit assignment parameters."""
 
     modes: Tuple[TransitModeConfig, ...]
-    vehicles: Tuple[TransitVehicleConfig, ...]
 
     apply_msa_demand: bool
     value_of_time: float
@@ -1094,8 +1108,7 @@ class TransitConfig(ConfigItem):
     initial_wait_perception_factor: float
     transfer_wait_perception_factor: float
     walk_perception_factor: float
-    initial_boarding_penalty: float
-    transfer_boarding_penalty: float
+    drive_perception_factor: float
     max_transfers: int
     output_skim_path: pathlib.Path
     fares_path: pathlib.Path
@@ -1113,12 +1126,10 @@ class TransitConfig(ConfigItem):
     classes: Tuple[TransitClassConfig, ...] = Field()
     use_ccr: bool = False
     congested_transit_assignment: bool = False
-    capacitated_transit_assignment: bool = False
-    station_capacity_transit_assignment: bool = False
     mask_noncombo_allpen: bool = False
     mask_over_3_xfers: bool = False
     use_peaking_factor: bool = False
-
+    vehicles: Optional[TransitVehicleConfig] = Field(default_factory=TransitVehicleConfig)
 @dataclass(frozen=True)
 class EmmeConfig(ConfigItem):
     """Emme-specific parameters.

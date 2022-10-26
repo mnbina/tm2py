@@ -2,6 +2,7 @@
 """
 
 from __future__ import annotations
+from ast import If
 
 from collections import defaultdict as _defaultdict
 from contextlib import contextmanager as _context
@@ -154,10 +155,10 @@ class CreateTODScenarios(Component):
                 "full_matrices": 9999,
                 "scenarios": 1 + n_time_periods,
                 "regular_nodes": 650000,
-                "links": 1900000,
+                "links": 2000000,
                 "transit_vehicles": 600, # pnr vechiles
                 "transit_segments": 1800000,
-                "extra_attribute_values": 100000000  # reduce processing time
+                "extra_attribute_values": 200000000  # reduce processing time
             }
             self._emme_manager.change_emmebank_dimensions(emmebank, required_dims)
             for ident in ["ft1", "ft2", "ft3"]:
@@ -171,14 +172,14 @@ class CreateTODScenarios(Component):
             ref_scenario = emmebank.scenario(self.controller.config.emme.all_day_scenario_id)
             attributes = {
                 "LINK": ["@trantime", "@area_type", "@capclass", "@free_flow_speed", "@free_flow_time"],
-                "TRANSIT_LINE": ["@invehicle_factor"]
+                "TRANSIT_LINE": ["@invehicle_factor", "@iboard_penalty", "@xboard_penalty"]
             }
             for domain, attrs in attributes.items():
                 for name in attrs:
                     if ref_scenario.extra_attribute(name) is None:
                         ref_scenario.create_extra_attribute(domain, name)
             network = ref_scenario.get_network()           
-            # auto_network = self._ref_auto_network     # comment out because of missing highway network
+            # auto_network = self._ref_auto_network    
             # # copy link attributes from auto network to transit network
             # link_lookup = {}
             # for link in auto_network.links():
@@ -192,12 +193,17 @@ class CreateTODScenarios(Component):
 
             mode_table = self.controller.config.transit.modes
             in_vehicle_factors = {}
+            initial_boarding_penalty = {}
+            transfer_boarding_penalty = {}
             default_in_vehicle_factor = self.controller.config.transit.get("in_vehicle_perception_factor", 1.0)
+            default_initial_boarding_penalty = self.controller.config.transit.get("initial_boarding_penalty", 10)
+            default_transfer_boarding_penalty = self.controller.config.transit.get("transfer_boarding_penalty", 10)
             walk_modes = set()
             access_modes = set()
             egress_modes = set()
             local_modes = set()
             premium_modes = set()
+            
             for mode_data in mode_table:
                 mode = network.mode(mode_data['mode_id'])
                 if mode is None:
@@ -220,7 +226,10 @@ class CreateTODScenarios(Component):
                     premium_modes.add(mode.id)
                 in_vehicle_factors[mode.id] = mode_data.get(
                     "in_vehicle_perception_factor", default_in_vehicle_factor)
-
+                initial_boarding_penalty[mode.id] = mode_data.get(
+                    "initial_boarding_penalty", default_initial_boarding_penalty)
+                transfer_boarding_penalty[mode.id] = mode_data.get(
+                    "transfer_boarding_penalty", default_transfer_boarding_penalty)
             # create vehicles   # already set up in Lasso
             # vehicle_table = self.config.transit.vehicles
             # for veh_data in vehicle_table:
@@ -262,6 +271,8 @@ class CreateTODScenarios(Component):
                 line.vehicle = line_veh
                 # Set the perception factor from the mode table
                 line["@invehicle_factor"] = in_vehicle_factors[line.vehicle.mode.id]
+                line["@iboard_penalty"] = initial_boarding_penalty[line.vehicle.mode.id]
+                line["@xboard_penalty"] = transfer_boarding_penalty[line.vehicle.mode.id]
 
             # set link modes to the minimum set
             auto_mode = {self.controller.config.highway.generic_highway_mode_code}
@@ -277,10 +288,10 @@ class CreateTODScenarios(Component):
                 # if link["@rail_link"] and not modes:
                 #     modes |= premium_modes
                 # add access, egress or walk mode (auxilary transit modes)
-                if (link.i_node.is_centroid) and (link["@drive_link"]!=5):
+                if (link.i_node.is_centroid) and (link["@drive_link"]!=3) and (link["@drive_link"]!=5):
                     # modes |= access_modes  # switch access and egress mode previous settings might be wrong
                     link.modes = "a"
-                elif (link.j_node.is_centroid) and (link["@drive_link"]!=5):
+                elif (link.j_node.is_centroid) and (link["@drive_link"]!=3) and (link["@drive_link"]!=5):
                     # modes |= egress_modes  # switch access and egress mode previous settings might be wrong
                     link.modes = "e"
                 # elif link["@walk_link"]:

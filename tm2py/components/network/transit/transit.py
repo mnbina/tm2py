@@ -28,11 +28,7 @@ import inro.emme.desktop.worksheet as _worksheet
 
 # TODO: should express these in the config
 # TODO: or make global lists tuples
-# _all_access_modes = ["WLK", "PNR", "KNRTNC", "KNRPRV"]
 _all_access_modes = ["WLK_TRN_WLK", "PNR_TRN_WLK", "WLK_TRN_PNR","KNR_TRN_WLK","WLK_TRN_KNR"]
-# _all_sets = ["set1", "set2", "set3"]
-# _set_dict = {"BUS": "set1", "PREM": "set2", "ALLPEN": "set3"}
-# _set_dict = {"set1": "BUS", "set2": "PREM", "set3": "ALLPEN"}
 
 
 _skim_names = [
@@ -54,14 +50,8 @@ _skim_names = [
     "IVTHVY",
     "IVTCOM",
     "IVTFRY",
-    "PIVTLOC",
-    "PIVTEXP",
-    "PIVTLRT",
-    "PIVTHVY",
-    "PIVTCOM",
-    "PIVTFRY",
     # "LINKREL",
-    # "CROWD",
+    "CROWD",
     # "EAWT",
     # "CAPPEN",
 ]
@@ -191,14 +181,14 @@ class TransitAssignment(Component):
                 use_fares = self.controller.config.transit.use_fares
                 use_peaking_factor = self.controller.config.transit.use_peaking_factor
                 congested_transit_assignment = self.controller.config.transit.congested_transit_assignment
-                capacitated_transit_assignment = self.controller.config.transit.capacitated_transit_assignment
-                station_capacity_transit_assignment = self.controller.config.transit.station_capacity_transit_assignment
                 
                 network = scenario.get_network()
                 self.update_auto_times(network, period)
                 if self.controller.config.transit.get("override_connector_times", False):
                     self.update_connector_times(scenario, network, period)
                 # TODO: could set attribute_values instead of full publish
+
+                self.update_pnr_penalty(network)
 
                 if use_peaking_factor:
                     if (period.name == 'am') and (ea_df is None):
@@ -274,9 +264,7 @@ class TransitAssignment(Component):
                     assignment_only=False,  # temp
                     use_fares=use_fares,
                     use_ccr=use_ccr,
-                    congested_transit_assignment=congested_transit_assignment,
-                    capacitated_transit_assignment=capacitated_transit_assignment,
-                    station_capacity_transit_assignment=station_capacity_transit_assignment
+                    congested_transit_assignment=congested_transit_assignment
                 )
                 self.export_skims(period.name, scenario)
 
@@ -373,10 +361,23 @@ class TransitAssignment(Component):
             if segment['@schedule_time'] <= 0 and segment.link is not None:
                 segment.data1 = segment["@trantime_seg"] = segment.link["@trantime"]
 
+
+    def update_pnr_penalty(self, network):
+        for segment in network.transit_segments():
+            if "BART_acc" in segment.id:
+                if "West Oakland" in segment.id:
+                    segment["@board_cost"] = 12.4
+                else:
+                    segment["@board_cost"] = 3.0
+            elif "Caltrain_acc" in segment.id:
+                segment["@board_cost"] = 5.5
+
+
     def update_connector_times(self, scenario, network, period):
         # walk time attributes per skim set
         # connector_attrs = {1: "@walk_time_bus", 2: "@walk_time_prem", 3: "@walk_time_all"}
-        connector_attrs = {1:"@connector_time_all"}
+        params = self.controller.config.transit
+        connector_attrs = {1:"@connector_time_all", 2:"@connector_pfactor"}
         for attr_name in connector_attrs.values():
             if scenario.extra_attribute(attr_name) is None:
                 scenario.create_extra_attribute("LINK", attr_name)
@@ -390,8 +391,12 @@ class TransitAssignment(Component):
         for link in network.links():
             if (link.modes == set([network.mode('a')])) or (link.modes == set([network.mode('e')])):
                 link['@connector_time_all'] = 60 * link.length/3
-            if (link.modes == set([network.mode('P')])) or (link.modes == set([network.mode('K')])):
+                link['@connector_pfactor'] = params["walk_perception_factor"]
+            elif (link.modes == set([network.mode('P'),network.mode('K')])) or (link.modes == set([network.mode('K')])):
                 link['@connector_time_all'] = 60 * link.length/40
+                link['@connector_pfactor'] = params["drive_perception_factor"]
+            else:
+                link['@connector_pfactor'] = 1
 
         # lookup adjacent real stop to account for connector splitting
         # connectors = _defaultdict(lambda: {})
@@ -439,7 +444,7 @@ class TransitAssignment(Component):
                 ("XWAIT", "transfer wait time"),
                 ("WAIT", "total wait time"),
                 ("FARE", "fare"),
-                ("BOARDS", "num transfers"),
+                ("BOARDS", "num boardings"),
                 ("WAUX", "auxiliary walk time"),
                 # ("TOTALAUX", "total auxiliary time"),
                 ("DTIME", "access and egress drive time"),
@@ -453,15 +458,9 @@ class TransitAssignment(Component):
                 ("IVTHVY", "heavy rail in-vehicle time"),
                 ("IVTCOM", "commuter rail in-vehicle time"),
                 ("IVTFRY", "ferry in-vehicle time"),
-                ("PIVTLOC", "local bus perceived in-vehicle time"),
-                ("PIVTEXP", "express bus perceived in-vehicle time"),
-                ("PIVTLRT", "light rail perceived in-vehicle time"),
-                ("PIVTHVY", "heavy rail perceived in-vehicle time"),
-                ("PIVTCOM", "commuter rail perceived in-vehicle time"),
-                ("PIVTFRY", "ferry perceivedin-vehicle time"),
                 ("IN_VEHICLE_COST", "In vehicle cost"),  
                 # ("LINKREL", "Link reliability"), #ccr skims only
-                # ("CROWD", "Crowding penalty"),
+                ("CROWD", "Crowding penalty"),
                 # ("EAWT", "Extra added wait time"),
                 # ("CAPPEN", "Capacity penalty"),
             ]
@@ -565,9 +564,7 @@ class TransitAssignment(Component):
                         assignment_only=False,
                         use_fares=False,
                         use_ccr=False,
-                        congested_transit_assignment=False,
-                        capacitated_transit_assignment=False,
-                        station_capacity_transit_assignment=False
+                        congested_transit_assignment=False
                         ):
         # TODO: double check value of time from $/min to $/hour is OK
         # network = scenario.get_network()
@@ -596,7 +593,8 @@ class TransitAssignment(Component):
                 mode_types["KNR_ACCESS"].append(mode.mode_id)
                 mode_types["KNR_EGRESS"].append(mode.mode_id)
             elif mode.type in ["LOCAL","PREMIUM","PNR_dummy"]:
-                mode_types["TRN"].append(mode.mode_id)                
+                mode_types["TRN"].append(mode.mode_id)       
+        print(mode_types)            
         with self.controller.emme_manager.logbook_trace("Transit assignment and skims for period %s" % period.name):
             self.run_assignment(
                 scenario,
@@ -605,9 +603,7 @@ class TransitAssignment(Component):
                 mode_types,
                 use_fares,
                 use_ccr,
-                congested_transit_assignment,
-                capacitated_transit_assignment,
-                station_capacity_transit_assignment
+                congested_transit_assignment
             )
 
             if not assignment_only:
@@ -620,6 +616,7 @@ class TransitAssignment(Component):
                         network,
                         use_fares,
                         use_ccr,
+                        congested_transit_assignment
                     )
                 with self.controller.emme_manager.logbook_trace("Skims for WLK_TRN_PNR"):
                     self.run_skims(
@@ -630,6 +627,7 @@ class TransitAssignment(Component):
                         network,
                         use_fares,
                         use_ccr,
+                        congested_transit_assignment                    
                     )
                 with self.controller.emme_manager.logbook_trace("Skims for KNR_TRN_WLK"):
                     self.run_skims(
@@ -640,6 +638,7 @@ class TransitAssignment(Component):
                         network,
                         use_fares,
                         use_ccr,
+                        congested_transit_assignment                        
                     )
                 with self.controller.emme_manager.logbook_trace("Skims for WLK_TRN_KNR"):
                     self.run_skims(
@@ -650,6 +649,7 @@ class TransitAssignment(Component):
                         network,
                         use_fares,
                         use_ccr,
+                        congested_transit_assignment                        
                     )
                 with self.controller.emme_manager.logbook_trace("Skims for WLK_TRN_WLK"):
                     self.run_skims(
@@ -660,6 +660,7 @@ class TransitAssignment(Component):
                         network,
                         use_fares,
                         use_ccr,
+                        congested_transit_assignment                       
                     )
                     if self.controller.config.transit.get("mask_noncombo_allpen", True):
                         self.mask_allpen(period.name)
@@ -675,9 +676,7 @@ class TransitAssignment(Component):
             mode_types,
             use_fares=False,
             use_ccr=False,
-            congested_transit_assignment=False,
-            capacitated_transit_assignment=False,
-            station_capacity_transit_assignment=False
+            congested_transit_assignment=False
     ):
 
         # REVIEW: separate method into smaller steps
@@ -696,8 +695,8 @@ class TransitAssignment(Component):
                 "spread_factor": 1.0,
             },
             "boarding_cost": {"global": {"penalty": 0, "perception_factor": 1}},
-            "boarding_time": {"global": {
-                "penalty": params["initial_boarding_penalty"], "perception_factor": 1}
+            "boarding_time": {"on_lines": {
+                "penalty": "@iboard_penalty", "perception_factor": 1}
             },
             "in_vehicle_cost": None,
             "in_vehicle_time": {"perception_factor": "@invehicle_factor"},
@@ -741,24 +740,8 @@ class TransitAssignment(Component):
                     out_modes.update(fare_modes[mode])
                 return list(out_modes)
 
-            # local_modes = get_fare_modes(mode_types["LOCAL"])
-            # premium_modes = get_fare_modes(mode_types["PREMIUM"])
             all_modes = get_fare_modes(mode_types["TRN"])
             project_dir = os.path.dirname(os.path.dirname(scenario.emmebank.path))
-            # with open(
-            #         os.path.join(
-            #             project_dir, "Specifications", "%s_BUS_journey_levels.ems" % period.name
-            #         ),
-            #         "r",
-            # ) as f:
-            #     local_journey_levels = _json.load(f)["journey_levels"]
-            # with open(
-            #         os.path.join(
-            #             project_dir, "Specifications", "%s_PREM_journey_levels.ems" % period.name
-            #         ),
-            #         "r",
-            # ) as f:
-            #     premium_modes_journey_levels = _json.load(f)["journey_levels"]
             with open(
                     os.path.join(
                         project_dir, "Specifications", "%s_ALLPEN_journey_levels.ems" % period.name
@@ -776,11 +759,10 @@ class TransitAssignment(Component):
                         "spread_factor": 1,
                         "perception_factor": params["transfer_wait_perception_factor"]
                     }
-                    # if "transfer_boarding_penalty" in params:
-                    if params.get("transfer_boarding_penalty", False): 
-                        level["boarding_time"] = {"global": {
-                            "penalty": params["transfer_boarding_penalty"], "perception_factor": 1}
-                        }
+                    # if params.get("transfer_boarding_penalty", False): 
+                    level["boarding_time"] = {"on_lines": {
+                        "penalty": "@xboard_penalty", "perception_factor": 1}
+                    }
                 # add in the correct value of time parameter
                 for level in jls:
                     if level["boarding_cost"]:
@@ -788,29 +770,15 @@ class TransitAssignment(Component):
 
             mode_attr = '["#src_mode"]'
         else:
-            # local_modes = list(mode_types["LOCAL"])
-            # premium_modes = list(mode_types["PREMIUM"])
-            # local_journey_levels = get_jl_xfer_penalty(
-            #     local_modes,
-            #     params["effective_headway_source"],
-            #     params["transfer_wait_perception_factor"],
-            #     params.get("transfer_boarding_penalty")
-            # )
-            # premium_modes_journey_levels = get_jl_xfer_penalty(
-            #     premium_modes,
-            #     params["effective_headway_source"],
-            #     params["transfer_wait_perception_factor"],
-            #     params.get("transfer_boarding_penalty")
-            # )
             all_modes = list(mode_types["TRN"])
             journey_levels = get_jl_xfer_penalty(
                 all_modes,
                 params["effective_headway_source"],
                 params["transfer_wait_perception_factor"],
-                params.get("transfer_boarding_penalty")
+                "@xboard_penalty"
             )
             mode_attr = ".mode.mode_id"
-
+        print(all_modes)
         skim_parameters = OrderedDict(
             [
                 (
@@ -852,19 +820,19 @@ class TransitAssignment(Component):
         )
         if self.controller.config.transit.get("override_connector_times", False):
             skim_parameters["WLK_TRN_WLK"]["aux_transit_cost"] = {
-                "penalty": "@connector_time_all", "perception_factor": params["walk_perception_factor"]
+                "penalty": "@connector_time_all", "perception_factor": "@connector_pfactor"
             }
             skim_parameters["PNR_TRN_WLK"]["aux_transit_cost"] = {
-                "penalty": "@connector_time_all", "perception_factor": params["walk_perception_factor"]
+                "penalty": "@connector_time_all", "perception_factor": "@connector_pfactor"
             }
             skim_parameters["WLK_TRN_PNR"]["aux_transit_cost"] = {
-                "penalty": "@connector_time_all", "perception_factor": params["walk_perception_factor"]
+                "penalty": "@connector_time_all", "perception_factor": "@connector_pfactor"
             }
             skim_parameters["KNR_TRN_WLK"]["aux_transit_cost"] = {
-                "penalty": "@connector_time_all", "perception_factor": params["walk_perception_factor"]
+                "penalty": "@connector_time_all", "perception_factor": "@connector_pfactor"
             }
             skim_parameters["WLK_TRN_KNR"]["aux_transit_cost"] = {
-                "penalty": "@connector_time_all", "perception_factor": params["walk_perception_factor"]
+                "penalty": "@connector_time_all", "perception_factor": "@connector_pfactor"
             }
         if use_ccr:
             print('run capacitated transit assignment')
@@ -943,13 +911,20 @@ class TransitAssignment(Component):
                 spec["aux_transit_cost"] = parameters.get("aux_transit_cost")
                 specs.append(spec)
                 names.append(mode_name)
+            # func = {
+            #     "type": "BPR",
+            #     "weight": 0.15,
+            #     "exponent": 4,
+            #     "assignment_period": period.length_hours,
+            #     "orig_func": False,
+            #     "congestion_attribute": "us3"
+            # }
             func = {
-                "type": "BPR",
-                "weight": 0.15,
-                "exponent": 4,
-                "assignment_period": period.length_hours,
+                "type": "CUSTOM",
+                "python_function": _segment_cost_function.format(period.length_hours),
+                "congestion_attribute": "us3",
                 "orig_func": False,
-                "congestion_attribute": "us3"
+                "assignment_period": period.length_hours,
             }
             stop = {
                 "max_iterations": 10,
@@ -965,114 +940,6 @@ class TransitAssignment(Component):
                 scenario=scenario,
                 log_worksheets=False,
             )
-        elif capacitated_transit_assignment:
-            print('run capacitated transit assignment (BPR)')
-            assign_transit = modeller.tool(
-                "inro.emme.transit_assignment.capacitated_transit_assignment"
-            )
-            #  assign all 3 classes of demand at the same time
-            specs = []
-            names = []
-            demand_matrix_template = "mf{access_mode_set}_{period}"
-            for mode_name, parameters in skim_parameters.items():
-                spec = _copy(base_spec)
-                spec["modes"] = parameters["modes"]
-                demand_matrix = demand_matrix_template.format(
-                    access_mode_set=mode_name, period=period.name
-                )
-                # TODO: need to raise on zero demand matrix?
-                # if emmebank.matrix(demand_matrix).get_numpy_data(scenario.id).sum() == 0:
-                #     continue  # don't include if no demand
-                spec["demand"] = demand_matrix
-                spec["journey_levels"] = parameters["journey_levels"]
-                # Optional aux_transit_cost, used for walk time on connectors, set if override_connector_times
-                spec["aux_transit_cost"] = parameters.get("aux_transit_cost")
-                specs.append(spec)
-                names.append(mode_name)
-            func = {
-                "segment": {
-                    "type": "BPR",
-                    "weight": 0.15,
-                    "exponent": 4,
-                    "orig_func": False,
-                    "congestion_attribute": "us3"
-                },
-                "headway": {
-                    # "type": "EFFECTIVE_HEADWAY",  #to mimic congested transit assignment 
-                    # "exponent": 0.2,
-                },
-                "assignment_period": period.length_hours,
-            }
-            stop = {
-                "max_iterations": 10,
-                "relative_difference": 0.1,
-                "percent_segments_over_capacity": 0.1
-            }
-
-            assign_transit(
-                specs,
-                congestion_function=func,
-                stopping_criteria=stop,
-                class_names=names,
-                scenario=scenario,
-                log_worksheets=False,
-            )         
-        elif station_capacity_transit_assignment:
-            print('run station capacity transit assignment')
-            assign_transit = modeller.tool(
-                "inro.emme.transit_assignment.extended_transit_assignment"
-            )
-            net_calc = modeller.tool("inro.emme.network_calculation.network_calculator")
-            create_attribute = modeller.tool("inro.emme.data.extra_attribute.create_extra_attribute"
-        )
-            # Notes
-            # Stations with capacity constraint are identified using @stn node attribute
-            # A BPR like station capacity function with 2min default cost, 0.15 weight, and 4.0 exponent
-            #   - a BPR function will have a default station cost of 2min. Modify function if this should be zero for zero boardings.
-            #select_node = 
-            select_station_spec = {
-                "type": "NETWORK_CALCULATION",
-                "expression": "1",
-                "result": "@stn",
-                "selections": {
-                    "node": "i=407634"} ###### <== a specific station is already used in this specification. Rewrite this spec as needed.
-            }
-            brd_spec = {
-                "type": "NETWORK_CALCULATION",
-                "result": "ui1",
-                "expression": "board",
-                "aggregation": "+",
-                "selections": {
-                    "link": "@stn=1",
-                    "transit_line": "all"}
-            }
-            stn_cost = {
-                "type": "NETWORK_CALCULATION",
-                "result": "ui1",
-                "expression": "2*(1+0.15*(ui1/2000)^4)",
-                "selections": {
-                    "node": "@stn=1"}
-            }
-            create_attribute("NODE", "@stn", "Stations with capacity", 0, overwrite=True, scenario=scenario)
-            net_calc(select_station_spec)
-            for i in range(10):
-                add_volumes = False
-                for mode_name, parameters in skim_parameters.items():
-                    spec = _copy(base_spec)
-                    spec["modes"] = parameters["modes"]
-                    # spec["demand"] = 'ms1' # zero demand matrix
-                    spec["demand"] = "mf{access_mode_set}_{period}".format(
-                        access_mode_set=mode_name, period=period.name
-                    )
-                    spec["journey_levels"] = parameters["journey_levels"]
-                    # Optional aux_transit_cost, used for walk time on connectors, set if override_connector_times
-                    spec["aux_transit_cost"] = parameters.get("aux_transit_cost")
-                    spec["boarding_cost"] = {"at_nodes": {"penalty": "ui1", "perception_factor": 2}}
-                    assign_transit(
-                        spec, class_name=mode_name, add_volumes=add_volumes, scenario=scenario
-                    )
-                    add_volumes = True
-                print("Iteration {} with station boardings of {:.2f}, and cost of {:.4f}".format(i+1, net_calc(brd_spec)['maximum'], net_calc(stn_cost)['maximum']))
         else:
             print('run extended transit assignment')
             assign_transit = modeller.tool(
@@ -1102,6 +969,7 @@ class TransitAssignment(Component):
                   network,
                   use_fares=False,
                   use_ccr=False,
+                  congested_transit_assignment=False
                   ):
         # REVIEW: separate method into smaller steps
         #     - specify class structure in config
@@ -1230,7 +1098,6 @@ class TransitAssignment(Component):
             total_ivtt_expr = []
             if use_ccr:
                 scenario.create_extra_attribute("TRANSIT_SEGMENT", "@mode_timtr")
-                scenario.create_extra_attribute("TRANSIT_SEGMENT", "@mode_ptimtr")
                 try:
                     for mode_name, modes in mode_combinations:
                         network.create_attribute("TRANSIT_SEGMENT", "@mode_timtr")
@@ -1247,7 +1114,7 @@ class TransitAssignment(Component):
                         scenario.set_attribute_values(
                             "TRANSIT_SEGMENT", ["@mode_timtr"], mode_timtr
                         )
-                        ivtt = 'mf"%s_%sIVT"' % (skim_name, mode_name)
+                        ivtt = 'mf"%s_IVT%s"' % (skim_name, mode_name)
                         total_ivtt_expr.append(ivtt)
                         spec = get_strat_spec({"in_vehicle": "@mode_timtr"}, ivtt)
                         strategy_analysis(
@@ -1257,33 +1124,16 @@ class TransitAssignment(Component):
                             num_processors=num_processors,
                         )
 
-                        # perceived ivtt
-                        mode_perception = network.get_attribute_values(
-                            "TRANSIT_SEGMENT", ["@invehicle_factor"]
-                        )
-                        scenario.set_attribute_values(
-                            "TRANSIT_SEGMENT", ["@pmode_timtr"], mode_timtr*mode_perception
-                        )
-                        pivtt = 'mf"%s_PIVT%s"' % (skim_name, mode_name)
-                        spec = get_strat_spec({"in_vehicle": "@pmode_timtr"}, pivtt)
-                        strategy_analysis(
-                            spec,
-                            class_name=class_name,
-                            scenario=scenario,
-                            num_processors=num_processors,
-                        )  
                 finally:
                     scenario.delete_extra_attribute("@mode_timtr")
             else:
                 for mode_name, modes in mode_combinations:
                     ivtt = 'mf"%s_IVT%s"' % (skim_name, mode_name)
-                    pivtt = 'mf"%s_PIVT%s"' % (skim_name, mode_name)  # perceived ivtt
                     total_ivtt_expr.append(ivtt)
                     spec = {
                         "type": "EXTENDED_TRANSIT_MATRIX_RESULTS",
                         "by_mode_subset": {"modes": modes, 
                                         "actual_in_vehicle_times": ivtt,
-                                        "perceived_in_vehicle_times": pivtt,   # perceived ivtt
                         },
                     }
                     matrix_results(
@@ -1302,19 +1152,6 @@ class TransitAssignment(Component):
                     "constraint": None,
                     "result": f'mf"{skim_name}_IVT"',
                     "expression": "+".join(total_ivtt_expr),
-                },
-                {  # convert number of boardings to number of transfers
-                    "type": "MATRIX_CALCULATION",
-                    "constraint": {
-                        "by_value": {
-                            "od_values": f'mf"{skim_name}_BOARDS"',
-                            "interval_min": 0,
-                            "interval_max": 9999999,
-                            "condition": "INCLUDE",
-                        }
-                    },
-                    "result": f'mf"{skim_name}_BOARDS"',
-                    "expression": f'(mf"{skim_name}_BOARDS" - 1).max.0',
                 },
                 {
                     "type": "MATRIX_CALCULATION",
@@ -1337,6 +1174,21 @@ class TransitAssignment(Component):
                     "constraint": None,
                     "result": f'mf"{skim_name}_FARE"',
                     "expression": f'(mf"{skim_name}_FARE" + mf"{skim_name}_IN_VEHICLE_COST")'}) # syntax error
+
+            if ("PNR_TRN_WLK" in skim_name) or ("WLK_TRN_PNR"in skim_name):
+                spec_list.append(                {  # convert number of boardings to number of transfers
+                    "type": "MATRIX_CALCULATION",
+                    "constraint": {
+                        "by_value": {
+                            "od_values": f'mf"{skim_name}_BOARDS"',
+                            "interval_min": 0,
+                            "interval_max": 9999999,
+                            "condition": "INCLUDE",
+                        }
+                    },
+                    "result": f'mf"{skim_name}_BOARDS"',
+                    "expression": f'(mf"{skim_name}_BOARDS" - 1).max.0',
+                })                
 
             matrix_calc(spec_list, scenario=scenario, num_processors=num_processors)
 
@@ -1441,6 +1293,15 @@ class TransitAssignment(Component):
                     scenario=scenario,
                     num_processors=num_processors,
                 )
+
+        if congested_transit_assignment:
+            spec = get_strat_spec({"in_vehicle": "@ccost"}, f'mf"{skim_name}_CROWD"')
+            strategy_analysis(
+                spec,
+                class_name=class_name,
+                scenario=scenario,
+                num_processors=num_processors,
+            )
 
     def mask_allpen(self, period):
         # Reset skims to 0 if not both local and premium
@@ -1647,7 +1508,7 @@ def get_jl_xfer_penalty(modes, effective_headway_source, xfer_perception_factor,
         }]
 
     if xfer_boarding_penalty is not None:
-        level_rules[1]["boarding_time"] = {"global": {
+        level_rules[1]["boarding_time"] = {"on_lines": {
             "penalty": xfer_boarding_penalty, "perception_factor": 1}
         }
     return level_rules
