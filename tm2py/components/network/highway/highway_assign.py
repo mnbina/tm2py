@@ -164,6 +164,12 @@ class HighwayAssignment(Component):
                         class_config["skims"],
                     )
                 self._export_skims(scenario, time)
+
+                # extra calculation for dynamic tolling
+                if self.controller.config.highway.tolls.run_dynamic_toll:
+                    self._calc_total_flow(scenario)
+                    self._calculate_vc(scenario)
+                
                 if self.logger.debug_enabled:
                     self._log_debug_report(scenario, time)
 
@@ -209,6 +215,29 @@ class HighwayAssignment(Component):
         )
         net_calc = NetworkCalculator(scenario)
         net_calc("ul1", "0")
+
+    def _calc_total_flow(self, scenario: EmmeScenario):
+        """Calculate total traffic flow by summing up flow by classes
+
+        Args:
+            scenario: Emme scenario object
+        """
+        assign_class_flow_names = []
+        for assign_class in self.config.classes:
+            assign_class_flow_names.append(f"@flow_{assign_class.name.lower()}")
+        expression = " + ".join(assign_class_flow_names)
+
+        net_calc = NetworkCalculator(scenario)
+        net_calc("@total_flow", expression)
+
+    def _calculate_vc(self, scenario: EmmeScenario):
+        """Calculate V/C Ratio
+
+        Args:
+            scenario: Emme scenario object
+        """
+        net_calc = NetworkCalculator(scenario)
+        net_calc("@vc", "@total_flow / @capacity")
 
     def _create_skim_matrices(
         self, scenario: EmmeScenario, assign_classes: List[AssignmentClass]

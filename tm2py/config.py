@@ -802,6 +802,8 @@ class HighwayTollsConfig(ConfigItem):
     valuetoll_start_tollbooth_code: int = Field(gt=1)
     src_vehicle_group_names: Tuple[str, ...] = Field()
     dst_vehicle_group_names: Tuple[str, ...] = Field()
+    run_dynamic_toll: bool = Field(default=False)
+    max_dynamic_valuetoll: float = Field()
 
     @validator("dst_vehicle_group_names", always=True)
     def dst_vehicle_group_names_length(value, values):
