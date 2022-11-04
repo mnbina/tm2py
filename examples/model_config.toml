@@ -47,12 +47,12 @@
     highway_demand_file = "demand_matrices/highway/household/TAZ_Demand_{period}.omx"
     transit_demand_file = "demand_matrices/transit/trn_demand_v12_trim_{period}.omx"
     active_demand_file = "demand_matrices/active/nm_demand_{period}.omx"
-    ctramp_indiv_trip_file = "main/indivTripData_1.csv"
-    ctramp_joint_trip_file = "main/jointTripData_1.csv"
-	ctramp_hh_file = "main/householdData_1.csv"
+    ctramp_indiv_trip_file = "main/indivTripData_{iteration}.csv"
+    ctramp_joint_trip_file = "main/jointTripData_{iteration}.csv"
+	ctramp_hh_file = "main/householdData_{iteration}.csv"
     host_ip_address = "10.0.143.35"
-	ctramp_run_dir = 'C:\MTC_tmpy\TM2\calibration'
-    sample_rate_iteration = [0.20]
+	ctramp_run_dir = 'C:\MTC_tmpy\TM2\calibration-greta_testing'
+    sample_rate_iteration = [0.10]
 	copy_from_examples = true
     [household.rideshare_mode_split]
     "taxi"=0.08
@@ -263,7 +263,7 @@
             "AM" = 0.3333333333
             "MD" = 0.6666666667
     [truck.trip_dist]
-        k_factors_file = "inputs/nonres/truck_kfactors_taz.csv"
+        k_factors_file = "inputs/nonres/truckfact_BART_3631.omx"
         friction_factors_file = "inputs/nonres/truckFF.csv"
         max_balance_iterations = 999
         max_balance_relative_error = 0.0001
@@ -704,7 +704,14 @@
             factor = 2.0
 
     [highway.convergence]
-        output_convergence_report_path = "output_summaries/highway_convergence_report.xlsx"
+        output_convergence_report_path = "output_summaries/highway_convergence_report.txt"
+		output_triptable_path = "output_summaries/trip_tables_{iteration}.omx"
+		output_skim_path = "output_summaries/skims_{iteration}.omx"
+		selected_od_pair = [1,100]
+		selected_links = [5,10,15]
+		skim_selected_time_periods = ["am","pm"]
+		output_network_attr_filename = "output_summaries/network_attrs_{iteration}.parquet"
+		output_network_summary_filename = "output_summaries/network_summary_{iteration}.csv"
 
 [transit]
     apply_msa_demand = false

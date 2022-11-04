@@ -38,7 +38,7 @@ class HouseholdModel(Component):
         self._start_jppf_node0()
         self._run_resident_model()
         self._stop_java()
-        #self._prepare_demand_for_assignment()
+        self._prepare_demand_for_assignment()
         
     def _move_inputs_to_run_dir(self):
         if not os.path.samefile(self.controller.config.household.ctramp_run_dir,
@@ -144,7 +144,11 @@ class HouseholdModel(Component):
 
     def _run_resident_model(self):
         sample_rate_iteration_values = self.controller.config.household.sample_rate_iteration
-        sample_rate_iteration = dict(zip(range(1, len(sample_rate_iteration_values) + 1), sample_rate_iteration_values))
+        #sample_rate_iteration = dict(zip(range(1, len(sample_rate_iteration_values) + 1), sample_rate_iteration_values))
+        sample_rate_iteration = dict(zip(
+            range(self.controller.config.run.start_iteration, self.controller.config.run.end_iteration + 1), 
+            sample_rate_iteration_values))
+        
         iteration = self.controller.iteration
         sample_rate = sample_rate_iteration[iteration]
         seed = 0

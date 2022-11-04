@@ -15,20 +15,20 @@
 [run]
     start_component = ""
     initial_components = [
-		"create_tod_scenarios",
-		"prepare_network_highway",
-		"highway",
-		"prepare_network_transit",
-		"transit",
-		"convergence_report"		
+		#"create_tod_scenarios",
+		#"prepare_network_highway",
+		#"highway",
+		#"prepare_network_transit",
+		#"transit",
+		#"convergence_report"		
     ]
     global_iteration_components = [
 		"home_accessibility", # needs to be updated everytime after skims are updated
 		"household", 
-		"truck",
-		"highway",
-		"transit",
-		"convergence_report"	
+		#"truck",
+		#"highway",
+		#"transit",
+		#"convergence_report"	
     ]
     final_components = []
     start_iteration = 1

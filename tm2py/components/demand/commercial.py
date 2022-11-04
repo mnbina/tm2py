@@ -471,7 +471,7 @@ class CommercialVehicleTripDistribution(Subcomponent):
         return self._k_factors
 
     def _load_k_factors(self):
-        """Loads k-factors from self.config.truck.k_factors_file csv file.
+        """Loads k-factors from self.config.truck.k_factors_file csv file or omx file.
 
         Returns:
             NumpyArray: Zone-to-zone values of truck K factors.
@@ -486,19 +486,40 @@ class CommercialVehicleTripDistribution(Subcomponent):
             default_value=0,
             max_zone=max(self._scenario.zone_numbers),
         )["truck_k"].values"""
-        data = pd.read_csv(self.get_abs_path(self.config.k_factors_file))
-        zones = np.unique(data["I_taz_tm2_v2_2"])
-        num_data_zones = len(zones)
-        row_index = np.searchsorted(zones, data["I_taz_tm2_v2_2"])
-        col_index = np.searchsorted(zones, data["J_taz_tm2_v2_2"])
-        k_factors = np.zeros((num_data_zones, num_data_zones))
-        k_factors[row_index, col_index] = data["truck_k"]
-        num_zones = len(self.component.emme_scenario.zone_numbers)
-        padding = ((0, num_zones - num_data_zones), (0, num_zones - num_data_zones))
-        k_factors = np.pad(k_factors, padding)
+        
+        # Validate that the file format is CSV or OMX; if OMX, validate that there is only one matrix.
+        k_factors_file = self.config.k_factors_file
+        assert str(k_factors_file).lower().endswith('.csv') or str(k_factors_file).lower().endswith('.omx') , f"The K factors file {k_factors_file} is not a CSV or OMX file."
 
+        if str(k_factors_file).lower().endswith('.csv'):
+            data = pd.read_csv(self.get_abs_path(k_factors_file))
+            zones = np.unique(data["I_taz_tm2_v2_2"])
+            num_data_zones = len(zones)
+            row_index = np.searchsorted(zones, data["I_taz_tm2_v2_2"])
+            col_index = np.searchsorted(zones, data["J_taz_tm2_v2_2"])
+            k_factors = np.zeros((num_data_zones, num_data_zones))
+            k_factors[row_index, col_index] = data["truck_k"]
+            padding = ((0, self.num_internal_zones - num_data_zones), (0, self.num_internal_zones - num_data_zones))
+            k_factors = np.pad(k_factors, padding)
+            
+        elif str(k_factors_file).lower().endswith('.omx'):
+            omx = OMXManager(self.get_abs_path(k_factors_file))
+            omx.open()
+            mats = omx._omx_file.list_matrices()
+            assert len(mats) == 1, f"The K factors file {k_factors_file} is an OMX file; it must contain precisely one matrix. Matrices in the file are: {', '.join(mats)}"# this file should only contain one matrix 
+            data = omx.read(mats[0]) 
+            omx.close()
+            num_data_zones = len(data)
+            padding = ((0, self.num_internal_zones - num_data_zones), (0, self.num_internal_zones - num_data_zones))
+            k_factors = np.pad(data, padding)
+            
         return k_factors
-
+    
+    @property
+    def num_internal_zones(self):
+        return len(pd.read_csv(
+            self.get_abs_path(self.controller.config.scenario.landuse_file), usecols = [self.controller.config.scenario.landuse_index_column]))
+    
     def blended_skims(self, mode: str):
         """Get blended skim. Creates it if doesn't already exist.
 

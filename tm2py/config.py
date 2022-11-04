@@ -897,6 +897,13 @@ class ConvergenceReportConfig(ConfigItem):
         output_convergence_report_path: file path to Excel file containing convergence reports from every iteration.
     """
     output_convergence_report_path: pathlib.Path = Field()
+    output_triptable_path: str = Field()
+    output_skim_path: str = Field()
+    selected_od_pair: Tuple[int, ...] = Field()
+    selected_links: Tuple[int, ...] = Field()
+    skim_selected_time_periods: Tuple[str, ...] = Field()
+    output_network_attr_filename: str = Field()
+    output_network_summary_filename: str = Field()
 
 @dataclass(frozen=True)
 class HighwayConfig(ConfigItem):

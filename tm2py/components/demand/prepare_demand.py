@@ -146,6 +146,44 @@ class PrepareHighwayDemand(PrepareDemand):
         demand_name = f"{time_period}_{name}"
         description = f"{time_period} {description} demand"
         self._save_demand(demand_name, demand, scenario, description, apply_msa=True)
+        
+    def export_trip_tables(self):
+    
+        """Load demand from OMX files and aggregate as daily demand for evaluating convergence."""
+        
+        triptables = OMXManager(
+            self.get_abs_path(self.controller.config.highway.convergence.output_triptable_path.format(iteration = self.controller.iteration)),
+            "w")
+        
+        triptables.open()
+        
+        num_total_zones = self.num_total_zones
+        
+        # Highway, passenger and truck
+        for klass in self.controller.config.highway.classes:
+            name, description, demand_config = klass.name, klass.description, klass.demand
+            demand = np.zeros((num_total_zones, num_total_zones))
+            
+            for time_period in self.time_period_names:
+                scenario = self.get_emme_scenario(self._emmebank.path, time_period)
+                for file_config in demand_config:
+                    demand = demand + self._read_demand(file_config, time_period, num_total_zones)
+            triptables.write_array(demand, name = name)
+        
+        # Transit
+        for klass in self.controller.config.transit.classes:
+            name, description = klass.name.upper(), klass.description
+            demand = np.zeros((num_total_zones, num_total_zones))
+            
+            for time_period in self.time_period_names:
+                scenario = self.get_emme_scenario(self._emmebank.path, time_period)
+                path = self.get_abs_path(self.controller.config.household.transit_demand_file)
+                demand += self._read(path.format(period=time_period), name, num_total_zones)
+            triptables.write_array(demand, name = name)
+        
+        triptables.close()
+                
+                
 
     def _read_demand(self, file_config, time_period, num_zones):
         # Load demand from cross-referenced source file,
@@ -163,8 +201,8 @@ class PrepareHighwayDemand(PrepareDemand):
         
         
         
-        indiv_trip_file = pathlib.Path(self.controller.config.household.ctramp_run_dir) / self.controller.config.household.ctramp_indiv_trip_file
-        joint_trip_file = pathlib.Path(self.controller.config.household.ctramp_run_dir) / self.controller.config.household.ctramp_joint_trip_file
+        indiv_trip_file = pathlib.Path(self.controller.config.household.ctramp_run_dir) / self.controller.config.household.ctramp_indiv_trip_file.format(iteration = self.controller.iteration)
+        joint_trip_file = pathlib.Path(self.controller.config.household.ctramp_run_dir) / self.controller.config.household.ctramp_joint_trip_file.format(iteration = self.controller.iteration)
         it_full, jt_full = pd.read_csv(indiv_trip_file), pd.read_csv(joint_trip_file)
         
         # Add time period, expanded count
@@ -186,9 +224,9 @@ class PrepareHighwayDemand(PrepareDemand):
         
         def combine_trip_lists(it, jt, trip_mode):
             # combines individual trip list and joint trip list
-            it_sum = it[(it['trip_mode'] == trip_mode)].groupby(['orig_taz','dest_taz'])['eq_cnt'].sum()
-            jt_sum = jt[(jt['trip_mode'] == trip_mode)].groupby(['orig_taz','dest_taz'])['eq_cnt'].sum()
-            return (it_sum.reindex(OD_full_index, fill_value=0) + jt_sum.reindex(OD_full_index, fill_value=0)).unstack().values
+            combined_trips = pd.concat([it[(it['trip_mode'] == trip_mode)], jt[(jt['trip_mode'] == trip_mode)]])
+            combined_sum = combined_trips.groupby(['orig_taz','dest_taz'])['eq_cnt'].sum()
+            return combined_sum.reindex(OD_full_index, fill_value=0).unstack().values
 
         # read properties from config
         
@@ -196,7 +234,7 @@ class PrepareHighwayDemand(PrepareDemand):
         income_segment_config = self.controller.config.household.income_segment
         
         if income_segment_config['enabled']:
-            hh_file = pathlib.Path(self.controller.config.household.ctramp_run_dir) / self.controller.config.household.ctramp_hh_file
+            hh_file = pathlib.Path(self.controller.config.household.ctramp_run_dir) / self.controller.config.household.ctramp_hh_file.format(iteration = self.controller.iteration)
             hh = pd.read_csv(hh_file, usecols = ['hh_id', 'income'])
             it_full = it_full.merge(hh, on = 'hh_id', how = 'left')
             jt_full = jt_full.merge(hh, on = 'hh_id', how = 'left')
@@ -229,12 +267,22 @@ class PrepareHighwayDemand(PrepareDemand):
             transit_out_file.open()
             active_out_file.open()
             
+            it_grp = it_full.groupby(['time_period', 'income_seg'])
+            jt_grp = jt_full.groupby(['time_period', 'income_seg'])
+            
             for suffix in suffixes:
 
                 highway_cache = {}
                 
-                it = it_full.groupby(['time_period', 'income_seg']).get_group((time_period, suffix))
-                jt = jt_full.groupby(['time_period', 'income_seg']).get_group((time_period, suffix))
+                if (time_period, suffix) in it_grp.groups.keys():
+                    it = it_grp.get_group((time_period, suffix))
+                else:
+                    it = pd.DataFrame(None, columns = ['trip_mode', 'inbound'])
+                    
+                if (time_period, suffix) in jt_grp.groups.keys():
+                    jt = jt_grp.get_group((time_period, suffix))
+                else:
+                    jt = pd.DataFrame(None, columns = ['trip_mode', 'inbound'])
                
                 for trip_mode in mode_name_dict:
                     if trip_mode in [1,2,3]: # currently hard-coded based on Travel Mode trip mode codes
