@@ -89,8 +89,7 @@ class PrepareNetwork(Component):
                 self._set_link_modes(network)
                 self._calc_link_skim_lengths(network)
                 self._calc_link_class_costs(network)
-                if self.controller.config.highway.tolls.run_dynamic_toll:
-                    self._calc_total_flow(network)
+                self._calc_total_flow(network)
                 scenario.publish_network(network)
 
         if self.controller.config.highway.tolls.run_dynamic_toll:
@@ -143,10 +142,18 @@ class PrepareNetwork(Component):
             ]
         }
 
+        attributes["LINK"].extend([
+                ("@total_flow_avg", "average total traffic flow"),
+                ("@total_flow", "total traffic flow"),
+                ("@vc", "volume to capacity ratio")
+            ])
+
+        if self.controller.config.highway.msa.write_iteration_flow:
+            for iteration in range(1, self.controller.config.run.end_iteration + 1):
+                attributes["LINK"].append((f"@total_flow_{iteration}", f"total traffic flow iter{iteration}"))
+
         if self.config.tolls.run_dynamic_toll:
             attributes["LINK"].extend([
-                ("@total_flow", "total traffic flow"),
-                ("@vc", "volume to capacity ratio"),
                 ("@update_dynamic_toll", "need to update dynamic toll or not")
             ])
 
@@ -174,6 +181,23 @@ class PrepareNetwork(Component):
                     f'{time_period} {assign_class["description"]} link volume'[:40],
                 )
             )
+
+            # attributes for storing averaged volume from previous global iterations
+            attributes["LINK"].append(
+                (
+                    f"@flow_{assign_class.name.lower()}_avg",
+                    f'{time_period} {assign_class["description"]} link avg volume'[:40],
+                )
+            )
+            if self.controller.config.highway.msa.write_iteration_flow:
+                for iteration in range(1, self.controller.config.run.end_iteration + 1):
+                    attributes["LINK"].append(
+                        (
+                            f"@flow_{assign_class.name.lower()}_{iteration}",
+                            f'{time_period} {assign_class["description"]} link volume{iteration}'[:40],
+                        )
+                    )
+
         for domain, attrs in attributes.items():
             for name, desc in attrs:
                 create_attribute(domain, name, desc, overwrite=True, scenario=scenario)

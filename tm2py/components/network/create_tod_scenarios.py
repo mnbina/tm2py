@@ -101,21 +101,20 @@ class CreateTODScenarios(Component):
         emmebank.extra_function_parameters.el1 = "@free_flow_time"
         emmebank.extra_function_parameters.el2 = "@capacity"
         emmebank.extra_function_parameters.el3 = "@ja"
+        emmebank.extra_function_parameters.el4 = "@total_flow"
         # TODO: should have just 3 functions, and map the FT to the vdf
         # TODO: could optimize expression (to review)
         # bpr curve from https://github.com/BayAreaMetro/travel-model-one/blob/master/model-files/scripts/block/SpeedFlowCurve.block
-        bpr_tmplt = "el1 * (1 + 0.20 * ((volau + volad)/el2/0.75)^6)"
+        bpr_tmplt = "el1 * (1 + 0.20 * (el4/el2/0.75)^6)" 
+
         # "el1 * (1 + 0.20 * put(put((volau + volad)/el2/0.75))*get(1))*get(2)*get(2)"
         fixed_tmplt = "el1"
         # akcelik curve from https://github.com/BayAreaMetro/travel-model-one/blob/master/model-files/scripts/block/SpeedFlowCurve.block
         # tm1 ja10000 calculation from https://github.com/BayAreaMetro/travel-model-one/blob/4141ffb4b0f392f5b3dc94df4dff69adbd29d504/model-files/scripts/block/FreeFlowSpeed.block#L85
         # tm2py ja calculation is in highway_network._set_vdf_attributes()
         akcelik_tmplt = (
-            "(el1 + 60 * (0.25 *((volau + volad)/el2 - 1 + "
-            "(((volau + volad)/el2 - 1)^2 + el3 * (volau + volad)/el2)^0.5)))"
-
-            # "(el1 + 60 * (0.25 *(put(put((volau + volad)/el2) - 1) + "
-            # "(((get(2)*get(2) + (16 * el3 * get(1)^0.5))))"
+            "(el1 + 60 * (0.25 *(el4/el2 - 1 + "
+            "((el4/el2 - 1)^2 + el3 * el4/el2)^0.5)))"
         )
         for f_id in ["fd1", "fd2"]:
             if emmebank.function(f_id):
@@ -131,7 +130,7 @@ class CreateTODScenarios(Component):
 
         ref_scenario = emmebank.scenario(self.controller.config.emme.all_day_scenario_id)
         attributes = {
-            "LINK": ["@area_type", "@capclass", "@free_flow_speed", "@free_flow_time"]
+            "LINK": ["@area_type", "@capclass", "@free_flow_speed", "@free_flow_time", "@total_flow"]
         }
         for domain, attrs in attributes.items():
             for name in attrs:
