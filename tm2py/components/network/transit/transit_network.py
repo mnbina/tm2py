@@ -1016,14 +1016,14 @@ class ApplyFares(Component):
         # transition rules will be the same for every journey level
         transition_rules = []
         journey_levels = [
-            {
-                "description": "base",
-                "destinations_reachable": True,
-                "transition_rules": transition_rules,
-                "waiting_time": None,
-                "boarding_time": None,
-                "boarding_cost": None
-            }
+            # {
+            #     "description": "base",
+            #     "destinations_reachable": True,
+            #     "transition_rules": transition_rules,
+            #     "waiting_time": None,
+            #     "boarding_time": None,
+            #     "boarding_cost": None
+            # }
         ]
         mode_map = _defaultdict(lambda: [])
         level = 1

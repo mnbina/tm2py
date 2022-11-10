@@ -45,12 +45,12 @@
 
 [household]
     highway_demand_file = "demand_matrices/highway/household/TAZ_Demand_{period}.omx"
-    transit_demand_file = "demand_matrices/onboard_survey_consolidate_v12/trn_demand_v12_trim_{period}.omx"
+    transit_demand_file = "demand_matrices/transit/trn_demand_v12_trim_{period}.omx"
     active_demand_file = "demand_matrices/active/nm_demand_{period}.omx"
     ctramp_indiv_trip_file = "main/indivTripData_{iteration}.csv"
     ctramp_joint_trip_file = "main/jointTripData_{iteration}.csv"
-    host_ip_address = "10.0.143.35"
-    ctramp_run_dir = 'C:\MTC_tmpy\TM2\2015_BaseY_P3Y2015'
+    host_ip_address = "10.1.36.121"
+    ctramp_run_dir = 'D:\MTC\9-county\CTRAMP'
     sample_rate_iteration = [0.50]
     [household.rideshare_mode_split]
     "taxi"=0.08
@@ -703,13 +703,12 @@
 
 [transit]
     apply_msa_demand = false
-    value_of_time = 48.6
+    value_of_time = 16.2
     effective_headway_source = "hdw"
     initial_wait_perception_factor = 1.5
     transfer_wait_perception_factor = 3.0
     walk_perception_factor = 2.0
-    initial_boarding_penalty = 10
-    transfer_boarding_penalty = 10
+    drive_perception_factor = 2.0
     max_transfers = 3
     use_ccr = false
     output_skim_path = "skims/transit"
@@ -720,7 +719,7 @@
     fares_path = "inputs\\trn\\fares.far"
     fare_matrix_path = "inputs\\trn\\fareMatrix.txt"
     # max expected transfer distance for mode-to-mode transfer fare table generation
-    fare_max_transfer_distance_miles = 3.0
+    fare_max_transfer_distance_miles = 2
     # for TAZ instead of TAPs
     override_connectors = false # don't run prepare connector
     override_connector_times = true
@@ -733,10 +732,8 @@
     use_fares = true # temp
     #
     congested_transit_assignment = true
-    capacitated_transit_assignment = false
-    station_capacity_transit_assignment = false
     #
-    use_peaking_factor = false  # temp
+    use_peaking_factor = true  # temp
     am_peaking_factor = 1.219
     pm_peaking_factor = 1.262
 
@@ -764,10 +761,10 @@
 [emme]
     num_processors = "MAX-1"
     all_day_scenario_id = 1
-    project_path = "emme_taz_transit_network\\emme_taz_transit_network.emp"
-    highway_database_path = "emme_bank_highway\\Database\\emmebank"
+    project_path = "emme_project\\mtc_emme.emp"
+    highway_database_path = "emme_project\\Database_highway\\emmebank"
     active_database_paths = [ "emme_project/Database_active_south/emmebank", "emme_project/Database_active_north/emmebank" ]
-    transit_database_path = "emme_taz_transit_network\\Database\\emmebank"
+    transit_database_path = "emme_project\\Database_transit\\emmebank"
 
 
 [[highway.capclass_lookup]]
@@ -1370,6 +1367,8 @@
     type = "PNR_dummy"
     assign_type = "TRANSIT"
     in_vehicle_perception_factor = 1.0 # or should this be 0?
+    initial_boarding_penalty = 2.0
+    transfer_boarding_penalty = 2.0
 [[transit.modes]]
     mode_id = "w"
     name = "walk"
@@ -1393,37 +1392,49 @@
     name = "local_bus"
     type = "LOCAL"
     assign_type = "TRANSIT"
-    in_vehicle_perception_factor = 2.0
+    in_vehicle_perception_factor = 1.0
+    initial_boarding_penalty = 18.0
+    transfer_boarding_penalty = 18.0
 [[transit.modes]]
     mode_id = "x"
     name = "exp_bus"
     type = "PREMIUM"
     assign_type = "TRANSIT"
-    in_vehicle_perception_factor = 2.0
+    in_vehicle_perception_factor = 1.0
+    initial_boarding_penalty = 10.0
+    transfer_boarding_penalty = 10.0
 [[transit.modes]]
     mode_id = "f"
     name = "ferry"
     type = "PREMIUM"
     assign_type = "TRANSIT"
-    in_vehicle_perception_factor = 1.0
+    in_vehicle_perception_factor = 0.8
+    initial_boarding_penalty = 2.0
+    transfer_boarding_penalty = 2.0
 [[transit.modes]]
     mode_id = "l"
     name = "light_rail"
     type = "PREMIUM"
     assign_type = "TRANSIT"
     in_vehicle_perception_factor = 0.9
+    initial_boarding_penalty = 15.0
+    transfer_boarding_penalty = 15.0
 [[transit.modes]]
     mode_id = "h"
     name = "heavy_rail"
     type = "PREMIUM"
     assign_type = "TRANSIT"
-    in_vehicle_perception_factor = 0.5
+    in_vehicle_perception_factor = 0.7
+    initial_boarding_penalty = 2.0
+    transfer_boarding_penalty = 2.0
 [[transit.modes]]
     mode_id = "r"
     name = "comm_rail"
     type = "PREMIUM"
     assign_type = "TRANSIT"
-    in_vehicle_perception_factor = 0.75
+    in_vehicle_perception_factor = 0.7
+    initial_boarding_penalty = 2.0
+    transfer_boarding_penalty = 2.0
 
 # [[transit.vehicles]]
 #     vehicle_id = 12
@@ -1698,10 +1709,10 @@
 #     auto_equivalent = 0.0
 #     seated_capacity = 1
 #     total_capacity = 2
-[[transit.vehicles]]
-    vehicle_id = 133
-    mode = "r"
-    name = ""
-    auto_equivalent = 0.0
-    seated_capacity = 1
-    total_capacity = 2
+# [[transit.vehicles]]
+#     vehicle_id = 133
+#     mode = "r"
+#     name = ""
+#     auto_equivalent = 0.0
+#     seated_capacity = 1
+#     total_capacity = 2
