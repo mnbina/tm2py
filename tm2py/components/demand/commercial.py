@@ -499,8 +499,7 @@ class CommercialVehicleTripDistribution(Subcomponent):
             col_index = np.searchsorted(zones, data["J_taz_tm2_v2_2"])
             k_factors = np.zeros((num_data_zones, num_data_zones))
             k_factors[row_index, col_index] = data["truck_k"]
-            padding = ((0, self.num_internal_zones - num_data_zones), (0, self.num_internal_zones - num_data_zones))
-            k_factors = np.pad(k_factors, padding)
+ 
             
         elif str(k_factors_file).lower().endswith('.omx'):
             omx = OMXManager(self.get_abs_path(k_factors_file))
@@ -509,9 +508,10 @@ class CommercialVehicleTripDistribution(Subcomponent):
             assert len(mats) == 1, f"The K factors file {k_factors_file} is an OMX file; it must contain precisely one matrix. Matrices in the file are: {', '.join(mats)}"# this file should only contain one matrix 
             data = omx.read(mats[0]) 
             omx.close()
-            num_data_zones = len(data)
-            padding = ((0, self.num_internal_zones - num_data_zones), (0, self.num_internal_zones - num_data_zones))
-            k_factors = np.pad(data, padding)
+            num_data_zones = self.num_total_zones
+            
+        padding = ((0, num_data_zones - self.num_internal_zones), (0, num_data_zones - self.num_internal_zones))
+        k_factors = np.pad(data, padding)
             
         return k_factors
     
@@ -519,6 +519,14 @@ class CommercialVehicleTripDistribution(Subcomponent):
     def num_internal_zones(self):
         return len(pd.read_csv(
             self.get_abs_path(self.controller.config.scenario.landuse_file), usecols = [self.controller.config.scenario.landuse_index_column]))
+            
+    @property
+    def num_total_zones(self):
+        self._emmebank_path = self.get_abs_path(self.controller.config.emme.highway_database_path)
+        self._emmebank = self.controller.emme_manager.emmebank(self._emmebank_path)
+        time_period = self.controller.config.time_periods[0].name
+        scenario = self.get_emme_scenario(self._emmebank.path, time_period) # any scenario id works 
+        return len(scenario.zone_numbers)
     
     def blended_skims(self, mode: str):
         """Get blended skim. Creates it if doesn't already exist.
@@ -587,6 +595,9 @@ class CommercialVehicleTripDistribution(Subcomponent):
             self.friction_factors["time"].tolist(),
             self.friction_factors[segment_name],
         )
+        
+        _friction_matrix = _friction_matrix[:self.num_internal_zones, :self.num_internal_zones]
+        k_factors = k_factors[:self.num_internal_zones, :self.num_internal_zones]
 
         if use_k_factors:
             if k_factors is not None:

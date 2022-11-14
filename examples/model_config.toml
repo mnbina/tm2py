@@ -47,13 +47,16 @@
     highway_demand_file = "demand_matrices/highway/household/TAZ_Demand_{period}.omx"
     transit_demand_file = "demand_matrices/transit/trn_demand_v12_trim_{period}.omx"
     active_demand_file = "demand_matrices/active/nm_demand_{period}.omx"
-    ctramp_indiv_trip_file = "main/indivTripData_{iteration}.csv"
-    ctramp_joint_trip_file = "main/jointTripData_{iteration}.csv"
-	ctramp_hh_file = "main/householdData_{iteration}.csv"
+    #ctramp_indiv_trip_file = "main/indivTripData_{iteration}.csv"
+    #ctramp_joint_trip_file = "main/jointTripData_{iteration}.csv"
+	#ctramp_hh_file = "main/householdData_{iteration}.csv"
+    ctramp_indiv_trip_file = "main/indivTripData_1.csv"
+    ctramp_joint_trip_file = "main/jointTripData_1.csv"
+	ctramp_hh_file = "main/householdData_1.csv"
     host_ip_address = "10.0.143.35"
-	ctramp_run_dir = 'C:\MTC_tmpy\TM2\calibration-greta_testing'
-    sample_rate_iteration = [0.10]
-	copy_from_examples = true
+	ctramp_run_dir = 'C:\MTC_tmpy\TM2\calibration_3332'
+    sample_rate_iteration = [0.20]
+	copy_from_examples = false
     [household.rideshare_mode_split]
     "taxi"=0.08
     "single_tnc"=0.72
@@ -121,7 +124,7 @@
 [air_passenger]
     output_trip_table_directory = "demand_matrices/highway/air_passenger"
     outfile_trip_table_tmp = "tripsAirPax{period}.omx"
-    highway_demand_file = "demand_matrices/highway/air_passenger/tripsAirPax{period}.omx"
+    highway_demand_file = "demand_matrices/highway/air_passenger/2015_tripsAirPax{period}.omx"
     input_demand_folder = "inputs/nonres"
     input_demand_filename_tmpl = "{year}_{direction}{airport}.csv"
     reference_start_year = "2007"
@@ -643,7 +646,7 @@
             factor = 0.5714285714285714
         [[highway.classes.demand]]
             source = "air_passenger"
-            name = "sr2"
+            name = "s2"
         [[highway.classes.demand]]
             source = "internal_external"
             name = "sr2"
@@ -664,7 +667,7 @@
             factor = 0.4
         [[highway.classes.demand]]
             source = "air_passenger"
-            name = "sr3"
+            name = "s3"
         [[highway.classes.demand]]
             source = "internal_external"
             name = "sr3"

@@ -102,6 +102,7 @@ class RunConfig(ConfigItem):
     start_iteration: int = Field(ge=0)
     end_iteration: int = Field(gt=0)
     start_component: Optional[Union[ComponentNames, EmptyString]] = Field(default="")
+    warmstart_check: Optional[bool] = Field(default=False)
 
     @validator("end_iteration", allow_reuse=True)
     def end_iteration_gt_start(cls, value, values):

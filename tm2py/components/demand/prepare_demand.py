@@ -33,6 +33,8 @@ class PrepareDemand(Component, ABC):
     def _read(self, path, name, num_zones, factor=None):
         with OMXManager(path, "r") as omx_file:
             demand = omx_file.read(name)
+        if demand is None:
+            raise ValueError(f'Demand {name} not found in {path}')
         if factor is not None:
             demand = factor * demand
         demand = self._redim_demand(demand, num_zones)
@@ -277,12 +279,13 @@ class PrepareHighwayDemand(PrepareDemand):
                 if (time_period, suffix) in it_grp.groups.keys():
                     it = it_grp.get_group((time_period, suffix))
                 else:
-                    it = pd.DataFrame(None, columns = ['trip_mode', 'inbound'])
+                    it = pd.DataFrame(None, columns = it_full.columns)
                     
                 if (time_period, suffix) in jt_grp.groups.keys():
                     jt = jt_grp.get_group((time_period, suffix))
                 else:
-                    jt = pd.DataFrame(None, columns = ['trip_mode', 'inbound'])
+                    jt = pd.DataFrame(None, columns = jt_full.columns)
+
                
                 for trip_mode in mode_name_dict:
                     if trip_mode in [1,2,3]: # currently hard-coded based on Travel Mode trip mode codes
@@ -319,7 +322,7 @@ class PrepareHighwayDemand(PrepareDemand):
                     elif trip_mode == 9:
                         # identify the correct mode split factors for da, sr2, sr3
                         self.logger.debug(f"Splitting ridehail trips into shared ride trips")
-                        ridehail_split_factors = defaultdict(int)
+                        ridehail_split_factors = defaultdict(float)
                         splits = self.controller.config.household.rideshare_mode_split
                         for key in splits:
                             out_mode_split = self.controller.config.household.__dict__[f'{key}_split']
@@ -330,7 +333,8 @@ class PrepareHighwayDemand(PrepareDemand):
                         for out_mode in ridehail_split_factors:
                             matrix_name =f'{out_mode}_{suffix}'  if suffix else out_mode
                             self.logger.debug(f"Writing out mode {out_mode}")
-                            highway_cache[out_mode] += ridehail_trips * ridehail_split_factors[out_mode]
+                            highway_cache[out_mode] += (ridehail_trips * ridehail_split_factors[out_mode]).astype(float).round(2)
+                            highway_cache[out_mode] = highway_cache[out_mode]
                             highway_out_file.write_array(numpy_array = highway_cache[out_mode], name = matrix_name)
        
             highway_out_file.close()
