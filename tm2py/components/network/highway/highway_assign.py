@@ -164,6 +164,11 @@ class HighwayAssignment(Component):
                         class_config["skims"],
                     )
                 self._export_skims(scenario, time)
+
+                self._calc_total_flow(scenario)
+                self._calc_weighted_avg_flow(scenario)
+                self._calc_vc(scenario)
+
                 if self.logger.debug_enabled:
                     self._log_debug_report(scenario, time)
 
@@ -209,6 +214,63 @@ class HighwayAssignment(Component):
         )
         net_calc = NetworkCalculator(scenario)
         net_calc("ul1", "0")
+
+    def _calc_total_flow(self, scenario: EmmeScenario):
+        """Calculate total traffic flow by summing up flow by classes
+
+        Args:
+            scenario: Emme scenario object
+        """
+        assign_class_flow_names = []
+        for assign_class in self.config.classes:
+            assign_class_flow_names.append(f"@flow_{assign_class.name.lower()}")
+        expression = " + ".join(assign_class_flow_names)
+
+        net_calc = NetworkCalculator(scenario)
+        net_calc("@total_flow", expression)
+
+    def _calc_vc(self, scenario: EmmeScenario):
+        """Calculate V/C Ratio
+
+        Args:
+            scenario: Emme scenario object
+        """
+        net_calc = NetworkCalculator(scenario)
+        net_calc("@vc", "@total_flow / @capacity")
+
+    def _get_msa_calc_expression(prev_wgt=0, curr_wgt=1, total=True, assign_class=None):
+        if total:
+            return f"{prev_wgt} * @total_flow_avg + {curr_wgt} * @total_flow"
+        else:
+            return f"{prev_wgt} * @flow_{assign_class.name.lower()}_avg + {curr_wgt} * @flow_{assign_class.name.lower()}"
+
+    def _calc_weighted_avg_flow(self, scenario: EmmeScenario):
+        iteration = self.controller.iteration
+        write_iteration_flow = self.controller.config.highway.msa.write_iteration_flow
+        net_calc = NetworkCalculator(scenario)
+
+        if iteration == 1: 
+            # carry over current flow to the averaged flow attribute
+            net_calc("@total_flow_avg", "@total_flow")
+            for assign_class in self.config.classes:
+                net_calc(f"@flow_{assign_class.name.lower()}_avg", f"@flow_{assign_class.name.lower()}")
+        elif iteration >= 2:
+            prev_wgt = self.controller.config.highway.msa.prev_wgt[iteration]
+            curr_wgt = self.controller.config.highway.msa.curr_wgt[iteration]
+
+            total_flow_expression = self._get_msa_calc_expression(prev_wgt, curr_wgt, True)
+            net_calc("@total_flow_avg", total_flow_expression)
+            net_calc("@total_flow", "@total_flow_avg") # overwrite @total_flow with the averaged total flow
+            for assign_class in self.config.classes:
+                class_flow_expression = self._get_msa_calc_expression(prev_wgt, curr_wgt, False, assign_class)
+                net_calc(f"@flow_{assign_class.name.lower()}_avg", class_flow_expression)
+                net_calc(f"@flow_{assign_class.name.lower()}", f"@flow_{assign_class.name.lower()}_avg")
+
+        # write out iteration total flow and flow by class
+        if iteration >= 1 and write_iteration_flow:
+            net_calc(f"@total_flow_{iteration}", "@total_flow")
+            for assign_class in self.config.classes:
+                net_calc(f"@flow_{assign_class.name.lower()}_{iteration}", f"@flow_{assign_class.name.lower()}")
 
     def _create_skim_matrices(
         self, scenario: EmmeScenario, assign_classes: List[AssignmentClass]

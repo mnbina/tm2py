@@ -1,0 +1,16 @@
+﻿Attribute,Description
+timau,link auto travel time
+volau,link auto total volume
+volad,additional volume on the link
+@capacity,total link capacity
+@ja,akcelik delay parameter
+@hov_length,length with HOV lanes
+@toll_length,length with tolls
+@area_type,link area type
+@capclass,link capacity class
+@free_flow_speed,link free flow speed
+@free_flow_time,link free flow time
+@bridgetoll_<subgroup X>,the bridge toll for vehicle class subgroup X
+@valuetoll_<subgroup X>,the non-bridge per-mile-based toll for vehicle class subgroup X
+@cost_<subgroup X>,total cost for vehicle class subgroup X
+@flow_<subgroup X>,link PCE total traffic flow for vehicle class subgroup X

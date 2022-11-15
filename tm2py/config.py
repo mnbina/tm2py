@@ -802,6 +802,8 @@ class HighwayTollsConfig(ConfigItem):
     valuetoll_start_tollbooth_code: int = Field(gt=1)
     src_vehicle_group_names: Tuple[str, ...] = Field()
     dst_vehicle_group_names: Tuple[str, ...] = Field()
+    run_dynamic_toll: bool = Field(default=False)
+    max_dynamic_valuetoll: float = Field()
 
     @validator("dst_vehicle_group_names", always=True)
     def dst_vehicle_group_names_length(value, values):
@@ -840,6 +842,21 @@ class DemandCountyGroupConfig(ConfigItem):
 
     number: int = Field()
     counties: Tuple[COUNTY_NAMES, ...] = Field()
+
+
+@dataclass(frozen=True)
+class HighwayMsaConfig(ConfigItem):
+    """Highway MSA calculation parameters
+
+    Properties:
+        write_iteration_flow: write out total flow and flow by vehicle 
+            classes for each global iteration if set to true
+        prev_wgt: weight for weighted average volume in previous iteration(s)
+        curr_wgt: weight for volume in current iteration
+    """
+    write_iteration_flow: bool = Field(default=False)
+    prev_wgt: List[float] = Field(default=[])
+    curr_wgt: List[float] = Field(default=[])
 
 
 @dataclass(frozen=True)
@@ -913,6 +930,7 @@ class HighwayConfig(ConfigItem):
         output_skim_matrixname_tmpl: template for matrix names within OMX output skims.
             Should include {time_period}, {mode}, and {property}
         tolls: input toll specification, see HighwayTollsConfig
+        msa: settings for msa weighted average volume calculation, see HighwayMsaConfig
         maz_to_maz: maz-to-maz shortest path assignment and skim specification,
             see HighwayMazToMazConfig
         classes: highway assignment multi-class setup and skim specification,
@@ -929,6 +947,7 @@ class HighwayConfig(ConfigItem):
     output_skim_filename_tmpl: str = Field()
     output_skim_matrixname_tmpl: str = Field()
     tolls: HighwayTollsConfig = Field()
+    msa: HighwayMsaConfig = Field()
     maz_to_maz: HighwayMazToMazConfig = Field()
     classes: Tuple[HighwayClassConfig, ...] = Field()
     capclass_lookup: Tuple[HighwayCapClassConfig, ...] = Field()
