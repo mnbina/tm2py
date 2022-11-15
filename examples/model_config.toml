@@ -104,7 +104,7 @@
         "offpeak" = [[['wlk_trn_wlk','MD']], 
             [['wlk_trn_wlk', 'MD']]]
         "ivt" = ["IVT"]
-        "ovt" = ['IWAIT', 'XWAIT','WAUX']
+        "ovt" = ['IWAIT', 'XWAIT','WAUX', 'WACC', 'WEGR']
         "prop" = 'TIME'
     [accessibility.formula_walk]
         "peak" = [[['WALK','MD']],
@@ -569,6 +569,7 @@
     area_type_buffer_dist_miles = 0.5
     [highway.tolls]
         file_path = "inputs/hwy/tolls.csv"
+        bridetoll_file_path = "inputs/hwy/tolls_bridge.csv"
         src_vehicle_group_names = ["da", "s2",  "s3",  "vsm", "sml", "med", "lrg"]
         # the dst_vehicle_group_names is used in the class group suffix for the
         # highway.classes toll attribute name and the skims name, "bridgetoll_{}"
@@ -580,6 +581,18 @@
         # toll" facilities, which are currently used to model high-occupancy toll (HOT) lanes.  These variables can be used
         # to toll specific links (each link with a different toll needs a different TOLLBOOTH code).
         valuetoll_start_tollbooth_code = 11
+        # temporary settings for dynamic tolling
+        run_dynamic_toll = false
+        max_dynamic_valuetoll = 0.5
+
+    [highway.msa]
+        write_iteration_flow = true
+        # weights for calculating average volume (parameters are from TM1.5 RunModel.bat)
+        # value at index 0 is wgt for iteration 0
+        prev_wgt = [0.0, 0.0, 0.5, 0.67]
+        curr_wgt = [1.0, 1.0, 0.5, 0.33]
+
+
     [highway.maz_to_maz]
         mode_code = "x"
         excluded_links = [ "is_toll_da", "is_sr",]
@@ -703,12 +716,13 @@
 
 [transit]
     apply_msa_demand = false
-    value_of_time = 16.2
+    value_of_time = 48.6
     effective_headway_source = "hdw"
     initial_wait_perception_factor = 1.5
     transfer_wait_perception_factor = 3.0
     walk_perception_factor = 2.0
-    drive_perception_factor = 2.0
+    initial_boarding_penalty = 10
+    transfer_boarding_penalty = 10
     max_transfers = 3
     use_ccr = false
     output_skim_path = "skims/transit"
@@ -719,7 +733,7 @@
     fares_path = "inputs\\trn\\fares.far"
     fare_matrix_path = "inputs\\trn\\fareMatrix.txt"
     # max expected transfer distance for mode-to-mode transfer fare table generation
-    fare_max_transfer_distance_miles = 2
+    fare_max_transfer_distance_miles = 3.0
     # for TAZ instead of TAPs
     override_connectors = false # don't run prepare connector
     override_connector_times = true
@@ -732,8 +746,10 @@
     use_fares = true # temp
     #
     congested_transit_assignment = true
+    capacitated_transit_assignment = false
+    station_capacity_transit_assignment = false
     #
-    use_peaking_factor = true  # temp
+    use_peaking_factor = false  # temp
     am_peaking_factor = 1.219
     pm_peaking_factor = 1.262
 
@@ -777,349 +793,289 @@
 	capclass = 1
 	capacity = 2050
 	free_flow_speed = 55
-	critical_speed = 18.835
+	critical_speed = 25.898
 
 [[highway.capclass_lookup]]
 	capclass = 2
 	capacity = 1450
 	free_flow_speed = 40
-	critical_speed = 25.898
+	critical_speed = 11.772
 
 [[highway.capclass_lookup]]
 	capclass = 3
 	capacity = 1450
 	free_flow_speed = 30
-	critical_speed = 11.772
+	critical_speed = 18.835
 
 [[highway.capclass_lookup]]
 	capclass = 4
 	capacity = 900
 	free_flow_speed = 20
-	critical_speed = 4.709
+	critical_speed = 7.063
 
 [[highway.capclass_lookup]]
 	capclass = 5
 	capacity = 900
 	free_flow_speed = 20
-	critical_speed = 11.772
+	critical_speed = 4.709
 
 [[highway.capclass_lookup]]
 	capclass = 6
 	capacity = 600
 	free_flow_speed = 15
-	critical_speed = 47.087
+	critical_speed = 4.709
 
 [[highway.capclass_lookup]]
 	capclass = 7
 	capacity = 600
 	free_flow_speed = 15
-	critical_speed = 7.063
+	critical_speed = 3
 
 [[highway.capclass_lookup]]
 	capclass = 8
 	capacity = 2050
 	free_flow_speed = 18
-	critical_speed = 9.417
-
-[[highway.capclass_lookup]]
-	capclass = 9
-	capacity = 0
-	free_flow_speed = 0
-	critical_speed = 25.898
-
-[[highway.capclass_lookup]]
-	capclass = 10
-	capacity = 0
-	free_flow_speed = 18
-	critical_speed = 14.126
+	critical_speed = 47.087
 
 [[highway.capclass_lookup]]
 	capclass = 11
 	capacity = 2050
 	free_flow_speed = 55
-	critical_speed = 7.063
+	critical_speed = 25.898
 
 [[highway.capclass_lookup]]
 	capclass = 12
 	capacity = 1450
 	free_flow_speed = 40
-	critical_speed = 4.709
+	critical_speed = 11.772
 
 [[highway.capclass_lookup]]
 	capclass = 13
 	capacity = 1500
 	free_flow_speed = 30
-	critical_speed = 4.709
+	critical_speed = 18.835
 
 [[highway.capclass_lookup]]
 	capclass = 14
 	capacity = 950
 	free_flow_speed = 25
-	critical_speed = 3.0
+	critical_speed = 9.417
 
 [[highway.capclass_lookup]]
 	capclass = 15
 	capacity = 950
 	free_flow_speed = 25
-	critical_speed = 3.0
+	critical_speed = 4.709
 
 [[highway.capclass_lookup]]
 	capclass = 16
 	capacity = 650
 	free_flow_speed = 20
-	critical_speed = 18.835
+	critical_speed = 4.709
 
 [[highway.capclass_lookup]]
 	capclass = 17
 	capacity = 650
 	free_flow_speed = 20
-	critical_speed = 25.898
+	critical_speed = 3
 
 [[highway.capclass_lookup]]
 	capclass = 18
 	capacity = 2050
 	free_flow_speed = 18
-	critical_speed = 11.772
-
-[[highway.capclass_lookup]]
-	capclass = 19
-	capacity = 0
-	free_flow_speed = 0
-	critical_speed = 4.709
-
-[[highway.capclass_lookup]]
-	capclass = 20
-	capacity = 0
-	free_flow_speed = 18
-	critical_speed = 11.772
+	critical_speed = 47.087
 
 [[highway.capclass_lookup]]
 	capclass = 21
 	capacity = 2100
 	free_flow_speed = 60
-	critical_speed = 47.087
+	critical_speed = 28.252
 
 [[highway.capclass_lookup]]
 	capclass = 22
 	capacity = 1600
 	free_flow_speed = 45
-	critical_speed = 9.417
+	critical_speed = 14.126
 
 [[highway.capclass_lookup]]
 	capclass = 23
 	capacity = 1550
 	free_flow_speed = 35
-	critical_speed = 9.417
+	critical_speed = 21.189
 
 [[highway.capclass_lookup]]
 	capclass = 24
 	capacity = 1000
 	free_flow_speed = 30
-	critical_speed = 28.252
+	critical_speed = 11.772
 
 [[highway.capclass_lookup]]
 	capclass = 25
 	capacity = 1000
 	free_flow_speed = 30
-	critical_speed = 16.48
+	critical_speed = 7.063
 
 [[highway.capclass_lookup]]
 	capclass = 26
 	capacity = 700
 	free_flow_speed = 25
-	critical_speed = 9.417
+	critical_speed = 7.063
 
 [[highway.capclass_lookup]]
 	capclass = 27
 	capacity = 700
 	free_flow_speed = 25
-	critical_speed = 4.709
+	critical_speed = 3
 
 [[highway.capclass_lookup]]
 	capclass = 28
 	capacity = 700
 	free_flow_speed = 18
-	critical_speed = 4.709
-
-[[highway.capclass_lookup]]
-	capclass = 29
-	capacity = 0
-	free_flow_speed = 0
-	critical_speed = 3.0
-
-[[highway.capclass_lookup]]
-	capclass = 30
-	capacity = 0
-	free_flow_speed = 18
-	critical_speed = 3.0
+	critical_speed = 47.087
 
 [[highway.capclass_lookup]]
 	capclass = 31
 	capacity = 2100
 	free_flow_speed = 60
-	critical_speed = 21.189
+	critical_speed = 28.252
 
 [[highway.capclass_lookup]]
 	capclass = 32
 	capacity = 1600
 	free_flow_speed = 45
-	critical_speed = 28.252
+	critical_speed = 14.126
 
 [[highway.capclass_lookup]]
 	capclass = 33
 	capacity = 1550
 	free_flow_speed = 35
-	critical_speed = 14.126
+	critical_speed = 21.189
 
 [[highway.capclass_lookup]]
 	capclass = 34
 	capacity = 1000
 	free_flow_speed = 35
-	critical_speed = 7.063
+	critical_speed = 11.772
 
 [[highway.capclass_lookup]]
 	capclass = 35
 	capacity = 1000
 	free_flow_speed = 35
-	critical_speed = 14.126
+	critical_speed = 9.417
 
 [[highway.capclass_lookup]]
 	capclass = 36
 	capacity = 700
 	free_flow_speed = 30
-	critical_speed = 47.087
+	critical_speed = 9.417
 
 [[highway.capclass_lookup]]
 	capclass = 37
 	capacity = 700
 	free_flow_speed = 30
-	critical_speed = 11.772
+	critical_speed = 3
 
 [[highway.capclass_lookup]]
 	capclass = 38
 	capacity = 2100
 	free_flow_speed = 18
-	critical_speed = 11.772
-
-[[highway.capclass_lookup]]
-	capclass = 39
-	capacity = 0
-	free_flow_speed = 0
-	critical_speed = 30.607
-
-[[highway.capclass_lookup]]
-	capclass = 40
-	capacity = 0
-	free_flow_speed = 18
-	critical_speed = 18.835
+	critical_speed = 47.087
 
 [[highway.capclass_lookup]]
 	capclass = 41
 	capacity = 2150
 	free_flow_speed = 65
-	critical_speed = 11.772
+	critical_speed = 30.607
 
 [[highway.capclass_lookup]]
 	capclass = 42
 	capacity = 1650
 	free_flow_speed = 50
-	critical_speed = 7.063
+	critical_speed = 16.480
 
 [[highway.capclass_lookup]]
 	capclass = 43
 	capacity = 1550
 	free_flow_speed = 40
-	critical_speed = 7.063
+	critical_speed = 23.543
 
 [[highway.capclass_lookup]]
 	capclass = 44
 	capacity = 1050
 	free_flow_speed = 35
-	critical_speed = 3.0
+	critical_speed = 14.126
 
 [[highway.capclass_lookup]]
 	capclass = 45
 	capacity = 1050
 	free_flow_speed = 35
-	critical_speed = 3.0
+	critical_speed = 11.772
 
 [[highway.capclass_lookup]]
 	capclass = 46
 	capacity = 900
 	free_flow_speed = 30
-	critical_speed = 21.189
+	critical_speed = 11.772
 
 [[highway.capclass_lookup]]
 	capclass = 47
 	capacity = 900
 	free_flow_speed = 30
-	critical_speed = 28.252
+	critical_speed = 3
 
 [[highway.capclass_lookup]]
 	capclass = 48
 	capacity = 2150
 	free_flow_speed = 18
-	critical_speed = 14.126
-
-[[highway.capclass_lookup]]
-	capclass = 49
-	capacity = 0
-	free_flow_speed = 0
-	critical_speed = 9.417
-
-[[highway.capclass_lookup]]
-	capclass = 50
-	capacity = 0
-	free_flow_speed = 18
-	critical_speed = 14.126
+	critical_speed = 47.087
 
 [[highway.capclass_lookup]]
 	capclass = 51
 	capacity = 2150
 	free_flow_speed = 65
-	critical_speed = 47.087
+	critical_speed = 30.607
 
 [[highway.capclass_lookup]]
 	capclass = 52
 	capacity = 1650
 	free_flow_speed = 55
-	critical_speed = 11.772
+	critical_speed = 16.480
 
 [[highway.capclass_lookup]]
 	capclass = 53
 	capacity = 1550
 	free_flow_speed = 40
-	critical_speed = 11.772
+	critical_speed = 23.543
 
 [[highway.capclass_lookup]]
 	capclass = 54
 	capacity = 1050
 	free_flow_speed = 40
-	critical_speed = 23.543
+	critical_speed = 16.480
 
 [[highway.capclass_lookup]]
 	capclass = 55
 	capacity = 1050
 	free_flow_speed = 40
-	critical_speed = 9.417
+	critical_speed = 14.126
 
 [[highway.capclass_lookup]]
 	capclass = 56
 	capacity = 950
 	free_flow_speed = 35
-	critical_speed = 11.772
+	critical_speed = 14.126
 
 [[highway.capclass_lookup]]
 	capclass = 57
 	capacity = 950
 	free_flow_speed = 35
-	critical_speed = 9.417
+	critical_speed = 3
 
 [[highway.capclass_lookup]]
 	capclass = 58
 	capacity = 2150
 	free_flow_speed = 18
-	critical_speed = 9.417
+	critical_speed = 47.087
 
 [[highway.capclass_lookup]]
 	capclass = 59
@@ -1435,284 +1391,3 @@
     in_vehicle_perception_factor = 0.7
     initial_boarding_penalty = 2.0
     transfer_boarding_penalty = 2.0
-
-# [[transit.vehicles]]
-#     vehicle_id = 12
-#     mode = "b"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 14
-#     mode = "b"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 13
-#     mode = "b"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 16
-#     mode = "b"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 17
-#     mode = "b"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 20
-#     mode = "b"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 21
-#     mode = "b"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 24
-#     mode = "b"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 28
-#     mode = "b"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 30
-#     mode = "b"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 38
-#     mode = "b"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 42
-#     mode = "b"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 44
-#     mode = "b"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 46
-#     mode = "b"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 49
-#     mode = "b"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 52
-#     mode = "b"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 56
-#     mode = "b"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 60
-#     mode = "b"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 63
-#     mode = "b"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 66
-#     mode = "b"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 68
-#     mode = "b"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 70
-#     mode = "b"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 71
-#     mode = "b"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 80
-#     mode = "x"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 81
-#     mode = "x"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 84
-#     mode = "x"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 86
-#     mode = "x"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 87
-#     mode = "x"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 90
-#     mode = "x"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 91
-#     mode = "x"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 92
-#     mode = "x"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 94
-#     mode = "x"
-#     name = ""
-#     auto_equivalent = 2.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 101
-#     mode = "f"
-#     name = ""
-#     auto_equivalent = 0.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 103
-#     mode = "f"
-#     name = ""
-#     auto_equivalent = 0.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 110
-#     mode = "l"
-#     name = ""
-#     auto_equivalent = 0.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 111
-#     mode = "l"
-#     name = ""
-#     auto_equivalent = 0.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 120
-#     mode = "h"
-#     name = ""
-#     auto_equivalent = 0.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 130
-#     mode = "r"
-#     name = ""
-#     auto_equivalent = 0.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 131
-#     mode = "r"
-#     name = ""
-#     auto_equivalent = 0.0
-#     seated_capacity = 1
-#     total_capacity = 2
-# [[transit.vehicles]]
-#     vehicle_id = 133
-#     mode = "r"
-#     name = ""
-#     auto_equivalent = 0.0
-#     seated_capacity = 1
-#     total_capacity = 2

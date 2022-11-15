@@ -5,7 +5,7 @@
 [scenario]
     year = 2015
     verify = false
-    landuse_file = "landuse/tazData.csv"
+    landuse_file = "inputs/landuse/tazData.csv"
     landuse_index_column = "ZONE"
     landuse_index_in_network_column = "@taz_id"
     landuse_total_population_column = "TOTPOP"
@@ -15,26 +15,21 @@
 [run]
     start_component = ""
     initial_components = [
-        # "create_tod_scenarios",            # working
-        #"active_modes",                    # runs in lasso
-        # "home_accessibility",              # working
-        #"air_passenger",                   # not needed for BART, not tested
-        #"prepare_network_highway",         # Working!!
-        #"highway",                         # Working!!
-        #"highway_maz_skim",                # not needed for BART, not tested
-        # "prepare_network_transit",         # working
-        # "transit"                          
+		"create_tod_scenarios",
+		"prepare_network_highway",
+		"highway",
+		"prepare_network_transit",
+		"transit",
+		"convergence_report"		
     ]
     global_iteration_components = [
-        #"household",                       # can be called from tm2py
-        #"internal_external",               # not needed for BART, not tested
-        #"truck",                           # Working!!
-        #"highway_maz_assign",              # not needed for BART, not tested
-        #"prepare_network_highway",         # Working!!
-        #"highway",                         # Working!!
-        #"prepare_network_transit",         # Working
-        "transit"
+		"home_accessibility", # needs to be updated everytime after skims are updated
+		"household", 
+		"truck",
+		"highway",
+		"transit",
+		"convergence_report"	
     ]
     final_components = []
-    start_iteration = 0
+    start_iteration = 1
     end_iteration = 1
