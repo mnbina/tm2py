@@ -666,6 +666,10 @@ class ApplyFares(Component):
                     if board_cost is None:
                         # If this entry is missing from farematrix, 
                         # use next farezone if both previous stop and next stop are in different farezones
+                        # next_seg = stop_segments[i+1]
+                        # next_farezone = next_seg.i_node["@farezone"]
+                        # if next_farezone != farezone and prev_farezone != farezone:
+                        #     board_cost = fare_matrix.get(farezone, {}).get(next_farezone)
                         if i == len(stop_segments)-1:   # in case the last segment has missing fare
                             board_cost = min(fare_matrix[farezone].values())
                         else:
@@ -1012,14 +1016,14 @@ class ApplyFares(Component):
         # transition rules will be the same for every journey level
         transition_rules = []
         journey_levels = [
-            {
-                "description": "base",
-                "destinations_reachable": True,
-                "transition_rules": transition_rules,
-                "waiting_time": None,
-                "boarding_time": None,
-                "boarding_cost": None
-            }
+            # {
+            #     "description": "base",
+            #     "destinations_reachable": True,
+            #     "transition_rules": transition_rules,
+            #     "waiting_time": None,
+            #     "boarding_time": None,
+            #     "boarding_cost": None
+            # }
         ]
         mode_map = _defaultdict(lambda: [])
         level = 1
