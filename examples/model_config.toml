@@ -47,12 +47,9 @@
     highway_demand_file = "demand_matrices/highway/household/TAZ_Demand_{period}.omx"
     transit_demand_file = "demand_matrices/transit/trn_demand_v12_trim_{period}.omx"
     active_demand_file = "demand_matrices/active/nm_demand_{period}.omx"
-    #ctramp_indiv_trip_file = "main/indivTripData_{iteration}.csv"
-    #ctramp_joint_trip_file = "main/jointTripData_{iteration}.csv"
-	#ctramp_hh_file = "main/householdData_{iteration}.csv"
-    ctramp_indiv_trip_file = "main/indivTripData_1.csv"
-    ctramp_joint_trip_file = "main/jointTripData_1.csv"
-	ctramp_hh_file = "main/householdData_1.csv"
+    ctramp_indiv_trip_file = "main/indivTripData_{iteration}.csv"
+    ctramp_joint_trip_file = "main/jointTripData_{iteration}.csv"
+    ctramp_hh_file = "main/householdData_{iteration}.csv"
     host_ip_address = "10.0.143.35"
 	ctramp_run_dir = 'C:\MTC_tmpy\TM2\calibration_3332'
     sample_rate_iteration = [0.20]
