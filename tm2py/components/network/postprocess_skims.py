@@ -46,13 +46,11 @@ class HighwayPostprocessor():
         # ### Identify disconnected zones (where row or column sum of the distance skim matrix = 0)
 
         # get taz centroid nodes from network nodes
-        #taz_centroids = gpd.read_file(f"{self.input_dir}/nodes.gpkg")
-        #taz_centroids = taz_centroids.loc[taz_centroids["model_node_id"] <= 3631, ["model_node_id", "geometry"]].reset_index(drop=True)
         taz_centroids = pd.read_csv(f"{self.input_dir}/taz_centroids.csv")
-
+        num_zones = len(taz_centroids)
         # calculate row & column sum of distance skim (using one of the highway skim omx file)
         raw_omx = omx.open_file(f"{self.input_dir}/hwyskmAM.omx")
-        dist_skim = np.array(raw_omx["DISTDA"]).astype(np.float32)
+        dist_skim = np.array(raw_omx["DISTDA"]).astype(np.float32)[:num_zones, :num_zones]
         #dist_skim = np.array(raw_omx["TIMEDA"]).astype(np.float32) # was distda
         dist_skim = np.where(dist_skim==np.inf, 0, dist_skim)
         rowsum = dist_skim.sum(axis=1)
@@ -125,7 +123,7 @@ class HighwayPostprocessor():
         # for each row, find minimum non-zero skim value
         for i in range(updated_skim.shape[0]):
             row_skim_values = updated_skim[i].tolist()[0]
-            row_nonzero_values = [x for x in row_skim_values if x != 0]
+            row_nonzero_values = [x for x in row_skim_values if x > 0]
             if len(row_nonzero_values):
                 min_row_skim_value = min(row_nonzero_values)
                 updated_skim[i, i] = 0.5 * min_row_skim_value # replace intra-zonal value with min_value
@@ -136,6 +134,10 @@ class HighwayPostprocessor():
 
     def update_skim_values(self):
         
+                
+        taz_centroids = pd.read_csv(f"{self.input_dir}/taz_centroids.csv")
+        num_zones = len(taz_centroids)
+
         self.identify_disconnected_zones()
         
         # update skim values
@@ -157,11 +159,12 @@ class HighwayPostprocessor():
                 print(f"    process {skim_name}")
                 skim = np.matrix(orig_omx[skim_name], dtype=np.float32)
                 #if skim_name.startswith("DIST") or skim_name.startswith("TIME"):
+                skim = skim[:num_zones, :num_zones]
                 updated_skim = np.matrix(np.where(skim==np.inf, 0, skim))
                 updated_skim = np.matrix(np.where(updated_skim>=1e6, 0, updated_skim))
+                updated_skim = np.matrix(np.where(updated_skim<0, 0, updated_skim))
                 # update disconnected skim values
-                
-                updated_skim = self.update_disconnected_skim_values(skim_mat=skim,
+                updated_skim = self.update_disconnected_skim_values(skim_mat=updated_skim,
                                                                disconnected_zones=self.disconnected_zones,
                                                                disconnected_from_zone_list=self.disconnected_from_zone_list,
                                                                disconnected_to_zone_list=self.disconnected_to_zone_list)
@@ -170,8 +173,8 @@ class HighwayPostprocessor():
                 if skim_name.startswith("DIST") or skim_name.startswith("TIME"):
                     updated_skim = self.fill_intrazonal_skim_values(skim_mat=updated_skim)
                 
-                if skim_name.startswith("TIME"):
-                    updated_skim = np.matrix(np.where(updated_skim>=1e6, 0, updated_skim))
+                #if skim_name.startswith("TIME"):
+                #    updated_skim = np.matrix(np.where(updated_skim>=1e6, 0, updated_skim))
                 
                 update_omx[skim_name] = updated_skim
 

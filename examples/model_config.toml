@@ -49,9 +49,12 @@
     active_demand_file = "demand_matrices/active/nm_demand_{period}.omx"
     ctramp_indiv_trip_file = "main/indivTripData_{iteration}.csv"
     ctramp_joint_trip_file = "main/jointTripData_{iteration}.csv"
+    ctramp_hh_file = "main/householdData_{iteration}.csv"
+	copy_from_examples = false
     host_ip_address = "10.1.36.121"
     ctramp_run_dir = 'D:\MTC\9-county\CTRAMP'
     sample_rate_iteration = [0.50]
+
     [household.rideshare_mode_split]
     "taxi"=0.08
     "single_tnc"=0.72
@@ -78,7 +81,10 @@
     7 = 'pnr'
     8 = 'knr'
     9 = 'RIDEHAIL'
-
+	[household.income_segment]
+	enabled = false
+	segment_suffixes = ["LowInc", "MedInc", "HighInc", "XHighInc"]
+	cutoffs = [0, 30000, 60000, 100000]
 
 [accessibility]
     outfile = "inputs/accessibility.csv"
@@ -116,7 +122,7 @@
 [air_passenger]
     output_trip_table_directory = "demand_matrices/highway/air_passenger"
     outfile_trip_table_tmp = "tripsAirPax{period}.omx"
-    highway_demand_file = "demand_matrices/highway/air_passenger/tripsAirPax{period}.omx"
+    highway_demand_file = "demand_matrices/highway/air_passenger/2015_tripsAirPax{period}.omx"
     input_demand_folder = "inputs/nonres"
     input_demand_filename_tmpl = "{year}_{direction}{airport}.csv"
     reference_start_year = "2007"
@@ -258,7 +264,7 @@
             "AM" = 0.3333333333
             "MD" = 0.6666666667
     [truck.trip_dist]
-        k_factors_file = "inputs/nonres/truck_kfactors_taz.csv"
+        k_factors_file = "inputs/nonres/truckfact_BART_3631.omx"
         friction_factors_file = "inputs/nonres/truckFF.csv"
         max_balance_iterations = 999
         max_balance_relative_error = 0.0001
@@ -651,7 +657,7 @@
             factor = 0.5714285714285714
         [[highway.classes.demand]]
             source = "air_passenger"
-            name = "sr2"
+            name = "s2"
         [[highway.classes.demand]]
             source = "internal_external"
             name = "sr2"
@@ -672,7 +678,7 @@
             factor = 0.4
         [[highway.classes.demand]]
             source = "air_passenger"
-            name = "sr3"
+            name = "s3"
         [[highway.classes.demand]]
             source = "internal_external"
             name = "sr3"
@@ -712,7 +718,14 @@
             factor = 2.0
 
     [highway.convergence]
-        output_convergence_report_path = "output_summaries/highway_convergence_report.xlsx"
+        output_convergence_report_path = "output_summaries/highway_convergence_report.txt"
+		output_triptable_path = "output_summaries/trip_tables_{iteration}.omx"
+		output_skim_path = "output_summaries/skims_{iteration}.omx"
+		selected_od_pair = [1,100]
+		selected_links = [5,10,15]
+		skim_selected_time_periods = ["am","pm"]
+		output_network_attr_filename = "output_summaries/network_attrs_{iteration}.parquet"
+		output_network_summary_filename = "output_summaries/network_summary_{iteration}.csv"
 
 [transit]
     apply_msa_demand = false
@@ -726,7 +739,7 @@
     max_transfers = 3
     use_ccr = false
     output_skim_path = "skims/transit"
-    output_skim_filename_tmpl = "trnskm{period}_{set_name}.omx"
+    output_skim_filename_tmpl = "trnskm{time_period}_{set_name}.omx"
     output_skim_matrixname_tmpl = "{property}"
     output_stop_usage_path = "output_summaries\\stop_usage_{period}.csv"
     output_transit_boardings_path = "output_summaries\\boardings_by_line_{period}.csv"

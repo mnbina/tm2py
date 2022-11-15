@@ -102,6 +102,7 @@ class RunConfig(ConfigItem):
     start_iteration: int = Field(ge=0)
     end_iteration: int = Field(gt=0)
     start_component: Optional[Union[ComponentNames, EmptyString]] = Field(default="")
+    warmstart_check: Optional[bool] = Field(default=False)
 
     @validator("end_iteration", allow_reuse=True)
     def end_iteration_gt_start(cls, value, values):
@@ -262,11 +263,14 @@ class HouseholdConfig(ConfigItem):
     sample_rate_iteration: list
     ctramp_indiv_trip_file: str
     ctramp_joint_trip_file: str
+    ctramp_hh_file: str
     rideshare_mode_split: Dict[str,float]
     taxi_split: Dict[str,float]
     single_tnc_split: Dict[str,float]
     shared_tnc_split: Dict[str,float]
     ctramp_mode_names: Dict[float,str]
+    copy_from_examples: bool
+    income_segment: Dict[str, Union[float, str, list]]
     
     
     @validator("ctramp_mode_names", allow_reuse=True)
@@ -911,6 +915,13 @@ class ConvergenceReportConfig(ConfigItem):
         output_convergence_report_path: file path to Excel file containing convergence reports from every iteration.
     """
     output_convergence_report_path: pathlib.Path = Field()
+    output_triptable_path: str = Field()
+    output_skim_path: str = Field()
+    selected_od_pair: Tuple[int, ...] = Field()
+    selected_links: Tuple[int, ...] = Field()
+    skim_selected_time_periods: Tuple[str, ...] = Field()
+    output_network_attr_filename: str = Field()
+    output_network_summary_filename: str = Field()
 
 @dataclass(frozen=True)
 class HighwayConfig(ConfigItem):
