@@ -127,6 +127,9 @@ class RunController:
         self._component_name = None
         self._queued_components = deque()
 
+        self._dynamic_toll_iter = 0
+        self._stop_dynamic_toll = False
+
         # mapping from defined names referenced in config to Component objects
         self._component_map = {
             k: v(self) for k, v in component_cls_map.items() if k in run_components
@@ -245,8 +248,16 @@ class RunController:
             self.logger.log_time(f"Start iteration {iteration}")
         self._iteration = iteration
         self._component = component
+        self.logger.log(f"run iteration {iteration}, component - {name}")
         component.run()
         self.completed_components.append((iteration, name, component))
+
+        if self.config.highway.tolls.run_dynamic_toll:
+            # if the current component is "highway" and dynamic tolling is turned on
+            if name == "highway" and not self._stop_dynamic_toll:
+                self.logger.log("add dynamic toll iteration")
+                self._add_component_to_queue(iteration, "highway", insert_to_front=True)
+                self._add_component_to_queue(iteration, "prepare_network_highway", insert_to_front=True)
 
     def _queue_components(self, run_components: Collection[str] = None):
         """Add components per iteration to queue according to input Config.
@@ -312,7 +323,7 @@ class RunController:
             _start_c_index = _queued_c_names.index(self.config.run.start_component)
             self._queued_components = self._queued_components[_start_c_index:]
 
-    def _add_component_to_queue(self, iteration: int, component_name: str):
+    def _add_component_to_queue(self, iteration: int, component_name: str, insert_to_front: bool=False):
         """Add component to queue (self._queued_components), first validating its inputs.
 
         Args:
@@ -323,7 +334,10 @@ class RunController:
         if component_name not in self._validated_components:
             _component.validate_inputs()
             self._validated_components.add(component_name)
-        self._queued_components.append((iteration, component_name, _component))
+        if insert_to_front:
+            self._queued_components.appendleft((iteration, component_name, _component))
+        else:
+            self._queued_components.append((iteration, component_name, _component))
 
     def _calculate_num_processors(self, cpu_processors: int):
         """Convert input value (parse if string) to number of processors.
