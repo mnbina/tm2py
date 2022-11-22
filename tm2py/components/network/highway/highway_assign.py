@@ -238,7 +238,7 @@ class HighwayAssignment(Component):
         net_calc = NetworkCalculator(scenario)
         net_calc("@vc", "@total_flow / @capacity")
 
-    def _get_msa_calc_expression(prev_wgt=0, curr_wgt=1, total=True, assign_class=None):
+    def _get_msa_calc_expression(self, prev_wgt=0, curr_wgt=1, total=True, assign_class=None):
         if total:
             return f"{prev_wgt} * @total_flow_avg + {curr_wgt} * @total_flow"
         else:
@@ -257,6 +257,7 @@ class HighwayAssignment(Component):
         elif iteration >= 2:
             prev_wgt = self.controller.config.highway.msa.prev_wgt[iteration]
             curr_wgt = self.controller.config.highway.msa.curr_wgt[iteration]
+            assert prev_wgt + curr_wgt == 1, "total weight for msa calculation should sum to 1"
 
             total_flow_expression = self._get_msa_calc_expression(prev_wgt, curr_wgt, True)
             net_calc("@total_flow_avg", total_flow_expression)
