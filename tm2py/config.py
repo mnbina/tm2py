@@ -1054,12 +1054,12 @@ class HighwayConfig(ConfigItem):
 class TransitModeConfig(ConfigItem):
     """Transit mode definition (see also mode in the Emme API)."""
 
-    type: Literal["WALK", "ACCESS", "EGRESS", "LOCAL", "PREMIUM", "PNR", "KNR", "PNR_dummy"] # add PNR_dummy to differentiate between the transit/transit aux modes
+    type: Literal["WALK", "ACCESS", "EGRESS", "LOCAL", "PREMIUM", "DRIVE", "PNR_dummy","KNR_dummy"] # add PNR_dummy to differentiate between the transit/transit aux modes
     assign_type: Literal["TRANSIT", "AUX_TRANSIT"]
     mode_id: str = Field(min_length=1, max_length=1)
     name: str = Field(max_length=10)
     in_vehicle_perception_factor: Optional[float] = Field(default=None, ge=0)
-    speed_miles_per_hour: Optional[float] = Field(default=None, gt=0)
+    speed_miles_per_hour: Optional[str] = Field(default="")
     initial_boarding_penalty: Optional[float] = Field(default=None, ge=0)
     transfer_boarding_penalty: Optional[float] = Field(default=None, ge=0)
 

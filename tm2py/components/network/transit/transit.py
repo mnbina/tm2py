@@ -39,7 +39,6 @@ _skim_names = [
     "FARE",
     "BOARDS",
     "WAUX",
-    # "TOTALAUX",
     "DTIME", 
     "DDIST",
     "WACC",
@@ -51,10 +50,7 @@ _skim_names = [
     "IVTHVY",
     "IVTCOM",
     "IVTFRY",
-    # "LINKREL",
     "CROWD",
-    # "EAWT",
-    # "CAPPEN",
 ]
 
 _segment_cost_function = """
@@ -66,7 +62,7 @@ max_stand_weight = 1.6
 power_stand_weight = 3.4
 
 def calc_segment_cost(transit_volume, capacity, segment):
-    if transit_volume == 0:
+    if transit_volume <= 0:
         return 0.0
     line = segment.line
     # need assignment period in seated_capacity calc?
@@ -76,12 +72,12 @@ def calc_segment_cost(transit_volume, capacity, segment):
 
     vcr = transit_volume / capacity
     crowded_factor = (((
-           (min_seat_weight+(max_seat_weight-min_seat_weight)*(transit_volume/capacity)**power_seat_weight)*num_seated
-           +(min_stand_weight+(max_stand_weight-min_stand_weight)*(transit_volume/capacity)**power_stand_weight)*num_standing
-           )/(transit_volume+0.01)))
+           (min_seat_weight+(max_seat_weight-min_seat_weight)*(vcr)**power_seat_weight)*num_seated
+           +(min_stand_weight+(max_stand_weight-min_stand_weight)*(vcr)**power_stand_weight)*num_standing
+           )/(transit_volume)))
 
     # Toronto implementation limited factor between 1.0 and 10.0
-    return crowded_factor
+    return max(crowded_factor, 1.0) - 1.0
 """
 
 _headway_cost_function = """
@@ -191,6 +187,7 @@ class TransitAssignment(Component):
 
                 self.update_pnr_penalty(network)
 
+                # peaking factor
                 if use_peaking_factor:
                     if (period.name == 'am') and (ea_df is None):
                         raise Exception("run ea period first to account for the am peaking factor")
@@ -262,7 +259,7 @@ class TransitAssignment(Component):
                     scenario,
                     network,
                     period=period,
-                    assignment_only=False,  # temp
+                    assignment_only=False,
                     use_fares=use_fares,
                     use_ccr=use_ccr,
                     congested_transit_assignment=congested_transit_assignment
@@ -334,14 +331,15 @@ class TransitAssignment(Component):
                 if auto_time > 0:
                     # work in progress https://github.com/BayAreaMetro/travel-model-one/blob/master/model-files/scripts/skims/PrepHwyNet.job#L106
                     tran_speed = 60 * tran_link.length/auto_time
-                    if (tran_link['@ft']<=4 or tran_link['@ft']==8) and tran_speed<6:
+                    if (tran_link['@ft']<=4 or tran_link['@ft']==8) and (tran_speed<6):
                         tran_speed = 6
                         tran_link["@trantime"] = 60 * tran_link.length/tran_speed
-                    elif tran_speed<3:
+                    elif (tran_speed<3):
                         tran_speed = 3
                         tran_link["@trantime"] = 60 * tran_link.length/tran_speed
                     else:
                         tran_link["@trantime"] = auto_time
+                    tran_link.data1 = tran_link["@trantime"]
                 # TODO: add bus time calculation below
                     if tran_link["@ft"] in [1,2,3,8]:
                         delayfactor = 0.0
@@ -355,7 +353,7 @@ class TransitAssignment(Component):
                         else:
                             delayfactor = 0.08
                     bus_time = tran_link["@trantime"] + (delayfactor * tran_link.length)
-                    tran_link["@trantime"] = bus_time
+                    tran_link["@trantime"] = bus_time                   
 
         # set us1 (segment data1), used in ttf expressions, from @trantime
         for segment in transit_network.transit_segments():
@@ -367,23 +365,19 @@ class TransitAssignment(Component):
         for segment in network.transit_segments():
             if "BART_acc" in segment.id:
                 if "West Oakland" in segment.id:
-                    segment["@board_cost"] = 12.4*(180.20/258.27)
+                    segment["@board_cost"] = 12.4*(180.20/258.27) # 2015 to 2000 delfator
                 else:
                     segment["@board_cost"] = 3.0*(180.20/258.27)
             elif "Caltrain_acc" in segment.id:
                 segment["@board_cost"] = 5.5*(180.20/258.27)
-            elif segment.line["#faresystem"] ==31:
-                segment["@board_cost"] = 0
-            else:
-                segment["@board_cost"] = segment["@board_cost"]*(180.20/258.27)
-                segment["@invehicle_cost"] = segment["@invehicle_cost"]*(180.20/258.27)
+            # else:  # already used deflated fare inputs
+            #     segment["@board_cost"] = segment["@board_cost"]*(180.20/258.27)
+            #     segment["@invehicle_cost"] = segment["@invehicle_cost"]*(180.20/258.27)
 
 
     def update_connector_times(self, scenario, network, period):
-        # walk time attributes per skim set
-        # connector_attrs = {1: "@walk_time_bus", 2: "@walk_time_prem", 3: "@walk_time_all"}
         params = self.controller.config.transit
-        connector_attrs = {1:"@connector_time_all", 2:"@connector_pfactor"}
+        connector_attrs = {1:"@access_time", 2:"@access_pfactor"}
         for attr_name in connector_attrs.values():
             if scenario.extra_attribute(attr_name) is None:
                 scenario.create_extra_attribute("LINK", attr_name)
@@ -393,16 +387,15 @@ class TransitAssignment(Component):
             network.create_attribute("LINK", attr_name, 9999)
         period_name = period.name.lower()
 
-        # hard code connetor time for now
         for link in network.links():
-            if (link.modes == set([network.mode('a')])) or (link.modes == set([network.mode('e')])):
-                link['@connector_time_all'] = 60 * link.length/3
-                link['@connector_pfactor'] = params["walk_perception_factor"]
-            elif (link.modes == set([network.mode('P'),network.mode('K')])) or (link.modes == set([network.mode('K')])):
-                link['@connector_time_all'] = 60 * link.length/40
-                link['@connector_pfactor'] = params["drive_perception_factor"]
+            if link.modes.intersection(set([network.mode('a'), network.mode('e')])):
+                link['@access_time'] = 60 * link.length/3
+                link['@access_pfactor'] = params["walk_perception_factor"]
+            elif link.modes.intersection(set([network.mode('K'), network.mode('P')])):
+                link['@access_time'] = 60 * link.length/40
+                link['@access_pfactor'] = params["drive_perception_factor"]
             else:
-                link['@connector_pfactor'] = 1
+                link['@access_pfactor'] = 1
 
         # lookup adjacent real stop to account for connector splitting
         # connectors = _defaultdict(lambda: {})
@@ -445,14 +438,12 @@ class TransitAssignment(Component):
     def initialize_skim_matrices(self, time_periods, scenario):
         with self.controller.emme_manager.logbook_trace("Create and initialize matrices"):
             tmplt_matrices = [
-                # ("GENCOST",    "total impedance"),
                 ("IWAIT", "first wait time"),
                 ("XWAIT", "transfer wait time"),
                 ("WAIT", "total wait time"),
                 ("FARE", "fare"),
                 ("BOARDS", "num boardings"),
                 ("WAUX", "auxiliary walk time"),
-                # ("TOTALAUX", "total auxiliary time"),
                 ("DTIME", "access and egress drive time"),
                 ("DDIST", "access and egress drive distance"),
                 ("WACC", "access walk time"),
@@ -465,10 +456,7 @@ class TransitAssignment(Component):
                 ("IVTCOM", "commuter rail in-vehicle time"),
                 ("IVTFRY", "ferry in-vehicle time"),
                 ("IN_VEHICLE_COST", "In vehicle cost"),  
-                # ("LINKREL", "Link reliability"), #ccr skims only
                 ("CROWD", "Crowding penalty"),
-                # ("EAWT", "Extra added wait time"),
-                # ("CAPPEN", "Capacity penalty"),
             ]
             skim_sets = [
                 ("PNR_TRN_WLK", "PNR access"),
@@ -592,10 +580,12 @@ class TransitAssignment(Component):
                 mode_types["WALK"].append(mode.mode_id)
                 mode_types["PNR_ACCESS"].append(mode.mode_id)   # PNR access + walk egress
                 mode_types["KNR_ACCESS"].append(mode.mode_id)   # KNR access + walk egress
-            elif mode.type in ["PNR"]:
+            elif mode.type in ["DRIVE"]:
                 mode_types["PNR_ACCESS"].append(mode.mode_id)
-                mode_types["PNR_EGRESS"].append(mode.mode_id) 
-            elif mode.type in ["KNR"]:
+                mode_types["KNR_ACCESS"].append(mode.mode_id)
+                mode_types["PNR_EGRESS"].append(mode.mode_id)
+                mode_types["KNR_EGRESS"].append(mode.mode_id)
+            elif mode.type in ["KNR_dummy"]:
                 mode_types["KNR_ACCESS"].append(mode.mode_id)
                 mode_types["KNR_EGRESS"].append(mode.mode_id)
             elif mode.type in ["LOCAL","PREMIUM","PNR_dummy"]:
@@ -706,7 +696,7 @@ class TransitAssignment(Component):
             },
             "in_vehicle_cost": None,
             "in_vehicle_time": {"perception_factor": "@invehicle_factor"},
-            "aux_transit_time": {"perception_factor": params["walk_perception_factor"]},
+            "aux_transit_time": {"perception_factor": 1}, # walk and drive perception fators are specified in mode speed
             "aux_transit_cost": None,
             "journey_levels": [],
             "flow_distribution_between_lines": {"consider_total_impedance": False},
@@ -777,7 +767,6 @@ class TransitAssignment(Component):
                 project_dir, 
                 period, 
                 "PNR_TRN_WLK", 
-                fare_modes, 
                 fare_perception, 
                 params
             )
@@ -785,7 +774,6 @@ class TransitAssignment(Component):
                 project_dir, 
                 period, 
                 "WLK_TRN_PNR", 
-                fare_modes, 
                 fare_perception, 
                 params
             )
@@ -793,7 +781,6 @@ class TransitAssignment(Component):
                 project_dir, 
                 period, 
                 "KNR_TRN_WLK", 
-                fare_modes, 
                 fare_perception, 
                 params
             )
@@ -801,7 +788,6 @@ class TransitAssignment(Component):
                 project_dir, 
                 period, 
                 "WLK_TRN_KNR", 
-                fare_modes, 
                 fare_perception, 
                 params
             )
@@ -809,7 +795,6 @@ class TransitAssignment(Component):
                 project_dir, 
                 period, 
                 "WLK_TRN_WLK", 
-                fare_modes, 
                 fare_perception, 
                 params
             )
@@ -865,19 +850,19 @@ class TransitAssignment(Component):
         )
         if self.controller.config.transit.get("override_connector_times", False):
             skim_parameters["WLK_TRN_WLK"]["aux_transit_cost"] = {
-                "penalty": "@connector_time_all", "perception_factor": "@connector_pfactor"
+                "penalty": "@access_time", "perception_factor": "@access_pfactor"
             }
             skim_parameters["PNR_TRN_WLK"]["aux_transit_cost"] = {
-                "penalty": "@connector_time_all", "perception_factor": "@connector_pfactor"
+                "penalty": "@access_time", "perception_factor": "@access_pfactor"
             }
             skim_parameters["WLK_TRN_PNR"]["aux_transit_cost"] = {
-                "penalty": "@connector_time_all", "perception_factor": "@connector_pfactor"
+                "penalty": "@access_time", "perception_factor": "@access_pfactor"
             }
             skim_parameters["KNR_TRN_WLK"]["aux_transit_cost"] = {
-                "penalty": "@connector_time_all", "perception_factor": "@connector_pfactor"
+                "penalty": "@access_time", "perception_factor": "@access_pfactor"
             }
             skim_parameters["WLK_TRN_KNR"]["aux_transit_cost"] = {
-                "penalty": "@connector_time_all", "perception_factor": "@connector_pfactor"
+                "penalty": "@access_time", "perception_factor": "@access_pfactor"
             }
         if use_ccr:
             print('run capacitated transit assignment')
@@ -956,13 +941,20 @@ class TransitAssignment(Component):
                 spec["aux_transit_cost"] = parameters.get("aux_transit_cost")
                 specs.append(spec)
                 names.append(mode_name)
+            # func = {
+            #     "type": "BPR",
+            #     "weight": 0.15,
+            #     "exponent": 4,
+            #     "assignment_period": period.length_hours,
+            #     "orig_func": False,
+            #     "congestion_attribute": "us3"
+            # }
             func = {
-                "type": "BPR",
-                "weight": 0.15,
-                "exponent": 4,
-                "assignment_period": period.length_hours,
+                "type": "CUSTOM",
+                "python_function": _segment_cost_function.format(period.length_hours),
+                "congestion_attribute": "us3",
                 "orig_func": False,
-                "congestion_attribute": "us3"
+                "assignment_period": period.length_hours,
             }
             # func = {
             #     "type": "CUSTOM",
@@ -1079,7 +1071,7 @@ class TransitAssignment(Component):
             }
             spec1 = {
                 "type": "EXTENDED_TRANSIT_MATRIX_RESULTS",
-                "by_mode_subset": {"modes": ["K","P"], 
+                "by_mode_subset": {"modes": ["D"], 
                 "actual_aux_transit_times": 'mf"%s_DTIME"' % skim_name,
                 "distance": 'mf"%s_DDIST"' % skim_name},
             }
@@ -1585,7 +1577,7 @@ def get_strat_spec(components, matrix_name):
     return spec
 
 
-def update_journey_levels_with_fare(project_dir, period, class_name, fare_modes, fare_perception, params):
+def update_journey_levels_with_fare(project_dir, period, class_name, fare_perception, params):
     with open(
             os.path.join(
                 project_dir, "Specifications", "%s_ALLPEN_journey_levels.ems" % period.name
@@ -1595,83 +1587,57 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_modes,
         journey_levels = _json.load(f)["journey_levels"]
 
     if class_name == "PNR_TRN_WLK":
-        pnr_dummy_mode = list(fare_modes["p"])[0]
         new_journey_levels = copy.deepcopy(journey_levels)
 
         for i in range(0,len(new_journey_levels)):
             jls = new_journey_levels[i]    
-            for level in jls["transition_rules"]:
-                level["next_journey_level"] = level["next_journey_level"]+2
             jls["transition_rules"].extend(
                 [
-                {'mode': 'e', 'next_journey_level': i+3},
-                {'mode': 'P', 'next_journey_level': 2}, # level 2 "prohibit"
-                {'mode': 'w', 'next_journey_level': i+3},
-                {'mode': pnr_dummy_mode, 'next_journey_level': 2} # level 2 "prohibit"
+                {'mode': 'e', 'next_journey_level': i+1},
+                {'mode': 'D', 'next_journey_level': len(new_journey_levels)+1}, 
+                {'mode': 'w', 'next_journey_level': i+1},
+                {'mode': 'p', 'next_journey_level': len(new_journey_levels)+1} # level 2 "prohibit"
                 ]
             )
         
-        # level 0: leaving home, only PNR drive access and pnr dummy route are allowed
-        transition_rules_leave_home = copy.deepcopy(journey_levels[0]["transition_rules"])
-        for level in transition_rules_leave_home:
-            level["next_journey_level"] = 2
-        transition_rules_leave_home.extend(
+        # level 0: drive access
+        transition_rules_drive_access = copy.deepcopy(journey_levels[0]["transition_rules"])
+        for level in transition_rules_drive_access:
+            level["next_journey_level"] = len(new_journey_levels)+1
+        transition_rules_drive_access.extend(
             [
-            {'mode': 'e', 'next_journey_level': 2},
-            {'mode': 'P', 'next_journey_level': 0},
-            {'mode': 'w', 'next_journey_level': 2},
-            {'mode': pnr_dummy_mode, 'next_journey_level': 1}
+            {'mode': 'e', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'D', 'next_journey_level': 0},
+            {'mode': 'w', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'p', 'next_journey_level': 1}
             ]
         )
-        # level 1: driving to parking, transit levels can only be reached from this level
-        transition_rules_pnr = copy.deepcopy(journey_levels[0]["transition_rules"])
-        for level in transition_rules_pnr:
-            level["next_journey_level"] = 3
-        transition_rules_pnr.extend(
-            [
-            {'mode': 'e', 'next_journey_level': 2},
-            {'mode': 'P', 'next_journey_level': 2},
-            {'mode': 'w', 'next_journey_level': 2},
-            {'mode': pnr_dummy_mode, 'next_journey_level': 1}
-            ]
-        )
-        # level 2: every mode is prohibited
+
+        # level len(new_journey_levels)+1: every mode is prohibited
         transition_rules_prohibit = copy.deepcopy(journey_levels[0]["transition_rules"])
         for level in transition_rules_prohibit:
-            level["next_journey_level"] = 2
+            level["next_journey_level"] = len(new_journey_levels)+1
         transition_rules_prohibit.extend(
             [
-            {'mode': 'e', 'next_journey_level': 2},
-            {'mode': 'P', 'next_journey_level': 2},
-            {'mode': 'w', 'next_journey_level': 2},
-            {'mode': pnr_dummy_mode, 'next_journey_level': 2}
+            {'mode': 'e', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'D', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'w', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'p', 'next_journey_level': len(new_journey_levels)+1}
             ]
         )
 
         new_journey_levels.insert(
                                 0,
                                 {
-                                "description": "leaving home",
+                                "description": "drive access",
                                 "destinations_reachable": False,
-                                "transition_rules": transition_rules_leave_home,
+                                "transition_rules": transition_rules_drive_access,
                                 "waiting_time": None,
                                 "boarding_time": None,
                                 "boarding_cost": None                                     
                                 }
         )
-        new_journey_levels.insert(
-                                 1,
-                                {
-                                "description": "drive to parking",
-                                "destinations_reachable": False,
-                                "transition_rules": transition_rules_pnr,
-                                "waiting_time": None,
-                                "boarding_time": None,
-                                "boarding_cost": None                                     
-                                }
-        )
-        new_journey_levels.insert(
-                                 2,
+        new_journey_levels.append(
                                 {
                                 "description": "prohibit",
                                 "destinations_reachable": False,
@@ -1682,7 +1648,7 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_modes,
                                 }
         )
 
-        for level in new_journey_levels[3:]:
+        for level in new_journey_levels[1:-1]:
             level["waiting_time"] = {
                 "headway_fraction": 0.5,
                 "effective_headways": params["effective_headway_source"],
@@ -1699,60 +1665,58 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_modes,
 
 
     elif class_name == "WLK_TRN_PNR":
-        pnr_dummy_mode = list(fare_modes["p"])[0]
         new_journey_levels = copy.deepcopy(journey_levels)
 
         for i in range(0,len(new_journey_levels)):
             jls = new_journey_levels[i]    
+            jls["destinations_reachable"] = False
             for level in jls["transition_rules"]:
-                level["next_journey_level"] = level["next_journey_level"]+1
+                level["next_journey_level"] = level["next_journey_level"]-1
             jls["transition_rules"].extend(
                 [
-                {'mode': 'a', 'next_journey_level': 1}, # level 1 "prohibit"
-                {'mode': 'P', 'next_journey_level': i+2}, 
-                {'mode': 'w', 'next_journey_level': i+2}, 
-                {'mode': pnr_dummy_mode, 'next_journey_level': i+2}
+                {'mode': 'a', 'next_journey_level': i},
+                {'mode': 'D', 'next_journey_level': len(new_journey_levels)+1}, 
+                {'mode': 'w', 'next_journey_level': i}, 
+                {'mode': 'p', 'next_journey_level': len(new_journey_levels)}
                 ]
             )
         
-        # level 0: leaving home
-        transition_rules_leave_home = copy.deepcopy(journey_levels[0]["transition_rules"])
-        for level in transition_rules_leave_home:
-            level["next_journey_level"] = 2
-        transition_rules_leave_home.extend(
+        # level len(new_journey_levels): drive home
+        transition_rules_drive_home = copy.deepcopy(journey_levels[0]["transition_rules"])
+        for level in transition_rules_drive_home:
+            level["next_journey_level"] = len(new_journey_levels)+1
+        transition_rules_drive_home.extend(
             [
-            {'mode': 'a', 'next_journey_level': 0},
-            {'mode': 'P', 'next_journey_level': 1}, # level 1 "prohibit"
-            {'mode': 'w', 'next_journey_level': 0},
-            {'mode': pnr_dummy_mode, 'next_journey_level': 1} # level 1 "prohibit"
+            {'mode': 'a', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'D', 'next_journey_level': len(new_journey_levels)},
+            {'mode': 'w', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'p', 'next_journey_level': len(new_journey_levels)+1}
             ]
         )
-        # level 1: every mode is prohibited
+        # level len(new_journey_levels)+1: every mode is prohibited
         transition_rules_prohibit = copy.deepcopy(journey_levels[0]["transition_rules"])
         for level in transition_rules_prohibit:
-            level["next_journey_level"] = 1
+            level["next_journey_level"] = len(new_journey_levels)+1
         transition_rules_prohibit.extend(
             [
-            {'mode': 'a', 'next_journey_level': 1},
-            {'mode': 'P', 'next_journey_level': 1},
-            {'mode': 'w', 'next_journey_level': 1},
-            {'mode': pnr_dummy_mode, 'next_journey_level': 1}
+            {'mode': 'a', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'D', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'w', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'p', 'next_journey_level': len(new_journey_levels)+1}
             ]
         )
 
-        new_journey_levels.insert(
-                                0,
+        new_journey_levels.append(
                                 {
-                                "description": "leaving home",
-                                "destinations_reachable": False,
-                                "transition_rules": transition_rules_leave_home,
+                                "description": "drive home",
+                                "destinations_reachable": True,
+                                "transition_rules": transition_rules_drive_home,
                                 "waiting_time": None,
                                 "boarding_time": None,
                                 "boarding_cost": None                                     
                                 }
         )
-        new_journey_levels.insert(
-                                 1,
+        new_journey_levels.append(
                                 {
                                 "description": "prohibit",
                                 "destinations_reachable": False,
@@ -1763,7 +1727,7 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_modes,
                                 }
         )
 
-        for level in new_journey_levels[2:]:
+        for level in new_journey_levels[:-2]:
             level["waiting_time"] = {
                 "headway_fraction": 0.5,
                 "effective_headways": params["effective_headway_source"],
@@ -1779,60 +1743,59 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_modes,
                 level["boarding_cost"]["on_segments"]["perception_factor"] = fare_perception
 
     elif class_name == "KNR_TRN_WLK":
-        pnr_dummy_mode = list(fare_modes["p"])[0]
         new_journey_levels = copy.deepcopy(journey_levels)
 
         for i in range(0,len(new_journey_levels)):
             jls = new_journey_levels[i]    
-            for level in jls["transition_rules"]:
-                level["next_journey_level"] = level["next_journey_level"]+1
             jls["transition_rules"].extend(
                 [
-                {'mode': 'e', 'next_journey_level': i+2},
-                {'mode': 'K', 'next_journey_level': 1}, 
-                {'mode': 'w', 'next_journey_level': i+2},
-                {'mode': pnr_dummy_mode, 'next_journey_level': 1}
+                {'mode': 'e', 'next_journey_level': i+1},
+                {'mode': 'D', 'next_journey_level': len(new_journey_levels)+1}, 
+                {'mode': 'w', 'next_journey_level': i+1},
+                {'mode': 'p', 'next_journey_level': len(new_journey_levels)+1},
+                {'mode': 'k', 'next_journey_level': len(new_journey_levels)+1}
                 ]
             )
         
-        # level 0: leaving home
-        transition_rules_leave_home = copy.deepcopy(journey_levels[0]["transition_rules"])
-        for level in transition_rules_leave_home:
-            level["next_journey_level"] = 2
-        transition_rules_leave_home.extend(
+        # level 0: drive access
+        transition_rules_drive_access = copy.deepcopy(journey_levels[0]["transition_rules"])
+        for level in transition_rules_drive_access:
+            level["next_journey_level"] = len(new_journey_levels)+1
+        transition_rules_drive_access.extend(
             [
-            {'mode': 'e', 'next_journey_level': 1},
-            {'mode': 'K', 'next_journey_level': 0},
-            {'mode': 'w', 'next_journey_level': 1},
-            {'mode': pnr_dummy_mode, 'next_journey_level': 1}
+            {'mode': 'e', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'D', 'next_journey_level': 0},
+            {'mode': 'w', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'p', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'k', 'next_journey_level': 1}
             ]
         )
-        # level 1: every mode is prohibited
+        # level len(new_journey_levels)+1: every mode is prohibited
         transition_rules_prohibit = copy.deepcopy(journey_levels[0]["transition_rules"])
         for level in transition_rules_prohibit:
-            level["next_journey_level"] = 1
+            level["next_journey_level"] = len(new_journey_levels)+1
         transition_rules_prohibit.extend(
             [
-            {'mode': 'e', 'next_journey_level': 1},
-            {'mode': 'K', 'next_journey_level': 1},
-            {'mode': 'w', 'next_journey_level': 1},
-            {'mode': pnr_dummy_mode, 'next_journey_level': 1}
+            {'mode': 'e', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'D', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'w', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'p', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'k', 'next_journey_level': len(new_journey_levels)+1}
             ]
         )
 
         new_journey_levels.insert(
                                 0,
                                 {
-                                "description": "leaving home",
+                                "description": "drive access",
                                 "destinations_reachable": False,
-                                "transition_rules": transition_rules_leave_home,
+                                "transition_rules": transition_rules_drive_access,
                                 "waiting_time": None,
                                 "boarding_time": None,
                                 "boarding_cost": None                                     
                                 }
         )
-        new_journey_levels.insert(
-                                 1,
+        new_journey_levels.append(
                                 {
                                 "description": "prohibit",
                                 "destinations_reachable": False,
@@ -1843,7 +1806,7 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_modes,
                                 }
         )
 
-        for level in new_journey_levels[2:]:
+        for level in new_journey_levels[1:-1]:
             level["waiting_time"] = {
                 "headway_fraction": 0.5,
                 "effective_headways": params["effective_headway_source"],
@@ -1859,60 +1822,61 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_modes,
                 level["boarding_cost"]["on_segments"]["perception_factor"] = fare_perception
 
     elif class_name == "WLK_TRN_KNR":
-        pnr_dummy_mode = list(fare_modes["p"])[0]
         new_journey_levels = copy.deepcopy(journey_levels)
 
         for i in range(0,len(new_journey_levels)):
             jls = new_journey_levels[i]    
+            jls["destinations_reachable"] = False
             for level in jls["transition_rules"]:
-                level["next_journey_level"] = level["next_journey_level"]+1
+                level["next_journey_level"] = level["next_journey_level"]-1
             jls["transition_rules"].extend(
                 [
-                {'mode': 'a', 'next_journey_level': 1},
-                {'mode': 'K', 'next_journey_level': i+2}, 
-                {'mode': 'w', 'next_journey_level': i+2},
-                {'mode': pnr_dummy_mode, 'next_journey_level': 1}
+                {'mode': 'a', 'next_journey_level': i},
+                {'mode': 'D', 'next_journey_level': len(new_journey_levels)+1}, 
+                {'mode': 'w', 'next_journey_level': i},
+                {'mode': 'p', 'next_journey_level': len(new_journey_levels)+1},
+                {'mode': 'k', 'next_journey_level': len(new_journey_levels)}
                 ]
             )
         
-        # level 0: leaving home
-        transition_rules_leave_home = copy.deepcopy(journey_levels[0]["transition_rules"])
-        for level in transition_rules_leave_home:
-            level["next_journey_level"] = 2
-        transition_rules_leave_home.extend(
+        # level len(new_journey_levels): drive home
+        transition_rules_drive_home = copy.deepcopy(journey_levels[0]["transition_rules"])
+        for level in transition_rules_drive_home:
+            level["next_journey_level"] = len(new_journey_levels)+1
+        transition_rules_drive_home.extend(
             [
-            {'mode': 'a', 'next_journey_level': 0},
-            {'mode': 'K', 'next_journey_level': 1},
-            {'mode': 'w', 'next_journey_level': 0},
-            {'mode': pnr_dummy_mode, 'next_journey_level': 1}
+            {'mode': 'a', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'D', 'next_journey_level': len(new_journey_levels)},
+            {'mode': 'w', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'p', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'k', 'next_journey_level': len(new_journey_levels)+1}
             ]
         )
-        # level 1: every mode is prohibited
+        # level len(new_journey_levels)+2: every mode is prohibited
         transition_rules_prohibit = copy.deepcopy(journey_levels[0]["transition_rules"])
         for level in transition_rules_prohibit:
-            level["next_journey_level"] = 1
+            level["next_journey_level"] = len(new_journey_levels)+1
         transition_rules_prohibit.extend(
             [
-            {'mode': 'a', 'next_journey_level': 1},
-            {'mode': 'K', 'next_journey_level': 1},
-            {'mode': 'w', 'next_journey_level': 1},
-            {'mode': pnr_dummy_mode, 'next_journey_level': 1}
+            {'mode': 'a', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'D', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'w', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'p', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'k', 'next_journey_level': len(new_journey_levels)+1}
             ]
         )
 
-        new_journey_levels.insert(
-                                0,
+        new_journey_levels.append(
                                 {
-                                "description": "leaving home",
-                                "destinations_reachable": False,
-                                "transition_rules": transition_rules_leave_home,
+                                "description": "drive home",
+                                "destinations_reachable": True,
+                                "transition_rules": transition_rules_drive_home,
                                 "waiting_time": None,
                                 "boarding_time": None,
                                 "boarding_cost": None                                     
                                 }
         )
-        new_journey_levels.insert(
-                                 1,
+        new_journey_levels.append(
                                 {
                                 "description": "prohibit",
                                 "destinations_reachable": False,
@@ -1923,7 +1887,7 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_modes,
                                 }
         )
 
-        for level in new_journey_levels[2:]:
+        for level in new_journey_levels[:-2]:
             level["waiting_time"] = {
                 "headway_fraction": 0.5,
                 "effective_headways": params["effective_headway_source"],
@@ -1938,7 +1902,7 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_modes,
             if level["boarding_cost"]:
                 level["boarding_cost"]["on_segments"]["perception_factor"] = fare_perception
 
-    else:
+    elif class_name == "WLK_TRN_WLK":
         new_journey_levels = copy.deepcopy(journey_levels)
         transition_rules = copy.deepcopy(journey_levels[0]["transition_rules"])
         new_journey_levels.insert(
