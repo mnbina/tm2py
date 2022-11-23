@@ -1590,39 +1590,54 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_percep
         new_journey_levels = copy.deepcopy(journey_levels)
 
         for i in range(0,len(new_journey_levels)):
-            jls = new_journey_levels[i]    
+            jls = new_journey_levels[i]
+            for level in jls["transition_rules"]:
+                level["next_journey_level"] = level["next_journey_level"]+1
             jls["transition_rules"].extend(
                 [
-                {'mode': 'e', 'next_journey_level': i+1},
-                {'mode': 'D', 'next_journey_level': len(new_journey_levels)+1}, 
-                {'mode': 'w', 'next_journey_level': i+1},
-                {'mode': 'p', 'next_journey_level': len(new_journey_levels)+1} # level 2 "prohibit"
+                {'mode': 'e', 'next_journey_level': i+2},
+                {'mode': 'D', 'next_journey_level': len(new_journey_levels)+2}, 
+                {'mode': 'w', 'next_journey_level': i+2},
+                {'mode': 'p', 'next_journey_level': len(new_journey_levels)+2}
                 ]
             )
         
         # level 0: drive access
         transition_rules_drive_access = copy.deepcopy(journey_levels[0]["transition_rules"])
         for level in transition_rules_drive_access:
-            level["next_journey_level"] = len(new_journey_levels)+1
+            level["next_journey_level"] = len(new_journey_levels)+2
         transition_rules_drive_access.extend(
             [
-            {'mode': 'e', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'e', 'next_journey_level': len(new_journey_levels)+2},
             {'mode': 'D', 'next_journey_level': 0},
-            {'mode': 'w', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'w', 'next_journey_level': len(new_journey_levels)+2},
             {'mode': 'p', 'next_journey_level': 1}
             ]
         )
 
-        # level len(new_journey_levels)+1: every mode is prohibited
+        # level 1: use transit
+        transition_rules_pnr = copy.deepcopy(journey_levels[0]["transition_rules"])
+        for level in transition_rules_pnr:
+            level["next_journey_level"] = 2
+        transition_rules_pnr.extend(
+            [
+            {'mode': 'e', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'D', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'w', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'p', 'next_journey_level': 1}
+            ]
+        )
+
+        # level len(new_journey_levels)+2: every mode is prohibited
         transition_rules_prohibit = copy.deepcopy(journey_levels[0]["transition_rules"])
         for level in transition_rules_prohibit:
-            level["next_journey_level"] = len(new_journey_levels)+1
+            level["next_journey_level"] = len(new_journey_levels)+2
         transition_rules_prohibit.extend(
             [
-            {'mode': 'e', 'next_journey_level': len(new_journey_levels)+1},
-            {'mode': 'D', 'next_journey_level': len(new_journey_levels)+1},
-            {'mode': 'w', 'next_journey_level': len(new_journey_levels)+1},
-            {'mode': 'p', 'next_journey_level': len(new_journey_levels)+1}
+            {'mode': 'e', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'D', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'w', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'p', 'next_journey_level': len(new_journey_levels)+2}
             ]
         )
 
@@ -1632,6 +1647,17 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_percep
                                 "description": "drive access",
                                 "destinations_reachable": False,
                                 "transition_rules": transition_rules_drive_access,
+                                "waiting_time": None,
+                                "boarding_time": None,
+                                "boarding_cost": None                                     
+                                }
+        )
+        new_journey_levels.insert(
+                                1,
+                                {
+                                "description": "pnr",
+                                "destinations_reachable": False,
+                                "transition_rules": transition_rules_pnr,
                                 "waiting_time": None,
                                 "boarding_time": None,
                                 "boarding_cost": None                                     
@@ -1648,7 +1674,7 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_percep
                                 }
         )
 
-        for level in new_journey_levels[1:-1]:
+        for level in new_journey_levels[2:-1]:
             level["waiting_time"] = {
                 "headway_fraction": 0.5,
                 "effective_headways": params["effective_headway_source"],
@@ -1670,42 +1696,65 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_percep
         for i in range(0,len(new_journey_levels)):
             jls = new_journey_levels[i]    
             jls["destinations_reachable"] = False
-            for level in jls["transition_rules"]:
-                level["next_journey_level"] = level["next_journey_level"]-1
             jls["transition_rules"].extend(
                 [
-                {'mode': 'a', 'next_journey_level': i},
-                {'mode': 'D', 'next_journey_level': len(new_journey_levels)+1}, 
-                {'mode': 'w', 'next_journey_level': i}, 
-                {'mode': 'p', 'next_journey_level': len(new_journey_levels)}
+                {'mode': 'a', 'next_journey_level': len(new_journey_levels)+2},
+                {'mode': 'D', 'next_journey_level': len(new_journey_levels)+2}, 
+                {'mode': 'w', 'next_journey_level': i+1}, 
+                {'mode': 'p', 'next_journey_level': len(new_journey_levels)+1}
                 ]
             )
-        
-        # level len(new_journey_levels): drive home
+
+         # level 0: walk access
+        transition_rules_walk_access = copy.deepcopy(journey_levels[0]["transition_rules"])
+        for level in transition_rules_walk_access:
+            level["next_journey_level"] = 1
+        transition_rules_walk_access.extend(
+            [
+            {'mode': 'a', 'next_journey_level': 0},
+            {'mode': 'D', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'w', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'p', 'next_journey_level': len(new_journey_levels)+2}
+            ]
+        )       
+
+        # level len(new_journey_levels)+1: drive home
         transition_rules_drive_home = copy.deepcopy(journey_levels[0]["transition_rules"])
         for level in transition_rules_drive_home:
-            level["next_journey_level"] = len(new_journey_levels)+1
+            level["next_journey_level"] = len(new_journey_levels)+2
         transition_rules_drive_home.extend(
             [
-            {'mode': 'a', 'next_journey_level': len(new_journey_levels)+1},
-            {'mode': 'D', 'next_journey_level': len(new_journey_levels)},
-            {'mode': 'w', 'next_journey_level': len(new_journey_levels)+1},
-            {'mode': 'p', 'next_journey_level': len(new_journey_levels)+1}
-            ]
-        )
-        # level len(new_journey_levels)+1: every mode is prohibited
-        transition_rules_prohibit = copy.deepcopy(journey_levels[0]["transition_rules"])
-        for level in transition_rules_prohibit:
-            level["next_journey_level"] = len(new_journey_levels)+1
-        transition_rules_prohibit.extend(
-            [
-            {'mode': 'a', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'a', 'next_journey_level': len(new_journey_levels)+2},
             {'mode': 'D', 'next_journey_level': len(new_journey_levels)+1},
-            {'mode': 'w', 'next_journey_level': len(new_journey_levels)+1},
-            {'mode': 'p', 'next_journey_level': len(new_journey_levels)+1}
+            {'mode': 'w', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'p', 'next_journey_level': len(new_journey_levels)+2}
             ]
         )
 
+        # level len(new_journey_levels)+2: every mode is prohibited
+        transition_rules_prohibit = copy.deepcopy(journey_levels[0]["transition_rules"])
+        for level in transition_rules_prohibit:
+            level["next_journey_level"] = len(new_journey_levels)+2
+        transition_rules_prohibit.extend(
+            [
+            {'mode': 'a', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'D', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'w', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'p', 'next_journey_level': len(new_journey_levels)+2}
+            ]
+        )
+
+        new_journey_levels.insert(
+                                0,
+                                {
+                                "description": "walk access",
+                                "destinations_reachable": True,
+                                "transition_rules": transition_rules_walk_access,
+                                "waiting_time": None,
+                                "boarding_time": None,
+                                "boarding_cost": None                                     
+                                }
+        )
         new_journey_levels.append(
                                 {
                                 "description": "drive home",
@@ -1727,7 +1776,7 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_percep
                                 }
         )
 
-        for level in new_journey_levels[:-2]:
+        for level in new_journey_levels[1:-2]:
             level["waiting_time"] = {
                 "headway_fraction": 0.5,
                 "effective_headways": params["effective_headway_source"],
@@ -1746,41 +1795,58 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_percep
         new_journey_levels = copy.deepcopy(journey_levels)
 
         for i in range(0,len(new_journey_levels)):
-            jls = new_journey_levels[i]    
+            jls = new_journey_levels[i]
+            for level in jls["transition_rules"]:
+                level["next_journey_level"] = level["next_journey_level"]+1
             jls["transition_rules"].extend(
                 [
-                {'mode': 'e', 'next_journey_level': i+1},
-                {'mode': 'D', 'next_journey_level': len(new_journey_levels)+1}, 
-                {'mode': 'w', 'next_journey_level': i+1},
-                {'mode': 'p', 'next_journey_level': len(new_journey_levels)+1},
-                {'mode': 'k', 'next_journey_level': len(new_journey_levels)+1}
+                {'mode': 'e', 'next_journey_level': i+2},
+                {'mode': 'D', 'next_journey_level': len(new_journey_levels)+2}, 
+                {'mode': 'w', 'next_journey_level': i+2},
+                {'mode': 'p', 'next_journey_level': len(new_journey_levels)+2},
+                {'mode': 'k', 'next_journey_level': len(new_journey_levels)+2}
                 ]
             )
         
         # level 0: drive access
         transition_rules_drive_access = copy.deepcopy(journey_levels[0]["transition_rules"])
         for level in transition_rules_drive_access:
-            level["next_journey_level"] = len(new_journey_levels)+1
+            level["next_journey_level"] = len(new_journey_levels)+2
         transition_rules_drive_access.extend(
             [
-            {'mode': 'e', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'e', 'next_journey_level': len(new_journey_levels)+2},
             {'mode': 'D', 'next_journey_level': 0},
-            {'mode': 'w', 'next_journey_level': len(new_journey_levels)+1},
-            {'mode': 'p', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'w', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'p', 'next_journey_level': len(new_journey_levels)+2},
             {'mode': 'k', 'next_journey_level': 1}
             ]
         )
-        # level len(new_journey_levels)+1: every mode is prohibited
+
+        # level 1: use transit
+        transition_rules_knr = copy.deepcopy(journey_levels[0]["transition_rules"])
+        for level in transition_rules_knr:
+            level["next_journey_level"] = 2
+        transition_rules_knr.extend(
+            [
+            {'mode': 'e', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'D', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'w', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'p', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'k', 'next_journey_level': 1}
+            ]
+        )
+
+        # level len(new_journey_levels)+2: every mode is prohibited
         transition_rules_prohibit = copy.deepcopy(journey_levels[0]["transition_rules"])
         for level in transition_rules_prohibit:
-            level["next_journey_level"] = len(new_journey_levels)+1
+            level["next_journey_level"] = len(new_journey_levels)+2
         transition_rules_prohibit.extend(
             [
-            {'mode': 'e', 'next_journey_level': len(new_journey_levels)+1},
-            {'mode': 'D', 'next_journey_level': len(new_journey_levels)+1},
-            {'mode': 'w', 'next_journey_level': len(new_journey_levels)+1},
-            {'mode': 'p', 'next_journey_level': len(new_journey_levels)+1},
-            {'mode': 'k', 'next_journey_level': len(new_journey_levels)+1}
+            {'mode': 'e', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'D', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'w', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'p', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'k', 'next_journey_level': len(new_journey_levels)+2}
             ]
         )
 
@@ -1790,6 +1856,17 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_percep
                                 "description": "drive access",
                                 "destinations_reachable": False,
                                 "transition_rules": transition_rules_drive_access,
+                                "waiting_time": None,
+                                "boarding_time": None,
+                                "boarding_cost": None                                     
+                                }
+        )
+        new_journey_levels.insert(
+                                1,
+                                {
+                                "description": "knr",
+                                "destinations_reachable": False,
+                                "transition_rules": transition_rules_knr,
                                 "waiting_time": None,
                                 "boarding_time": None,
                                 "boarding_cost": None                                     
@@ -1806,7 +1883,7 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_percep
                                 }
         )
 
-        for level in new_journey_levels[1:-1]:
+        for level in new_journey_levels[2:-1]:
             level["waiting_time"] = {
                 "headway_fraction": 0.5,
                 "effective_headways": params["effective_headway_source"],
@@ -1827,45 +1904,69 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_percep
         for i in range(0,len(new_journey_levels)):
             jls = new_journey_levels[i]    
             jls["destinations_reachable"] = False
-            for level in jls["transition_rules"]:
-                level["next_journey_level"] = level["next_journey_level"]-1
             jls["transition_rules"].extend(
                 [
-                {'mode': 'a', 'next_journey_level': i},
-                {'mode': 'D', 'next_journey_level': len(new_journey_levels)+1}, 
-                {'mode': 'w', 'next_journey_level': i},
-                {'mode': 'p', 'next_journey_level': len(new_journey_levels)+1},
-                {'mode': 'k', 'next_journey_level': len(new_journey_levels)}
+                {'mode': 'a', 'next_journey_level': len(new_journey_levels)+2},
+                {'mode': 'D', 'next_journey_level': len(new_journey_levels)+2}, 
+                {'mode': 'w', 'next_journey_level': i+1},
+                {'mode': 'p', 'next_journey_level': len(new_journey_levels)+2},
+                {'mode': 'k', 'next_journey_level': len(new_journey_levels)+1}
                 ]
             )
-        
-        # level len(new_journey_levels): drive home
+
+        # level 0: walk access
+        transition_rules_walk_access = copy.deepcopy(journey_levels[0]["transition_rules"])
+        for level in transition_rules_walk_access:
+            level["next_journey_level"] = 1
+        transition_rules_walk_access.extend(
+            [
+            {'mode': 'a', 'next_journey_level': 0},
+            {'mode': 'D', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'w', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'p', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'k', 'next_journey_level': len(new_journey_levels)+2}
+            ]
+        )    
+
+        # level len(new_journey_levels)+1: drive home
         transition_rules_drive_home = copy.deepcopy(journey_levels[0]["transition_rules"])
         for level in transition_rules_drive_home:
-            level["next_journey_level"] = len(new_journey_levels)+1
+            level["next_journey_level"] = len(new_journey_levels)+2
         transition_rules_drive_home.extend(
             [
-            {'mode': 'a', 'next_journey_level': len(new_journey_levels)+1},
-            {'mode': 'D', 'next_journey_level': len(new_journey_levels)},
-            {'mode': 'w', 'next_journey_level': len(new_journey_levels)+1},
-            {'mode': 'p', 'next_journey_level': len(new_journey_levels)+1},
-            {'mode': 'k', 'next_journey_level': len(new_journey_levels)+1}
-            ]
-        )
-        # level len(new_journey_levels)+2: every mode is prohibited
-        transition_rules_prohibit = copy.deepcopy(journey_levels[0]["transition_rules"])
-        for level in transition_rules_prohibit:
-            level["next_journey_level"] = len(new_journey_levels)+1
-        transition_rules_prohibit.extend(
-            [
-            {'mode': 'a', 'next_journey_level': len(new_journey_levels)+1},
+            {'mode': 'a', 'next_journey_level': len(new_journey_levels)+2},
             {'mode': 'D', 'next_journey_level': len(new_journey_levels)+1},
-            {'mode': 'w', 'next_journey_level': len(new_journey_levels)+1},
-            {'mode': 'p', 'next_journey_level': len(new_journey_levels)+1},
-            {'mode': 'k', 'next_journey_level': len(new_journey_levels)+1}
+            {'mode': 'w', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'p', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'k', 'next_journey_level': len(new_journey_levels)+2}
             ]
         )
 
+        # level len(new_journey_levels)+2: every mode is prohibited
+        transition_rules_prohibit = copy.deepcopy(journey_levels[0]["transition_rules"])
+        for level in transition_rules_prohibit:
+            level["next_journey_level"] = len(new_journey_levels)+2
+        transition_rules_prohibit.extend(
+            [
+            {'mode': 'a', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'D', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'w', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'p', 'next_journey_level': len(new_journey_levels)+2},
+            {'mode': 'k', 'next_journey_level': len(new_journey_levels)+2}
+            ]
+        )
+
+        new_journey_levels.insert(
+                                0,
+                                {
+                                "description": "walk access",
+                                "destinations_reachable": True,
+                                "transition_rules": transition_rules_walk_access,
+                                "waiting_time": None,
+                                "boarding_time": None,
+                                "boarding_cost": None                                     
+                                }
+        )
         new_journey_levels.append(
                                 {
                                 "description": "drive home",
@@ -1887,7 +1988,7 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_percep
                                 }
         )
 
-        for level in new_journey_levels[:-2]:
+        for level in new_journey_levels[1:-2]:
             level["waiting_time"] = {
                 "headway_fraction": 0.5,
                 "effective_headways": params["effective_headway_source"],

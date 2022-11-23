@@ -744,7 +744,7 @@
     #
     use_fares = true
     #
-    congested_transit_assignment = true # temp
+    congested_transit_assignment = false # temp
     #
     use_peaking_factor = true  # temp
     am_peaking_factor = 1.219
@@ -1331,7 +1331,7 @@
     name = "pnrdummy"
     type = "PNR_dummy"
     assign_type = "TRANSIT"
-    in_vehicle_perception_factor = 1.0 # or should this be 0?
+    in_vehicle_perception_factor = 1.0
     initial_boarding_penalty = 2.0
     transfer_boarding_penalty = 2.0
 [[transit.modes]]
@@ -1358,16 +1358,16 @@
     type = "LOCAL"
     assign_type = "TRANSIT"
     in_vehicle_perception_factor = 1.0
-    initial_boarding_penalty = 18.0
-    transfer_boarding_penalty = 18.0
+    initial_boarding_penalty = 20.0
+    transfer_boarding_penalty = 20.0
 [[transit.modes]]
     mode_id = "x"
     name = "exp_bus"
     type = "PREMIUM"
     assign_type = "TRANSIT"
     in_vehicle_perception_factor = 1.0
-    initial_boarding_penalty = 10.0
-    transfer_boarding_penalty = 10.0
+    initial_boarding_penalty = 20.0
+    transfer_boarding_penalty = 20.0
 [[transit.modes]]
     mode_id = "f"
     name = "ferry"
@@ -1382,8 +1382,8 @@
     type = "PREMIUM"
     assign_type = "TRANSIT"
     in_vehicle_perception_factor = 0.9
-    initial_boarding_penalty = 15.0
-    transfer_boarding_penalty = 15.0
+    initial_boarding_penalty = 10.0
+    transfer_boarding_penalty = 10.0
 [[transit.modes]]
     mode_id = "h"
     name = "heavy_rail"

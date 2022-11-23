@@ -507,8 +507,6 @@ class ApplyFares(Component):
                     fs_data["FAREFROMFS"] = [float(x) for x in fs_data["FAREFROMFS"].split(",")]
                 if fs_data["STRUCTURE"] == "FLAT":
                     fs_data["IBOARDFARE"] = float(fs_data["IBOARDFARE"])
-                    # fs_data["IBOARDFARE"] = round(float(fs_data["IBOARDFARE"])*2)/2
-                    # fs_data["FAREFROMFS"] = [round(float(x)*2)/2 for x in fs_data["FAREFROMFS"]]
                 elif fs_data["STRUCTURE"] == "FROMTO":
                     fmi, one, farematrix_id = fs_data["FAREMATRIX"].split(".")
                     fs_data["FAREMATRIX ID"] = int(farematrix_id)
