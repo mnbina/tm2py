@@ -744,7 +744,7 @@
     #
     use_fares = true
     #
-    congested_transit_assignment = false # temp
+    congested_transit_assignment = true # temp
     #
     use_peaking_factor = true  # temp
     am_peaking_factor = 1.219
