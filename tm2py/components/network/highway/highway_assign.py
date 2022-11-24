@@ -346,7 +346,9 @@ class HighwayAssignment(Component):
         od_travel_times = emme_class_spec["results"]["od_travel_times"][
             "shortest_paths"
         ]
-        times = f'mfTIME{emme_class_spec["mode"].upper()}'
+        # TODO: revisit this
+        class_name = od_travel_times.replace("mfGCTIME", "")
+        times = f'mfTIME{class_name}'
         if od_travel_times is not None:
             # Total link costs is always the first analysis
             cost = emme_class_spec["path_analyses"][0]["results"]["od_values"]
