@@ -50,11 +50,10 @@
     ctramp_indiv_trip_file = "main/indivTripData_{iteration}.csv"
     ctramp_joint_trip_file = "main/jointTripData_{iteration}.csv"
     ctramp_hh_file = "main/householdData_{iteration}.csv"
+    host_ip_address = "10.0.143.35"
+	ctramp_run_dir = 'C:\MTC_tmpy\TM2\calibration-greta_testing'
+    sample_rate_iteration = [0.20]
 	copy_from_examples = false
-    host_ip_address = "10.1.36.121"
-    ctramp_run_dir = 'D:\MTC\9-county\CTRAMP'
-    sample_rate_iteration = [0.50]
-
     [household.rideshare_mode_split]
     "taxi"=0.08
     "single_tnc"=0.72
@@ -722,10 +721,29 @@
 		output_triptable_path = "output_summaries/trip_tables_{iteration}.omx"
 		output_skim_path = "output_summaries/skims_{iteration}.omx"
 		selected_od_pair = [1,100]
-		selected_links = [5,10,15]
+		selected_links = [4166, 38545] # corresponds to #link_id in the highway network
+		ft_types = [1,2,4,5,6]
 		skim_selected_time_periods = ["am","pm"]
 		output_network_attr_filename = "output_summaries/network_attrs_{iteration}.parquet"
 		output_network_summary_filename = "output_summaries/network_summary_{iteration}.csv"
+		[[highway.convergence.summary_mode_group]]
+			name = "KNR Transit"
+			modes = ["KNR_TRN_WLK", "WLK_TRN_KNR"]
+		[[highway.convergence.summary_mode_group]]
+			name = "PNR Transit"
+			modes = ["PNR_TRN_WLK", "WLK_TRN_PNR"]		
+		[[highway.convergence.summary_mode_group]]
+			name = "Walk access transit"
+			modes = ["WLK_TRN_WLK"]
+		[[highway.convergence.summary_mode_group]]
+			name = "Truck"
+			modes = ["trk", "lrgtrk"]
+		[[highway.convergence.summary_mode_group]]
+			name = "HOV"
+			modes = ["s2", "s3"]
+		[[highway.convergence.summary_mode_group]]
+			name = "Drive alone"
+			modes = ["da"]
 
 [transit]
     apply_msa_demand = false

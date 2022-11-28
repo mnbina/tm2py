@@ -6,6 +6,7 @@ from tm2py.components.component import Component
 from tm2py.components.demand.prepare_demand import PrepareHighwayDemand
 from tm2py.emme.matrix import OMXManager
 import string
+from itertools import product
 
 
 class ConvergenceReport(Component):
@@ -25,7 +26,7 @@ class ConvergenceReport(Component):
         self.config =  self.controller.config
 
     def run(self):
-        #self.save_results()
+        self.save_results()
         if self.controller.iteration > self.controller.config.run.start_iteration:
             self.export_summaries()
         
@@ -75,8 +76,13 @@ class ConvergenceReport(Component):
     def export_network_attrs(self):
     
         # Network attributes
-        network_attrs = ['#link_id','length','auto_time','auto_volume']
+        network_attrs = ['#link_id','@ft','length','auto_time','auto_volume']
         summary_by_time_period = {}
+        
+        network_attr_fn = self.get_abs_path(
+                    self.controller.config.highway.convergence.output_network_attr_filename.format(iteration = self.controller.iteration))
+                    
+        attr_tables = {}
         
         for time in self.time_period_names:
             scenario = self.get_emme_scenario(
@@ -86,12 +92,14 @@ class ConvergenceReport(Component):
             link_attrs = self._get_link_attributes(network, attrs)
             link_attrs['vmt'] = link_attrs['auto_volume'] * link_attrs['length']
             link_attrs['tt'] = link_attrs['auto_volume'] * link_attrs['auto_time']
-            if time.upper() == 'AM':
-                network_attr_fn = self.get_abs_path(
-                    self.controller.config.highway.convergence.output_network_attr_filename.format(iteration = self.controller.iteration))
-                link_attrs.set_index('#link_id').to_parquet(network_attr_fn)
+            if time.upper() in ['AM','MD','PM']: # TODO: move to config
+                attr_tables[time.upper()] = link_attrs.set_index('#link_id')
             summary = link_attrs[['auto_volume','vmt','tt']].sum()
             summary_by_time_period[time] = summary
+ 
+        attr_table_with_tp = pd.concat(attr_tables, axis = 0)
+        attr_table_with_tp.index.names = ['time_period', '#link_id']
+        attr_table_with_tp.reset_index().to_parquet(network_attr_fn)
         
         summary_all = pd.concat(summary_by_time_period, axis = 1).T
         summary_all.index.rename('time_period', inplace = True)
@@ -108,36 +116,65 @@ class ConvergenceReport(Component):
         
     def generate_trip_table_stats(self, lines_out):
         
-        lines_out.append('------Trip Table Convergence Statistics------')
+        lines_out.append('\n------Trip Table Convergence Statistics------')
         trip_tables_prev_iter = self.get_abs_path(self.controller.config.highway.convergence.output_triptable_path.format(iteration = self.controller.iteration - 1))
         trip_tables_curr_iter = self.get_abs_path(self.controller.config.highway.convergence.output_triptable_path.format(iteration = self.controller.iteration))
         
         curr_iter = omx.open_file(trip_tables_curr_iter)
         prev_iter = omx.open_file(trip_tables_prev_iter)
         
-        trip_classes = curr_iter.list_matrices()
         trip_totals = []
-        MSE = 0
+        trips_by_time_period = []
+        
+        daily_MSE = 0
+        num_internal_zones = self.num_internal_zones
+        
+        trip_mode_groups = self.controller.config.highway.convergence.summary_mode_group
+        
+        
+        time_period_significant_changes = []
+        for group in trip_mode_groups:
+            modes = group.modes
+            mode_group_totals = np.array([0,0])
 
-        for cl in trip_classes:
-            curr_arr =  np.array(curr_iter[cl])
-            prev_arr =  np.array(prev_iter[cl])
-            trip_totals.append([cl, curr_arr.sum(), prev_arr.sum()])
-            MSE += np.sqrt(((curr_arr - prev_arr) ** 2).sum())
+            for time_period in self.time_period_names:
+                curr_arr_tp = np.zeros((num_internal_zones, num_internal_zones))
+                prev_arr_tp = np.zeros((num_internal_zones, num_internal_zones))
+            
+                for mode in modes:
+                    curr_arr = np.array(curr_iter[f'{mode}_{time_period}'])[:num_internal_zones, :num_internal_zones]
+                    prev_arr = np.array(prev_iter[f'{mode}_{time_period}'])[:num_internal_zones, :num_internal_zones]
+                    
+                    curr_arr_tp += curr_arr
+                    prev_arr_tp += prev_arr
+            
+                    mode_group_totals += np.array([curr_arr.sum(), prev_arr.sum()])
+                    daily_MSE += np.sqrt(((curr_arr - prev_arr) ** 2).sum())
+            
+                # The Proportion of OD trip table cells that change by more than 10% between iterations by time periods (AM, MD, PM)
+                
+                if time_period.upper() in ['AM','MD','PM']:
+                    diff = (curr_arr_tp - prev_arr_tp)/(prev_arr_tp + 1e-6)
+                    criteria = (np.absolute(diff) > 0.1) & (prev_arr_tp >= 50)
+                    time_period_significant_changes.append(f'Percent of OD pairs changing more than 10% in {time_period.upper()} {group.name} trip table (>=50 trips in previous iter.): {criteria.mean().round(4) * 100}%')
+            trip_totals.append([group.name] + list(mode_group_totals))
+            
         prev_iter.close()
         curr_iter.close()
         
-        trip_totals = pd.DataFrame(trip_totals, columns = ['Mode Class', 'Trips', 'PrevIter'])
+        trip_totals = pd.DataFrame(trip_totals, columns = ['Mode Group', 'Trips', 'PrevIter'])
         trip_totals['Diff'] = trip_totals['Trips'] - trip_totals['PrevIter']
         
-        lines_out.append(trip_totals.to_csv(index = False, sep = '\t'))
+        lines_out.extend(trip_totals.round(2).to_csv(index = False, sep = '\t'))
         
         lines_out.append(f'Difference in total daily trips = \t{trip_totals["Diff"].sum()}')
-        lines_out.append(f'Percent RMSE in total daily trips = \t{MSE / trip_totals["PrevIter"].sum()}')
+        lines_out.append(f'Percent RMSE in total daily trips = \t{daily_MSE / num_internal_zones ** 2}')
+        
+        lines_out.extend(time_period_significant_changes)
 
     def generate_skim_stats(self, lines_out):
         
-        lines_out.append('------Skim Convergence Statistics------')
+        lines_out.append('\n------Skim Convergence Statistics------')
         skims_prev_iter = self.get_abs_path(self.controller.config.highway.convergence.output_skim_path.format(iteration = self.controller.iteration - 1))
         skims_curr_iter = self.get_abs_path(self.controller.config.highway.convergence.output_skim_path.format(iteration = self.controller.iteration))
         
@@ -159,7 +196,7 @@ class ConvergenceReport(Component):
         
     def generate_network_stats(self, lines_out):
     
-        lines_out.append('------Network-based Convergence Statistics------')
+        lines_out.append('\n------Network-based Convergence Statistics------')
         network_attr_prev_iter = pd.read_parquet(
             self.get_abs_path(self.controller.config.highway.convergence.output_network_attr_filename.format(
             iteration = self.controller.iteration - 1)))
@@ -176,13 +213,36 @@ class ConvergenceReport(Component):
             self.get_abs_path(self.controller.config.highway.convergence.output_network_summary_filename.format(
             iteration = self.controller.iteration)))
         
-        # number of links with change in volumes exceeding 5%
-        link_vols = pd.concat([network_attr_prev_iter['auto_volume'], network_attr_curr_iter['auto_volume']],
-            axis = 1)
-        link_vols.columns =  ['prev', 'curr']
-        link_vols['diff'] = link_vols['curr'] - link_vols['prev']
-        link_vols['pct_diff'] = link_vols['diff'] / link_vols['prev'].clip(lower = 0.1)
-        lines_out.append(f'Number of links with AM volume change greater than 5%: \t {(link_vols.pct_diff > 0.05).sum()}, ({100*(link_vols.pct_diff > 0.05).mean()}%)')
+        # number of links with change in volumes exceeding 10% or 500 vehicles
+        # limited to FT = 1, 2, 4, 5, 6 (Freeways, Highways, Major and Minor Arterials)
+        # time period: AM, MD, PM
+        ft_types = self.config.highway.convergence.ft_types
+        selected_links= self.config.highway.convergence.selected_links # Bay Bridge in both directions
+        for time_period in ['AM','MD','PM']:
+        
+            link_vols = pd.concat([network_attr_prev_iter[network_attr_prev_iter.time_period == time_period].sort_values('#link_id')[['#link_id', '@ft', 'auto_volume']], 
+                            network_attr_curr_iter[network_attr_curr_iter.time_period == time_period].sort_values('#link_id')[['auto_volume']]],
+                            axis = 1)
+            link_vols.columns =  ['#link_id', 'ft_type', 'prev', 'curr']
+            link_vols['diff'] = link_vols['curr'] - link_vols['prev']
+            link_vols['pct_diff'] = link_vols['diff'] / link_vols['prev'].clip(lower = 0.001)
+            lines_out.append(f'Number of links with {time_period} volume change greater than 10% or 500 vehicles: \t {((link_vols.pct_diff > 0.1) | (link_vols.diff > 500)).sum()}, ({100*((link_vols.pct_diff > 0.1) | (link_vols.diff > 500)).mean()}%)')
+
+            link_df = links_vols[link_vols.ft_type.isin(ft_types)]
+            lines_out.append(f'Number of FT={"/".join(ft_types)} links with {time_period} volume change greater than 10% or 500 vehicles: \t {((link_df.pct_diff > 0.1) | (link_df.diff > 500)).sum()}, ({100*((link_df.pct_diff > 0.1) | (link_df.diff > 500)).mean()}%)')
+        
+            # Total, Change in Volumes/speed on the Bay Bridge between iterations by time periods (AM, MD, PM)
+            bb_prev = network_attr_prev_iter[(network_attr_prev_iter.time_period == time_period) & (network_attr_prev_iter['#link_id'].isin(selected_links))]
+            bb_curr = network_attr_curr_iter[(network_attr_curr_iter.time_period == time_period) & (network_attr_curr_iter['#link_id'].isin(selected_links))]
+            bb_prev['speed'] = bb_prev['length'] / bb_prev['auto_time'] * 60 # MPH
+            bb_curr['speed'] = bb_curr['length'] / bb_curr['auto_time'] * 60 # MPH
+            bay_bridge = bb_prev.merge(bb_cur, on = '#link_id', suffixes = ['_prev','_curr'])
+            bay_bridge['Change in Volume'] = bay_bridge['auto_volume_curr'] - bay_bridge['auto_volume_prev']
+            bay_bridge['Change in Speed'] = bay_bridge['speed_curr'] - bay_bridge['speed_prev']
+            lines_out.append('Bay Bridge links:')
+            lines_out.extend(bay_bridge.set_index('#link_id')[['auto_volume_curr', 'auto_volume_prev', 'Change in Volume', 'speed_curr', 'speed_prev', 'Change in Speed']].round(2).to_csv(index = False, sep = '\t'))
+            
+        
         
         # Network VMT, AM and daily
         AM_VMT_prev, AM_VMT_curr = network_summary_prev_iter[network_summary_prev_iter['time_period'] == "am"]['vmt'].sum(), network_summary_curr_iter[network_summary_curr_iter['time_period'] == "am"]['vmt'].sum()
@@ -200,13 +260,15 @@ class ConvergenceReport(Component):
         lines_out.append(f'Daily highway network travel time:\t {daily_TT_curr}')
         lines_out.append(f'Change in daily highway network travel time: \t {(daily_TT_curr - daily_TT_prev) / daily_TT_prev}')
         
+        
+        
     def export_summaries(self):
             
         iteration = self.controller.iteration
         report_path = self.get_abs_path(self.config.highway.convergence.output_convergence_report_path)
                 
         lines_out = []
-        lines_out.append(f'========== Iter {self.controller.iteration} ==========')
+        lines_out.append(f'\n========== Iter {self.controller.iteration} ==========')
         lines_out.append('')
         
         self.generate_trip_table_stats(lines_out)
