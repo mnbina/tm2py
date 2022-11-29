@@ -166,9 +166,13 @@ class HighwayAssignment(Component):
                     )
                 self._export_skims(scenario, time)
 
-                self._calc_total_flow(scenario)
-                self._calc_weighted_avg_flow(scenario)
-                self._calc_vc(scenario)
+                if self.controller.config.highway.msa.apply_msa:
+                    self._calc_total_flow(scenario)
+                    self._calc_weighted_avg_flow(scenario)
+                    self._calc_vc(scenario)
+                elif self.controller.config.highway.tolls.run_dynamic_toll:
+                    self._calc_total_flow(scenario)
+                    self._calc_vc(scenario)
 
                 if self.logger.debug_enabled:
                     self._log_debug_report(scenario, time)

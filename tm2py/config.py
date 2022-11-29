@@ -799,6 +799,7 @@ class HighwayTollsConfig(ConfigItem):
     """
 
     file_path: pathlib.Path = Field()
+    bridetoll_file_path: pathlib.Path = Field()
     valuetoll_start_tollbooth_code: int = Field(gt=1)
     src_vehicle_group_names: Tuple[str, ...] = Field()
     dst_vehicle_group_names: Tuple[str, ...] = Field()
@@ -854,6 +855,7 @@ class HighwayMsaConfig(ConfigItem):
         prev_wgt: weight for weighted average volume in previous iteration(s)
         curr_wgt: weight for volume in current iteration
     """
+    apply_msa: bool = Field(default=False)
     write_iteration_flow: bool = Field(default=False)
     prev_wgt: List[float] = Field(default=[])
     curr_wgt: List[float] = Field(default=[])

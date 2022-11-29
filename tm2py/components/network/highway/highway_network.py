@@ -142,15 +142,19 @@ class PrepareNetwork(Component):
             ]
         }
 
-        attributes["LINK"].extend([
-                ("@total_flow_avg", "average total traffic flow"),
+        if self.controller.config.highway.msa.apply_msa or self.config.tolls.run_dynamic_toll:
+            attributes["LINK"].extend([
                 ("@total_flow", "total traffic flow"),
                 ("@vc", "volume to capacity ratio")
             ])
 
-        if self.controller.config.highway.msa.write_iteration_flow:
-            for iteration in range(1, self.controller.config.run.end_iteration + 1):
-                attributes["LINK"].append((f"@total_flow_{iteration}", f"total traffic flow iter{iteration}"))
+        if self.controller.config.highway.msa.apply_msa:
+            attributes["LINK"].extend([
+                    ("@total_flow_avg", "average total traffic flow"),
+                ])
+            if self.controller.config.highway.msa.write_iteration_flow:
+                for iteration in range(1, self.controller.config.run.end_iteration + 1):
+                    attributes["LINK"].append((f"@total_flow_{iteration}", f"total traffic flow iter{iteration}"))
 
         if self.config.tolls.run_dynamic_toll:
             attributes["LINK"].extend([
