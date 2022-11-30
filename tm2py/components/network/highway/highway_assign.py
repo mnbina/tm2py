@@ -526,7 +526,7 @@ class AssignmentClass:
                 )
             )
         for skim_type in self.skims:
-            if skim_type == "time":
+            if skim_type in ["time", "gctime"]:
                 continue
             group = self.name
             matrix_name = self.class_config.output_skim_matrixname_tmpl.format(
@@ -554,7 +554,7 @@ class AssignmentClass:
                 ]
             )
         for skim_type in self.skims:
-            if skim_type == "time":
+            if skim_type in ["time", "gctime"]:
                 continue
             matrix_name = self.class_config.output_skim_matrixname_tmpl.format(
                 property_name=skim_type.upper(),
