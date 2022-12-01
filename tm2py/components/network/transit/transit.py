@@ -499,7 +499,6 @@ class TransitAssignment(Component):
         num_zones = len(scenario.zone_numbers)
         emmebank = scenario.emmebank
         msa_iteration = self.controller.iteration
-        # omx_filename_template = "transit_{period}_{access_mode}_TRN_{set}_{period}.omx"
         omx_filename_template = os.path.join(self.controller.config.household.transit_demand_file)
         matrix_name_template = "{access_mode}"
         emme_matrix_name_template = "{access_mode}_{period}"  # Consolidate LOCAL, PREM, ALLPEN
@@ -696,7 +695,7 @@ class TransitAssignment(Component):
             },
             "in_vehicle_cost": None,
             "in_vehicle_time": {"perception_factor": "@invehicle_factor"},
-            "aux_transit_time": {"perception_factor": 1}, # walk and drive perception fators are specified in mode speed
+            "aux_transit_time": {"perception_factor": 1}, # walk and drive perception factors are specified in mode speed
             "aux_transit_cost": None,
             "journey_levels": [],
             "flow_distribution_between_lines": {"consider_total_impedance": False},
@@ -904,7 +903,7 @@ class TransitAssignment(Component):
                 "assignment_period": period.duration,
             }
             stop = {
-                "max_iterations": 3,  # changed from 10 for testing
+                "max_iterations": 10,
                 "relative_difference": 0.01,
                 "percent_segments_over_capacity": 0.01,
             }
@@ -956,13 +955,6 @@ class TransitAssignment(Component):
                 "orig_func": False,
                 "assignment_period": period.length_hours,
             }
-            # func = {
-            #     "type": "CUSTOM",
-            #     "python_function": _segment_cost_function.format(period.length_hours),
-            #     "congestion_attribute": "us3",
-            #     "orig_func": False,
-            #     "assignment_period": period.length_hours,
-            # }
             stop = {
                 "max_iterations": 10,
                 "normalized_gap": 0.01,

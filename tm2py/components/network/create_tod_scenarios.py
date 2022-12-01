@@ -263,7 +263,7 @@ class CreateTODScenarios(Component):
                         link["@trantime"] = 60 * link.length / speed + link.length * 5 * 0.33
                 else:
                     link["@trantime"] = 60 * link.length / speed
-                link.data1 = link["@trantime"]
+                # link.data1 = link["@trantime"]
                 # set TAP connector distance to 60 feet
                 # if link.i_node.is_centroid or link.j_node.is_centroid:
                 #     link.length = 0.01  # 60.0 / 5280.0
@@ -307,6 +307,8 @@ class CreateTODScenarios(Component):
                 elif (link.j_node.is_centroid) and (link["@drive_link"]==0):
                     # modes |= egress_modes  # switch access and egress mode previous settings might be wrong
                     link.modes = "e"
+                elif (link.i_node.is_centroid or link.j_node.is_centroid ) and (link["@drive_link"]!=0):
+                    link.modes = set([network.mode('c'), network.mode('D')]) 
 
             ref_scenario.publish_network(network)
 
