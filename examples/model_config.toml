@@ -624,7 +624,7 @@
         value_of_time = 18.93
         operating_cost_per_mile = 17.23
         toll = [ "@bridgetoll_da" ]
-        skims = [ "time", "dist", "freeflowtime", "btoll", "vtoll", "gctime", ]
+        skims = [ "time", "dist", "freeflowtime", "btoll", "vtoll", "gctime", "cost", ]
         output_skim_matrixname_tmpl = "{property_name}{class_name}"
         [[highway.classes.demand]]
             source = "household"
@@ -644,7 +644,7 @@
         operating_cost_per_mile = 17.23
         toll = [ "@bridgetoll_s2" ]
         toll_factor = 0.5714285714285714
-        skims = [ "time", "dist", "freeflowtime", "btoll", "vtoll", "gctime", ]
+        skims = [ "time", "dist", "freeflowtime", "btoll", "vtoll", "gctime", "cost", ]
         output_skim_matrixname_tmpl = "{property_name}{class_name}"
         [[highway.classes.demand]]
             source = "household"
@@ -665,7 +665,7 @@
         operating_cost_per_mile = 17.23
         toll = ["@bridgetoll_s3"]
         toll_factor = 0.4
-        skims = [ "time", "dist", "freeflowtime", "btoll", "vtoll", "gctime", ]
+        skims = [ "time", "dist", "freeflowtime", "btoll", "vtoll", "gctime", "cost", ]
         output_skim_matrixname_tmpl = "{property_name}{class_name}"
         [[highway.classes.demand]]
             source = "household"
@@ -685,7 +685,7 @@
         value_of_time = 37.87
         operating_cost_per_mile = 31.28
         toll = ["@bridgetoll_sml"]
-        skims = [ "time", "dist", "freeflowtime", "btoll_vsm", "btoll_sml", "btoll_med", "gctime", ]
+        skims = [ "time", "dist", "freeflowtime", "btoll_vsm", "btoll_sml", "btoll_med", "gctime", "cost", ]
         output_skim_matrixname_tmpl = "{property_name}{class_name}"
         [[highway.classes.demand]]
             source = "truck"
@@ -705,7 +705,7 @@
         operating_cost_per_mile = 31.28
         toll = ["@bridgetoll_lrg"]
         pce = 2.0
-        skims = [ "time", "dist", "freeflowtime", "btoll_lrg", "gctime", ]
+        skims = [ "time", "dist", "freeflowtime", "btoll_lrg", "gctime", "cost", ]
         output_skim_matrixname_tmpl = "{property_name}{class_name}"
         [[highway.classes.demand]]
             source = "truck"

@@ -400,7 +400,7 @@ class HighwayAssignment(Component):
             self.logger.debug(f"Setting intrazonals to 0.5*min for {matrix_name}")
             data = self._matrix_cache.get_data(matrix_name)
             # NOTE: sets values for external zones as well
-            if "dist" in skim_name or "time" in skim_name:
+            if "dist" in skim_name or "time" in skim_name or "cost" in skim_name:
                 for zone_index in range(data.shape[0]):
                     if zone_index in disconnected_zone_index:
                         # update disconnected zone skim values
@@ -526,7 +526,7 @@ class AssignmentClass:
                 )
             )
         for skim_type in self.skims:
-            if skim_type in ["time", "gctime"]:
+            if skim_type in ["time", "gctime", "cost"]:
                 continue
             group = self.name
             matrix_name = self.class_config.output_skim_matrixname_tmpl.format(
@@ -554,7 +554,7 @@ class AssignmentClass:
                 ]
             )
         for skim_type in self.skims:
-            if skim_type in ["time", "gctime"]:
+            if skim_type in ["time", "gctime", "cost"]:
                 continue
             matrix_name = self.class_config.output_skim_matrixname_tmpl.format(
                 property_name=skim_type.upper(),

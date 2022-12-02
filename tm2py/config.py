@@ -1022,7 +1022,7 @@ class HighwayConfig(ConfigItem):
         """Validate classes .skims, .toll, and .excluded_links values."""
         if "tolls" not in values:
             return value
-        avail_skims = ["time", "dist", "hovdist", "tolldist", "freeflowtime", "bridgetoll", "valuetoll", "btoll", "vtoll", "gctime"]
+        avail_skims = ["time", "dist", "hovdist", "tolldist", "freeflowtime", "bridgetoll", "valuetoll", "btoll", "vtoll", "gctime", "cost"]
         available_link_sets = ["is_sr", "is_sr2", "is_sr3", "is_auto_only"]
         avail_toll_attrs = []
         for name in values["tolls"].dst_vehicle_group_names:
