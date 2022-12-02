@@ -96,7 +96,7 @@ class CreateTODScenarios(Component):
         n_time_periods = len(self.controller.config.time_periods)
         self._emme_manager.change_emmebank_dimensions(
             emmebank,
-            {"scenarios": 1 + n_time_periods, "full_matrices": 9999, "extra_attribute_values": 60000000})
+            {"scenarios": 1 + n_time_periods, "full_matrices": 9999, "extra_attribute_values": 100000000})
         # create VDFs & set cross-reference function parameters
         emmebank.extra_function_parameters.el1 = "@free_flow_time"
         emmebank.extra_function_parameters.el2 = "@capacity"
