@@ -36,4 +36,3 @@ I-680 CCEL NB Crow Canyon to Livorna (Livorna pricing zone),33024,33,2,expr_lane
 I-680 CCEL SB Rudgear to Crow Canyon (Crow Canyon SB pricing zone),34012,34,1,expr_lane,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 I-680 CCEL SB Rudgear to Crow Canyon (Crow Canyon SB pricing zone),34014,34,1,expr_lane,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 I-680 CCEL SB Crow Canyon to Alcosta (Alcosta pricing zone),34024,34,2,expr_lane,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-SFCordon,35001,35,0,cordon,1,0,0,0,4.76,0,0,0,0,4.76,0,0,0,0,4.76,0,0,0,0,4.76,0,0,0,0,4.76,0,0,0,0,4.76,0,0,0,0,4.76,0
