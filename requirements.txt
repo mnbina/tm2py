@@ -34,3 +34,4 @@ scipy
 tables
 toml
 typing_extensions
+pyarrow

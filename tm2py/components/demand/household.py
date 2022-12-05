@@ -29,8 +29,8 @@ class HouseholdModel(Component):
             6. Cleans up CTRAMP java.
             7. Produce household demand matrices for highway and transit assignment.
         """
-        
-        self._move_inputs_to_run_dir()
+        if self.controller.config.household.copy_from_examples:
+            self._move_inputs_to_run_dir()
         self._update_telecommute_constants()
         self._start_household_manager()
         self._start_matrix_manager()
@@ -85,7 +85,7 @@ class HouseholdModel(Component):
             for _period, _class in itertools.product(periods, trn_classes):
                 src_file = (pathlib.Path(root_src_dir) / self.controller.config.transit.output_skim_path / 
                     self.controller.config.transit.output_skim_filename_tmpl.format(
-                        time_period = _period, mode = _class)
+                        time_period = _period, set_name = _class)
                         )
                 dst_file = pathlib.Path(dst_dir) / os.path.basename(src_file)
                 if os.path.exists(dst_file):
@@ -144,7 +144,13 @@ class HouseholdModel(Component):
 
     def _run_resident_model(self):
         sample_rate_iteration_values = self.controller.config.household.sample_rate_iteration
-        sample_rate_iteration = dict(zip(range(1, len(sample_rate_iteration_values) + 1), sample_rate_iteration_values))
+        if len(sample_rate_iteration_values) != self.controller.config.run.end_iteration - self.controller.config.run.start_iteration + 1:
+            raise Exception("The length of sample rate values does not match the number of iterations.")
+        
+        sample_rate_iteration = dict(zip(
+            range(self.controller.config.run.start_iteration, self.controller.config.run.end_iteration + 1), 
+            sample_rate_iteration_values))
+        
         iteration = self.controller.iteration
         sample_rate = sample_rate_iteration[iteration]
         seed = 0

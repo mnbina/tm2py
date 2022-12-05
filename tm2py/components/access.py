@@ -135,7 +135,7 @@ class HomeAccessibility(Component):
             ivt_matrix_names_T = [dict(zip(['skim_mode','time_period','property'], matrix_name[0] + [matrix_name[1]])) for matrix_name in itertools.product(formulas[time_period][1], formulas['ivt'])]
             ovt_matrix_names = [dict(zip(['skim_mode','time_period','property'], matrix_name[0] + [matrix_name[1]])) for matrix_name in itertools.product(formulas[time_period][0], formulas['ovt'])]
             ovt_matrix_names_T = [dict(zip(['skim_mode','time_period','property'], matrix_name[0] + [matrix_name[1]])) for matrix_name in itertools.product(formulas[time_period][1], formulas['ovt'])]
-            
+           
             ivt = np.add.reduce([get_omx_skim_as_numpy(self.controller, **matrix) for matrix in ivt_matrix_names]) + np.add.reduce([get_omx_skim_as_numpy(self.controller, **matrix) for matrix in ivt_matrix_names_T]).T
             ovt =  np.add.reduce([get_omx_skim_as_numpy(self.controller, **matrix) for matrix in ovt_matrix_names]) + np.add.reduce([get_omx_skim_as_numpy(self.controller, **matrix) for matrix in ovt_matrix_names_T]).T
             return ivt, ovt
@@ -231,6 +231,7 @@ class HomeAccessibility(Component):
             NumpyArray: 1-d zone-based numpy array of the logsum size of the attractions available to
                 each zone, weighted by how hard it is to get to the attractions. 
         """
+
         
         size = attraction * np.exp(decay_factor * impedance)
 
@@ -260,7 +261,13 @@ class HomeAccessibility(Component):
         skim_path = pathlib.Path(root_src_dir) / self.controller.config.transit.output_skim_path
         tp = TransitPostprocessor(skim_path, skim_path)
         tp.update_skim_names()
-    
+
+    @property
+    def num_internal_zones(self):
+        return len(pd.read_csv(
+            self.get_abs_path(self.controller.config.scenario.landuse_file), usecols = [self.controller.config.scenario.landuse_index_column]))
+
+
     def _generate_accessibility_file(self):
         modes = [
         'auto',
@@ -273,15 +280,22 @@ class HomeAccessibility(Component):
         
         _mode_period_type = itertools.product(modes,time_periods,attraction_type)
         self.zones = self.emme_scenario.zone_numbers
+        
+        # Ensure input arguments use the number of internal zones.
 
+        num_internal_zones = self.num_internal_zones
+        
         for _mode,_period,_type in _mode_period_type:
             formulas = self.config.__dict__[f'formula_{_mode}']
+            skim = self.skims(mode=_mode,time_period=_period,skim_prop=formulas['prop'])
             self.logsums_df[f'{self.config.mode_names[_mode]}{_period.title()}{_type.title()}'] = HomeAccessibility.origin_logsum(
                 self.employment_df[_type].values,
-                self.skims(mode=_mode,time_period=_period,skim_prop=formulas['prop']),
+                skim[:num_internal_zones, :num_internal_zones] ,
                 self.config.__dict__[f'dispersion_{_mode}'],
             )
-            
+         
+
+         
         self.logsums_df.reset_index(drop = True, inplace = True)
         self.logsums_df.index.name = 'taz'
         self.logsums_df.index = self.logsums_df.index + 1
@@ -293,8 +307,8 @@ class HomeAccessibility(Component):
     
     def run(self):
     
-        self._highway_postprocess()
-        self._transit_postprocess()
+        # self._highway_postprocess()
+        # self._transit_postprocess()
 
         self._generate_accessibility_file()
 

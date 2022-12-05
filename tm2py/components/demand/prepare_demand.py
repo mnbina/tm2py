@@ -33,6 +33,8 @@ class PrepareDemand(Component, ABC):
     def _read(self, path, name, num_zones, factor=None):
         with OMXManager(path, "r") as omx_file:
             demand = omx_file.read(name)
+        if demand is None:
+            raise ValueError(f'Demand {name} not found in {path}')
         if factor is not None:
             demand = factor * demand
         demand = self._redim_demand(demand, num_zones)
@@ -146,6 +148,44 @@ class PrepareHighwayDemand(PrepareDemand):
         demand_name = f"{time_period}_{name}"
         description = f"{time_period} {description} demand"
         self._save_demand(demand_name, demand, scenario, description, apply_msa=True)
+        
+    def export_trip_tables(self):
+    
+        """Load demand from OMX files and aggregate as daily demand for evaluating convergence."""
+        
+        triptables = OMXManager(
+            self.get_abs_path(self.controller.config.highway.convergence.output_triptable_path.format(iteration = self.controller.iteration)),
+            "w")
+        
+        triptables.open()
+        
+        num_total_zones = self.num_total_zones
+        
+        # Highway, passenger and truck
+        for klass in self.controller.config.highway.classes:
+            name, description, demand_config = klass.name, klass.description, klass.demand
+            demand = np.zeros((num_total_zones, num_total_zones))
+            
+            for time_period in self.time_period_names:
+                scenario = self.get_emme_scenario(self._emmebank.path, time_period)
+                for file_config in demand_config:
+                    demand = demand + self._read_demand(file_config, time_period, num_total_zones)
+            triptables.write_array(demand, name = name)
+        
+        # Transit
+        for klass in self.controller.config.transit.classes:
+            name, description = klass.name.upper(), klass.description
+            demand = np.zeros((num_total_zones, num_total_zones))
+            
+            for time_period in self.time_period_names:
+                scenario = self.get_emme_scenario(self._emmebank.path, time_period)
+                path = self.get_abs_path(self.controller.config.household.transit_demand_file)
+                demand += self._read(path.format(period=time_period), name, num_total_zones)
+            triptables.write_array(demand, name = name)
+        
+        triptables.close()
+                
+                
 
     def _read_demand(self, file_config, time_period, num_zones):
         # Load demand from cross-referenced source file,
@@ -161,8 +201,10 @@ class PrepareHighwayDemand(PrepareDemand):
         """Prepares highway and transit household demand matrices from trip lists produced by CT-RAMP.
         """
         
-        indiv_trip_file = pathlib.Path(self.controller.config.household.ctramp_run_dir) / self.controller.config.household.ctramp_indiv_trip_file.format(iteration=self.controller.iteration)
-        joint_trip_file = pathlib.Path(self.controller.config.household.ctramp_run_dir) / self.controller.config.household.ctramp_joint_trip_file.format(iteration=self.controller.iteration)
+        
+        
+        indiv_trip_file = pathlib.Path(self.controller.config.household.ctramp_run_dir) / self.controller.config.household.ctramp_indiv_trip_file.format(iteration = self.controller.iteration)
+        joint_trip_file = pathlib.Path(self.controller.config.household.ctramp_run_dir) / self.controller.config.household.ctramp_joint_trip_file.format(iteration = self.controller.iteration)
         it_full, jt_full = pd.read_csv(indiv_trip_file), pd.read_csv(joint_trip_file)
         
         # Add time period, expanded count
@@ -179,85 +221,139 @@ class PrepareHighwayDemand(PrepareDemand):
         it_full['eq_cnt'] = 1/it_full.sampleRate
         jt_full['eq_cnt'] = jt_full.num_participants/jt_full.sampleRate
         
-        self._emmebank_path = self.get_abs_path(self.controller.config.emme.highway_database_path)
-        self._emmebank = self.controller.emme_manager.emmebank(self._emmebank_path)
-        time_period = self.controller.config.time_periods[0].name
-        scenario = self.get_emme_scenario(self._emmebank.path, time_period) # any scenario id should 
-        num_zones = len(scenario.zone_numbers)
+        num_zones = self.num_internal_zones
         OD_full_index = pd.MultiIndex.from_product([range(1,num_zones + 1), range(1,num_zones + 1)])
         
         def combine_trip_lists(it, jt, trip_mode):
             # combines individual trip list and joint trip list
-            it_sum = it[(it['trip_mode'] == trip_mode)].groupby(['orig_taz','dest_taz'])['eq_cnt'].sum()
-            jt_sum = jt[(jt['trip_mode'] == trip_mode)].groupby(['orig_taz','dest_taz'])['eq_cnt'].sum()
-            return (it_sum.reindex(OD_full_index, fill_value=0) + jt_sum.reindex(OD_full_index, fill_value=0)).unstack().values
+            combined_trips = pd.concat([it[(it['trip_mode'] == trip_mode)], jt[(jt['trip_mode'] == trip_mode)]])
+            combined_sum = combined_trips.groupby(['orig_taz','dest_taz'])['eq_cnt'].sum()
+            return combined_sum.reindex(OD_full_index, fill_value=0).unstack().values
 
         # read properties from config
+        
         mode_name_dict = self.controller.config.household.ctramp_mode_names
+        income_segment_config = self.controller.config.household.income_segment
+        
+        if income_segment_config['enabled']:
+            hh_file = pathlib.Path(self.controller.config.household.ctramp_run_dir) / self.controller.config.household.ctramp_hh_file.format(iteration = self.controller.iteration)
+            hh = pd.read_csv(hh_file, usecols = ['hh_id', 'income'])
+            it_full = it_full.merge(hh, on = 'hh_id', how = 'left')
+            jt_full = jt_full.merge(hh, on = 'hh_id', how = 'left')
+            
+            suffixes = income_segment_config['segment_suffixes']
+            
+            it_full['income_seg'] = pd.cut(it_full['income'], right =False, 
+                               bins = income_segment_config['cutoffs'] + [float('inf')], 
+                               labels = suffixes).astype(str)
+                               
+            jt_full['income_seg'] = pd.cut(jt_full['income'], right =False, 
+                               bins = income_segment_config['cutoffs'] + [float('inf')], 
+                               labels = suffixes).astype(str)
+        else: 
+            it_full['income_seg'] = ''
+            jt_full['income_seg'] = ''
+            suffixes = ['']
+
         for time_period in time_periods_sorted:
             self.logger.debug(f"Producing household demand matrices for period {time_period}")
+            
             highway_out_file = OMXManager(
                 self.get_abs_path(self.controller.config.household.highway_demand_file).format(period=time_period), 'w')
             transit_out_file = OMXManager(
                 self.get_abs_path(self.controller.config.household.transit_demand_file).format(period=time_period), 'w')
             active_out_file = OMXManager(
                 self.get_abs_path(self.controller.config.household.active_demand_file).format(period=time_period), 'w')
-            highway_cache = {}
-            
+
             highway_out_file.open()
             transit_out_file.open()
             active_out_file.open()
             
-            it = it_full.groupby('time_period').get_group(time_period)
-            jt = jt_full.groupby('time_period').get_group(time_period)
-           
-            for trip_mode in mode_name_dict:
-                if trip_mode in [1,2,3]: # TODO: entirely hard-coded based on Travel Mode trip mode codes
-                    highway_cache[mode_name_dict[trip_mode]] = combine_trip_lists(it,jt, trip_mode)
-                    
-                elif trip_mode in [4,5]:
-                    self.logger.debug(f"Writing out mode {mode_name_dict[trip_mode]}")
-                    active_out_file.write_array(numpy_array=combine_trip_lists(it,jt, trip_mode), name = mode_name_dict[trip_mode])
-                    
-                elif trip_mode == 6:
-                    self.logger.debug(f"Writing out mode WLK_TRN_WLK")
-                    transit_out_file.write_array(numpy_array=combine_trip_lists(it,jt, trip_mode), name = 'WLK_TRN_WLK')
-                    
-                elif trip_mode in [7,8]:
-                    it_outbound, it_inbound = it[it.inbound == 0], it[it.inbound == 1]
-                    jt_outbound, jt_inbound = jt[jt.inbound == 0], jt[jt.inbound == 1]
-                    
-                    self.logger.debug(f"Writing out mode {mode_name_dict[trip_mode].upper() + '_TRN_WLK'}")
-                    transit_out_file.write_array(
-                        numpy_array=combine_trip_lists(it_outbound,jt_outbound, trip_mode), 
-                        name = mode_name_dict[trip_mode].upper() + '_TRN_WLK')
-                    
-                    self.logger.debug(f"Writing out mode {'WLK_TRN_' + mode_name_dict[trip_mode].upper()}")
-                    transit_out_file.write_array(
-                        numpy_array=combine_trip_lists(it_inbound,jt_inbound, trip_mode), 
-                        name = 'WLK_TRN_' + mode_name_dict[trip_mode].upper())
+            it_grp = it_full.groupby(['time_period', 'income_seg'])
+            jt_grp = jt_full.groupby(['time_period', 'income_seg'])
+            
+            for suffix in suffixes:
 
-                elif trip_mode == 9:
-                    # identify the correct mode split factors for da, sr2, sr3
-                    self.logger.debug(f"Splitting ridehail trips into shared ride trips")
-                    ridehail_split_factors = defaultdict(int)
-                    splits = self.controller.config.household.rideshare_mode_split
-                    for key in splits:
-                        out_mode_split = self.controller.config.household.__dict__[f'{key}_split']
-                        for out_mode in out_mode_split:
-                            ridehail_split_factors[out_mode] += out_mode_split[out_mode] * splits[key]
-                            
-                    ridehail_trips = combine_trip_lists(it,jt, trip_mode)
-                    for out_mode in ridehail_split_factors:
-                        self.logger.debug(f"Writing out mode {out_mode}")
-                        highway_cache[out_mode] += ridehail_trips * ridehail_split_factors[out_mode]
-                        highway_out_file.write_array(numpy_array = highway_cache[out_mode], name = out_mode)
+                highway_cache = {}
+                
+                if (time_period, suffix) in it_grp.groups.keys():
+                    it = it_grp.get_group((time_period, suffix))
+                else:
+                    it = pd.DataFrame(None, columns = it_full.columns)
+                    
+                if (time_period, suffix) in jt_grp.groups.keys():
+                    jt = jt_grp.get_group((time_period, suffix))
+                else:
+                    jt = pd.DataFrame(None, columns = jt_full.columns)
 
+               
+                for trip_mode in mode_name_dict:
+                    if trip_mode in [1,2,3]: # currently hard-coded based on Travel Mode trip mode codes
+                        highway_cache[mode_name_dict[trip_mode]] = combine_trip_lists(it,jt, trip_mode)
+                        
+                    elif trip_mode in [4,5]:
+                        matrix_name = f'{mode_name_dict[trip_mode]}_{suffix}' if suffix else mode_name_dict[trip_mode]
+                        self.logger.debug(f"Writing out mode {mode_name_dict[trip_mode]}")
+                        active_out_file.write_array(numpy_array=combine_trip_lists(it,jt, trip_mode), name = matrix_name)
+                        
+                    elif trip_mode == 6:
+                        matrix_name = f'WLK_TRN_WLK_{suffix}' if suffix else "WLK_TRN_WLK"
+                        self.logger.debug(f"Writing out mode WLK_TRN_WLK")
+                        transit_out_file.write_array(numpy_array=combine_trip_lists(it,jt, trip_mode), name = matrix_name)
+                        
+                    elif trip_mode in [7,8]:
+                        it_outbound, it_inbound = it[it.inbound == 0], it[it.inbound == 1]
+                        jt_outbound, jt_inbound = jt[jt.inbound == 0], jt[jt.inbound == 1]
+                        
+                        matrix_name =  f'{mode_name_dict[trip_mode].upper()}_TRN_WLK_{suffix}' if suffix else f'{mode_name_dict[trip_mode].upper()}_TRN_WLK' 
+                        
+                        self.logger.debug(f"Writing out mode {mode_name_dict[trip_mode].upper() + '_TRN_WLK'}")
+                        transit_out_file.write_array(
+                            numpy_array=combine_trip_lists(it_outbound,jt_outbound, trip_mode), 
+                            name = matrix_name)
+                        
+                        matrix_name = f'WLK_TRN_{mode_name_dict[trip_mode].upper()}_{suffix}' if suffix else f'WLK_TRN_{mode_name_dict[trip_mode].upper()}' 
+                        
+                        self.logger.debug(f"Writing out mode {'WLK_TRN_' + mode_name_dict[trip_mode].upper()}")
+                        transit_out_file.write_array(
+                            numpy_array=combine_trip_lists(it_inbound,jt_inbound, trip_mode), 
+                            name = matrix_name)
+
+                    elif trip_mode == 9:
+                        # identify the correct mode split factors for da, sr2, sr3
+                        self.logger.debug(f"Splitting ridehail trips into shared ride trips")
+                        ridehail_split_factors = defaultdict(float)
+                        splits = self.controller.config.household.rideshare_mode_split
+                        for key in splits:
+                            out_mode_split = self.controller.config.household.__dict__[f'{key}_split']
+                            for out_mode in out_mode_split:
+                                ridehail_split_factors[out_mode] += out_mode_split[out_mode] * splits[key]
+                                
+                        ridehail_trips = combine_trip_lists(it,jt, trip_mode)
+                        for out_mode in ridehail_split_factors:
+                            matrix_name =f'{out_mode}_{suffix}'  if suffix else out_mode
+                            self.logger.debug(f"Writing out mode {out_mode}")
+                            highway_cache[out_mode] += (ridehail_trips * ridehail_split_factors[out_mode]).astype(float).round(2)
+                            highway_cache[out_mode] = highway_cache[out_mode]
+                            highway_out_file.write_array(numpy_array = highway_cache[out_mode], name = matrix_name)
        
             highway_out_file.close()
             transit_out_file.close()
             active_out_file.close()
-            
+    
+    @property
+    def num_internal_zones(self):
+        return len(pd.read_csv(
+            self.get_abs_path(self.controller.config.scenario.landuse_file), usecols = [self.controller.config.scenario.landuse_index_column]))
+        
+    @property
+    def num_total_zones(self):
+        self._emmebank_path = self.get_abs_path(self.controller.config.emme.highway_database_path)
+        self._emmebank = self.controller.emme_manager.emmebank(self._emmebank_path)
+        time_period = self.controller.config.time_periods[0].name
+        scenario = self.get_emme_scenario(self._emmebank.path, time_period) # any scenario id works 
+        return len(scenario.zone_numbers)
+        
 # class PrepareTransitDemand(PrepareDemand):
 #     """Import transit demand."""
 #

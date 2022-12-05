@@ -45,13 +45,16 @@
 
 [household]
     highway_demand_file = "demand_matrices/highway/household/TAZ_Demand_{period}.omx"
-    transit_demand_file = "demand_matrices/transit/trn_demand_v12_trim_{period}.omx"
+    transit_demand_file = "demand_matrices/transit/trn_demand_v9_trim_{period}.omx"
     active_demand_file = "demand_matrices/active/nm_demand_{period}.omx"
     ctramp_indiv_trip_file = "main/indivTripData_{iteration}.csv"
     ctramp_joint_trip_file = "main/jointTripData_{iteration}.csv"
-    host_ip_address = "10.0.143.35"
-    ctramp_run_dir = 'D:\github\camsys-tm2py\examples\9-county'
+    ctramp_hh_file = "main/householdData_{iteration}.csv"
+	copy_from_examples = false
+    host_ip_address = "10.1.36.121"
+    ctramp_run_dir = 'D:\MTC\9-county\CTRAMP'
     sample_rate_iteration = [0.50]
+
     [household.rideshare_mode_split]
         "taxi"=0.08
         "single_tnc"=0.72
@@ -78,7 +81,10 @@
         7 = 'pnr'
         8 = 'knr'
         9 = 'RIDEHAIL'
-
+	[household.income_segment]
+        enabled = false
+        segment_suffixes = ["LowInc", "MedInc", "HighInc", "XHighInc"]
+        cutoffs = [0, 30000, 60000, 100000]
 
 [accessibility]
     outfile = "inputs/accessibility.csv"
@@ -258,7 +264,7 @@
             "AM" = 0.3333333333
             "MD" = 0.6666666667
     [truck.trip_dist]
-        k_factors_file = "inputs/nonres/truck_kfactors_taz.csv"
+        k_factors_file = "inputs/nonres/truckkfact.omx"
         friction_factors_file = "inputs/nonres/truckFF.csv"
         max_balance_iterations = 999
         max_balance_relative_error = 0.0001
@@ -872,17 +878,23 @@
             factor = 2.0
 
     [highway.convergence]
-        output_convergence_report_path = "output_summaries/highway_convergence_report.xlsx"
+        output_convergence_report_path = "output_summaries/highway_convergence_report.txt"
+		output_triptable_path = "output_summaries/trip_tables_{iteration}.omx"
+		output_skim_path = "output_summaries/skims_{iteration}.omx"
+		selected_od_pair = [1,100]
+		selected_links = [5,10,15]
+		skim_selected_time_periods = ["am","pm"]
+		output_network_attr_filename = "output_summaries/network_attrs_{iteration}.parquet"
+		output_network_summary_filename = "output_summaries/network_summary_{iteration}.csv"
 
 [transit]
     apply_msa_demand = false
-    value_of_time = 48.6
+    value_of_time = 16.2
     effective_headway_source = "hdw"
     initial_wait_perception_factor = 1.5
     transfer_wait_perception_factor = 3.0
     walk_perception_factor = 2.0
-    initial_boarding_penalty = 10
-    transfer_boarding_penalty = 10
+    drive_perception_factor = 3.0
     max_transfers = 3
     use_ccr = false
     output_skim_path = "skims/transit"
@@ -893,23 +905,21 @@
     fares_path = "inputs\\trn\\fares.far"
     fare_matrix_path = "inputs\\trn\\fareMatrix.txt"
     # max expected transfer distance for mode-to-mode transfer fare table generation
-    fare_max_transfer_distance_miles = 3.0
+    fare_max_transfer_distance_miles = 3
     # for TAZ instead of TAPs
     override_connectors = false # don't run prepare connector
-    override_connector_times = true
+    override_connector_times = false # has removed all drive connectors
     # input_connector_access_times_path = "inputs\\trn\\estimated_taz_access_connectors.csv"
     # input_connector_egress_times_path = "inputs\\trn\\estimated_taz_egress_connectors.csv"
     # mask options
     mask_noncombo_allpen = false
     mask_over_3_xfers = false
     #
-    use_fares = true # temp
+    use_fares = true
     #
-    congested_transit_assignment = true
-    capacitated_transit_assignment = false
-    station_capacity_transit_assignment = false
+    congested_transit_assignment = true # temp
     #
-    use_peaking_factor = false  # temp
+    use_peaking_factor = true  # temp
     am_peaking_factor = 1.219
     pm_peaking_factor = 1.262
 
@@ -1465,15 +1475,15 @@
 	critical_speed = 3.0
 
 [[transit.modes]]
-    mode_id = "P"
-    name = "pnr"
-    type = "PNR"
+    mode_id = "D"
+    name = "drive_acc"
+    type = "DRIVE"
     assign_type = "AUX_TRANSIT"
-    speed_miles_per_hour = 40.0
+    speed_miles_per_hour = "ul1*1"
 [[transit.modes]]
-    mode_id = "K"
-    name = "knr"
-    type = "KNR"
+    mode_id = "k"
+    name = "knrdummy"
+    type = "KNR_dummy"
     assign_type = "AUX_TRANSIT"
     speed_miles_per_hour = 40.0
 [[transit.modes]]
@@ -1481,7 +1491,9 @@
     name = "pnrdummy"
     type = "PNR_dummy"
     assign_type = "TRANSIT"
-    in_vehicle_perception_factor = 1.0 # or should this be 0?
+    in_vehicle_perception_factor = 1.0
+    initial_boarding_penalty = 2.0
+    transfer_boarding_penalty = 2.0
 [[transit.modes]]
     mode_id = "w"
     name = "walk"
@@ -1505,37 +1517,49 @@
     name = "local_bus"
     type = "LOCAL"
     assign_type = "TRANSIT"
-    in_vehicle_perception_factor = 2.0
+    in_vehicle_perception_factor = 1.0
+    initial_boarding_penalty = 10.0
+    transfer_boarding_penalty = 10.0
 [[transit.modes]]
     mode_id = "x"
     name = "exp_bus"
     type = "PREMIUM"
     assign_type = "TRANSIT"
-    in_vehicle_perception_factor = 2.0
+    in_vehicle_perception_factor = 1.0
+    initial_boarding_penalty = 10.0
+    transfer_boarding_penalty = 10.0
 [[transit.modes]]
     mode_id = "f"
     name = "ferry"
     type = "PREMIUM"
     assign_type = "TRANSIT"
-    in_vehicle_perception_factor = 1.0
+    in_vehicle_perception_factor = 0.8
+    initial_boarding_penalty = 2.0
+    transfer_boarding_penalty = 2.0
 [[transit.modes]]
     mode_id = "l"
     name = "light_rail"
     type = "PREMIUM"
     assign_type = "TRANSIT"
     in_vehicle_perception_factor = 0.9
+    initial_boarding_penalty = 5.0
+    transfer_boarding_penalty = 5.0
 [[transit.modes]]
     mode_id = "h"
     name = "heavy_rail"
     type = "PREMIUM"
     assign_type = "TRANSIT"
-    in_vehicle_perception_factor = 0.5
+    in_vehicle_perception_factor = 0.7
+    initial_boarding_penalty = 5.0
+    transfer_boarding_penalty = 5.0
 [[transit.modes]]
     mode_id = "r"
     name = "comm_rail"
     type = "PREMIUM"
     assign_type = "TRANSIT"
-    in_vehicle_perception_factor = 0.75
+    in_vehicle_perception_factor = 0.7
+    initial_boarding_penalty = 2.0
+    transfer_boarding_penalty = 2.0
 
 # [[transit.vehicles]]
 #     vehicle_id = 12
@@ -1810,10 +1834,10 @@
 #     auto_equivalent = 0.0
 #     seated_capacity = 1
 #     total_capacity = 2
-[[transit.vehicles]]
-    vehicle_id = 133
-    mode = "r"
-    name = ""
-    auto_equivalent = 0.0
-    seated_capacity = 1
-    total_capacity = 2
+# [[transit.vehicles]]
+#     vehicle_id = 133
+#     mode = "r"
+#     name = ""
+#     auto_equivalent = 0.0
+#     seated_capacity = 1
+#     total_capacity = 2

@@ -234,6 +234,8 @@ class RunController:
         Iterates through the self._queued_components and runs them.
         """
         self._iteration = None
+        if self.config.run.start_iteration > 1 and self.config.run.warmstart_check:
+            self.warmstart_check()
         while self._queued_components:
             self.run_next()
 
@@ -268,8 +270,8 @@ class RunController:
         except AssertionError:
             "Components already queued, returning without re-queuing."
             return
-
-        print("RUN COMPONENTS", run_components)
+        
+        
         _initial_components = self.config.run.initial_components
         _global_iter_components = self.config.run.global_iteration_components
         _final_components = self.config.run.final_components
@@ -282,7 +284,14 @@ class RunController:
                 c for c in _global_iter_components if c in run_components
             ]
             _final_components = [c for c in _final_components if c in run_components]
-
+        
+            #printing run components by iteration type (initial, global, final) in order
+            print('Initial components', _initial_components)
+            print('Global iteration components', _global_iter_components)
+            print('Final components', _final_components)
+            
+            
+        
         if self.config.run.start_iteration == 0:
             for _c_name in _initial_components:
                 self._add_component_to_queue(0, _c_name)
@@ -361,3 +370,47 @@ class RunController:
         num_processors = max(1, num_processors)
 
         return num_processors
+    
+    
+    def warmstart_check(self):
+        """
+        Check if required input files and folders exist before running the components.
+        """
+        _run_components = set(self.config.run.initial_components) | set(self.config.run.global_iteration_components) | set(self.config.run.final_components)
+        
+        if 'create_tod_scenarios' in _run_components:
+            _config_type = 'emme'
+            _config = self.config.getattr(_config_type)
+            path_keys = ['project_path', 'highway_database_path', 'transit_database_path']
+            for path_key in path_keys:
+                path = _config.getattr(path_key)
+                if not os.path.exists(self.get_abs_path(path)):
+                    raise ValueError(f'Missing input for component create_tod_scenarios: {_config_type}.{path_key}')
+        
+        if 'prepare_network_highway' in _run_components:
+            _config_type = 'emme'
+            _config = self.config.getattr(_config_type)
+            path_keys = ['project_path', 'highway_database_path']
+            for path_key in path_keys:
+                path = _config.getattr(path_key)
+                if not os.path.exists(self.get_abs_path(path)):
+                    raise ValueError(f'Missing input for component prepare_network_highway: {_config_type}.{path_key}')
+                    
+        if 'prepare_network_transit' in _run_components:
+            _config_type = 'emme'
+            _config = self.config.getattr(_config_type)
+            path_keys = ['project_path', 'highway_database_path']
+            for path_key in path_keys:
+                path = _config.getattr(path_key)
+                if not os.path.exists(self.get_abs_path(path)):
+                    raise ValueError(f'Missing input for component prepare_network_transit: {_config_type}.{path_key}')
+                    
+        if 'household' in _run_components:
+            self.config.household.ctramp_run_dir
+            if not os.path.exists(self.config.household.ctramp_run_dir):
+                raise ValueError(f'Missing input for component household: household.ctramp_run_dir')        
+            
+            # Skims need to exist in either the CT-RAMP directory or the examples folders
+            
+        #TODO: highway, transit (requiring Emme project, demand matrices); truck (requiring input factors, highway skims); home_accessibility (requiring highway, transit, active skims)
+        #TODO: make sure to check skim file names with time periods filled in
