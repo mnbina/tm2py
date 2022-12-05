@@ -156,10 +156,10 @@ class CreateTODScenarios(Component):
                 "full_matrices": 9999,
                 "scenarios": 1 + n_time_periods,
                 "regular_nodes": 650000,
-                "links": 1900000,
+                "links": 2000000,
                 "transit_vehicles": 600, # pnr vechiles
                 "transit_segments": 1800000,
-                "extra_attribute_values": 200000000  # reduce processing time
+                "extra_attribute_values": 200000000
             }
             self._emme_manager.change_emmebank_dimensions(emmebank, required_dims)
             for ident in ["ft1", "ft2", "ft3"]:
@@ -199,6 +199,8 @@ class CreateTODScenarios(Component):
             default_in_vehicle_factor = self.controller.config.transit.get("in_vehicle_perception_factor", 1.0)
             default_initial_boarding_penalty = self.controller.config.transit.get("initial_boarding_penalty", 10)
             default_transfer_boarding_penalty = self.controller.config.transit.get("transfer_boarding_penalty", 10)
+            walk_perception_factor = self.controller.config.transit.get("walk_perception_factor", 2)
+            drive_perception_factor = self.controller.config.transit.get("drive_perception_factor", 2)
             walk_modes = set()
             access_modes = set()
             egress_modes = set()
@@ -214,7 +216,10 @@ class CreateTODScenarios(Component):
                         f"mode {mode_data['id']} already exists with type {mode.type} instead of {mode_data['assign_type']}")
                 mode.description = mode_data['name']
                 if mode_data['assign_type'] == "AUX_TRANSIT":
-                    mode.speed = mode_data['speed_miles_per_hour']
+                    if mode_data['type'] == "DRIVE":
+                        mode.speed = "ul1*%s" % drive_perception_factor
+                    else:
+                        mode.speed = float(mode_data['speed_miles_per_hour'])/walk_perception_factor
                 if mode_data["type"] == "WALK":
                     walk_modes.add(mode.id)
                 elif mode_data["type"] == "ACCESS":
@@ -258,8 +263,9 @@ class CreateTODScenarios(Component):
                         link["@trantime"] = 60 * link.length / speed + link.length * 5 * 0.33
                 else:
                     link["@trantime"] = 60 * link.length / speed
+                # link.data1 = link["@trantime"]
                 # set TAP connector distance to 60 feet
-                # if link.i_node.is_centroid or link.j_node.is_centroid:  fix it later
+                # if link.i_node.is_centroid or link.j_node.is_centroid:
                 #     link.length = 0.01  # 60.0 / 5280.0
             for line in network.transit_lines():
                 # TODO: may want to set transit line speeds (not necessarily used in the assignment though)
@@ -281,26 +287,28 @@ class CreateTODScenarios(Component):
                 # get used transit modes on link
                 modes = {seg.line.mode for seg in link.segments()}
                 # add in available modes based on link type
-                # if link["@drive_link"]==1:  # pnr, knr, and pnr dummy can only be used by p, k, P mode
+                # if link["@drive_link"]==1: 
                 #     modes |= local_modes
                 #     modes |= auto_mode
                 # if link["@bus_only"]:
                 #     modes |= local_modes
                 # if link["@rail_link"] and not modes:
                 #     modes |= premium_modes
-                # add access, egress or walk mode (auxilary transit modes)
-                if (link.i_node.is_centroid) and (link["@drive_link"]!=3) and (link["@drive_link"]!=5):
-                    # modes |= access_modes  # switch access and egress mode previous settings might be wrong
-                    link.modes = "a"
-                elif (link.j_node.is_centroid) and (link["@drive_link"]!=3) and (link["@drive_link"]!=5):
-                    # modes |= egress_modes  # switch access and egress mode previous settings might be wrong
-                    link.modes = "e"
                 # elif link["@walk_link"]:
                 #     modes |= walk_modes
                 # if not modes:  # in case link is unused, give it the auto mode
                 #     link.modes = auto_mode
                 # else:
                 #     link.modes = modes
+                # add access, egress or walk mode (auxilary transit modes)
+                if (link.i_node.is_centroid) and (link["@drive_link"]==0):
+                    # modes |= access_modes  # switch access and egress mode previous settings might be wrong
+                    link.modes = "a"
+                elif (link.j_node.is_centroid) and (link["@drive_link"]==0):
+                    # modes |= egress_modes  # switch access and egress mode previous settings might be wrong
+                    link.modes = "e"
+                elif (link.i_node.is_centroid or link.j_node.is_centroid ) and (link["@drive_link"]!=0):
+                    link.modes = set([network.mode('c'), network.mode('D')]) 
 
             ref_scenario.publish_network(network)
 
