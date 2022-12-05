@@ -26,7 +26,7 @@ class ConvergenceReport(Component):
         self.config =  self.controller.config
 
     def run(self):
-        #self.save_results()
+        self.save_results()
         if self.controller.iteration > self.controller.config.run.start_iteration:
             self.export_summaries()
         
@@ -135,7 +135,7 @@ class ConvergenceReport(Component):
         time_period_significant_changes = []
         for group in trip_mode_groups:
             modes = group.modes
-            mode_group_totals = np.array([0.0,0.0])
+            mode_group_totals = np.array([0,0])
 
             for time_period in self.time_period_names:
                 curr_arr_tp = np.zeros((num_internal_zones, num_internal_zones))
@@ -165,7 +165,7 @@ class ConvergenceReport(Component):
         trip_totals = pd.DataFrame(trip_totals, columns = ['Mode Group', 'Trips', 'PrevIter'])
         trip_totals['Diff'] = trip_totals['Trips'] - trip_totals['PrevIter']
         
-        lines_out.append(trip_totals.round(2).to_csv(index = False, sep = '\t'))
+        lines_out.extend(trip_totals.round(2).to_csv(index = False, sep = '\t'))
         
         lines_out.append(f'Difference in total daily trips = \t{trip_totals["Diff"].sum()}')
         lines_out.append(f'Percent RMSE in total daily trips = \t{daily_MSE / num_internal_zones ** 2}')
@@ -226,21 +226,21 @@ class ConvergenceReport(Component):
             link_vols.columns =  ['#link_id', 'ft_type', 'prev', 'curr']
             link_vols['diff'] = link_vols['curr'] - link_vols['prev']
             link_vols['pct_diff'] = link_vols['diff'] / link_vols['prev'].clip(lower = 0.001)
-            lines_out.append(f'Number of links with {time_period} volume change greater than 10% or 500 vehicles: \t {((link_vols.pct_diff > 0.1) | (link_vols["diff"] > 500)).sum()}, ({100*((link_vols.pct_diff > 0.1) | (link_vols["diff"] > 500)).mean()}%)')
+            lines_out.append(f'Number of links with {time_period} volume change greater than 10% or 500 vehicles: \t {((link_vols.pct_diff > 0.1) | (link_vols.diff > 500)).sum()}, ({100*((link_vols.pct_diff > 0.1) | (link_vols.diff > 500)).mean()}%)')
 
-            link_df = link_vols[link_vols.ft_type.isin(ft_types)]
-            lines_out.append(f'Number of FT={"/".join([str(e) for e in ft_types])} links with {time_period} volume change greater than 10% or 500 vehicles: \t {((link_df.pct_diff > 0.1) | (link_df["diff"] > 500)).sum()}, ({100*((link_df.pct_diff > 0.1) | (link_df["diff"] > 500)).mean()}%)')
+            link_df = links_vols[link_vols.ft_type.isin(ft_types)]
+            lines_out.append(f'Number of FT={"/".join(ft_types)} links with {time_period} volume change greater than 10% or 500 vehicles: \t {((link_df.pct_diff > 0.1) | (link_df.diff > 500)).sum()}, ({100*((link_df.pct_diff > 0.1) | (link_df.diff > 500)).mean()}%)')
         
             # Total, Change in Volumes/speed on the Bay Bridge between iterations by time periods (AM, MD, PM)
             bb_prev = network_attr_prev_iter[(network_attr_prev_iter.time_period == time_period) & (network_attr_prev_iter['#link_id'].isin(selected_links))]
             bb_curr = network_attr_curr_iter[(network_attr_curr_iter.time_period == time_period) & (network_attr_curr_iter['#link_id'].isin(selected_links))]
             bb_prev['speed'] = bb_prev['length'] / bb_prev['auto_time'] * 60 # MPH
             bb_curr['speed'] = bb_curr['length'] / bb_curr['auto_time'] * 60 # MPH
-            bay_bridge = bb_prev.merge(bb_curr, on = '#link_id', suffixes = ['_prev','_curr'])
+            bay_bridge = bb_prev.merge(bb_cur, on = '#link_id', suffixes = ['_prev','_curr'])
             bay_bridge['Change in Volume'] = bay_bridge['auto_volume_curr'] - bay_bridge['auto_volume_prev']
             bay_bridge['Change in Speed'] = bay_bridge['speed_curr'] - bay_bridge['speed_prev']
             lines_out.append('Bay Bridge links:')
-            lines_out.append(bay_bridge.set_index('#link_id')[['auto_volume_curr', 'auto_volume_prev', 'Change in Volume', 'speed_curr', 'speed_prev', 'Change in Speed']].round(2).to_csv(index = False, sep = '\t'))
+            lines_out.extend(bay_bridge.set_index('#link_id')[['auto_volume_curr', 'auto_volume_prev', 'Change in Volume', 'speed_curr', 'speed_prev', 'Change in Speed']].round(2).to_csv(index = False, sep = '\t'))
             
         
         
