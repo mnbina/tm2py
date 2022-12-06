@@ -44,7 +44,6 @@ from contextlib import contextmanager as _context
 from typing import TYPE_CHECKING, Dict, List, Union
 
 import numpy as np
-import pandas as pd
 
 from tm2py import tools
 from tm2py.components.component import Component
@@ -166,13 +165,9 @@ class HighwayAssignment(Component):
                     )
                 self._export_skims(scenario, time)
 
-                if self.controller.config.highway.msa.apply_msa:
-                    self._calc_total_flow(scenario)
-                    self._calc_weighted_avg_flow(scenario)
-                    self._calc_vc(scenario)
-                elif self.controller.config.highway.tolls.run_dynamic_toll:
-                    self._calc_total_flow(scenario)
-                    self._calc_vc(scenario)
+                self._calc_total_flow(scenario)
+                self._calc_weighted_avg_flow(scenario)
+                self._calc_vc(scenario)
 
                 if self.logger.debug_enabled:
                     self._log_debug_report(scenario, time)
@@ -373,25 +368,6 @@ class HighwayAssignment(Component):
             class_name: highway class name (from config)
             skims: list of requested skims (from config)
         """
-        # use distance matrix to find disconnected zones
-        dist_matrix_name = self.config.output_skim_matrixname_tmpl.format(
-            class_name=class_name.upper(),
-            property_name="DIST", # TODO: might have better implementation here
-        )
-        dist_data = self._matrix_cache.get_data(dist_matrix_name)
-        rowsum = dist_data.sum(axis=1).tolist()
-        colsum = dist_data.sum(axis=0).tolist()
-
-        disconnected_zones = {"skim_row_sum": None, "skim_col_sum": None}
-        disconnected_zones["skim_row_sum"] = rowsum
-        disconnected_zones["skim_col_sum"] = colsum
-        disconnected_zones = pd.DataFrame(disconnected_zones)
-        disconnected_zones["taz"] = disconnected_zones.index + 1
-        disconnected_zones = disconnected_zones[(disconnected_zones["skim_row_sum"] == 0) | (disconnected_zones["skim_col_sum"] == 0)].reset_index(drop=True)
-        disconnected_zones = disconnected_zones["taz"].to_list()
-        disconnected_zone_index = [x-1 for x in disconnected_zones]
-        self.logger.warn(f"disconnected zones: {disconnected_zones}", indent=True)
-
         for skim_name in skims:
             matrix_name = self.config.output_skim_matrixname_tmpl.format(
                 class_name=class_name.upper(),
@@ -400,20 +376,8 @@ class HighwayAssignment(Component):
             self.logger.debug(f"Setting intrazonals to 0.5*min for {matrix_name}")
             data = self._matrix_cache.get_data(matrix_name)
             # NOTE: sets values for external zones as well
-            if "dist" in skim_name or "time" in skim_name or "cost" in skim_name:
-                for zone_index in range(data.shape[0]):
-                    if zone_index in disconnected_zone_index:
-                        # update disconnected zone skim values
-                        data[zone_index] = 1000000
-                        data[:, zone_index] = 1000000
-                    else:
-                        # update other intrazonal skim values
-                        row_skim_values = data[zone_index].tolist()
-                        min_row_skim_value = min([x for x in row_skim_values if x != 0])
-                        data[zone_index, zone_index] = 0.5 * min_row_skim_value # replace intra-zonal value with min_value
-            else: # for other skims
-                np.fill_diagonal(data, np.inf)
-                data[np.diag_indices_from(data)] = 0.5 * np.nanmin(data, 1)
+            np.fill_diagonal(data, np.inf)
+            data[np.diag_indices_from(data)] = 0.5 * np.nanmin(data, 1)
             self._matrix_cache.set_data(matrix_name, data)
 
     def _export_skims(self, scenario: EmmeScenario, time_period: str):
@@ -526,7 +490,7 @@ class AssignmentClass:
                 )
             )
         for skim_type in self.skims:
-            if skim_type in ["time", "gctime", "cost"]:
+            if skim_type == "time":
                 continue
             group = self.name
             matrix_name = self.class_config.output_skim_matrixname_tmpl.format(
@@ -554,7 +518,7 @@ class AssignmentClass:
                 ]
             )
         for skim_type in self.skims:
-            if skim_type in ["time", "gctime", "cost"]:
+            if skim_type == "time":
                 continue
             matrix_name = self.class_config.output_skim_matrixname_tmpl.format(
                 property_name=skim_type.upper(),
