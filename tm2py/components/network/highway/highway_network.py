@@ -215,7 +215,7 @@ class PrepareNetwork(Component):
 
         if run_dynamic_toll:
             # if using dynamic tolling method, only read in bridge tolls
-            toll_index = self._get_toll_indices(toll_file_path = self.get_abs_path(self.config.tolls.bridetoll_file_path))
+            toll_index = self._get_toll_indices(toll_file_path = self.get_abs_path(self.config.tolls.bridgetoll_file_path))
             global_iteration = self.controller.iteration
             self.logger.log(f"current global iter: {global_iteration}, dynamic toll iter: {self.controller._dynamic_toll_iter}")
 

@@ -575,7 +575,7 @@
     area_type_buffer_dist_miles = 0.5
     [highway.tolls]
         file_path = "inputs/hwy/tolls.csv"
-        bridetoll_file_path = "inputs/hwy/tolls_bridge.csv"
+        bridgetoll_file_path = "inputs/hwy/tolls_bridge.csv"
         src_vehicle_group_names = ["daxh", "dah", "dam", "dal", "s2xh", "s2h", "s2m", "s2l",  "s3xh", "s3h", "s3m", "s3l", "vsm", "sml", "med", "lrg"]
         # the dst_vehicle_group_names is used in the class group suffix for the
         # highway.classes toll attribute name and the skims name, "bridgetoll_{}"

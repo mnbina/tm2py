@@ -803,7 +803,7 @@ class HighwayTollsConfig(ConfigItem):
     """
 
     file_path: pathlib.Path = Field()
-    bridetoll_file_path: pathlib.Path = Field()
+    bridgetoll_file_path: pathlib.Path = Field()
     valuetoll_start_tollbooth_code: int = Field(gt=1)
     src_vehicle_group_names: Tuple[str, ...] = Field()
     dst_vehicle_group_names: Tuple[str, ...] = Field()
