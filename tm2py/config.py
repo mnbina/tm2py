@@ -809,6 +809,7 @@ class HighwayTollsConfig(ConfigItem):
     dst_vehicle_group_names: Tuple[str, ...] = Field()
     run_dynamic_toll: bool = Field(default=False)
     max_dynamic_valuetoll: float = Field()
+    bridetoll_file_path: pathlib.Path = Field()
 
     @validator("dst_vehicle_group_names", always=True)
     def dst_vehicle_group_names_length(value, values):
@@ -909,21 +910,45 @@ class HighwayMazToMazConfig(ConfigItem):
         assert len(group_ids) == len(set(group_ids)), "-> number value must be unique"
         return value
 
+
 @dataclass(frozen=True)
-class ConvergenceReportConfig(ConfigItem):
-    """Highway assignment convergence reporting parameters.
+class ConvergenceReportModeGroupConfig(ConfigItem):
+    """Groups of travel modes for assignment convergence reporting.
     
     Properties:
-        output_convergence_report_path: file path to Excel file containing convergence reports from every iteration.
+        name: name of group displayed in the report.
+        modes: travel modes/classes (per highway/transit/truck model config) under the group.
+    """
+    
+    name: str = Field()
+    modes: Tuple[str, ...] = Field()
+
+
+@dataclass(frozen=True)
+class ConvergenceReportConfig(ConfigItem):
+    """Assignment convergence reporting parameters.
+    
+    Properties:
+        output_convergence_report_path: file path to text file containing convergence reports from every iteration.
+        output_triptable_path: file path to output trip tables per iteration.
+        output_skim_path:  file path to output skims per iteration.
+        selected_od_pair: OD pairs to show travel times.
+        selected_links: highway links to show travel times.
+        skim_selected_time_periods: time periods for which skims are exported.
+        output_network_attr_filename: file path to output network attributes per iteration.
+        output_network_summary_filename: file path to output network summary per iteration.
     """
     output_convergence_report_path: pathlib.Path = Field()
     output_triptable_path: str = Field()
     output_skim_path: str = Field()
     selected_od_pair: Tuple[int, ...] = Field()
     selected_links: Tuple[int, ...] = Field()
+    ft_types: Tuple[int, ...] = Field()
     skim_selected_time_periods: Tuple[str, ...] = Field()
     output_network_attr_filename: str = Field()
     output_network_summary_filename: str = Field()
+    summary_mode_group: Tuple[ConvergenceReportModeGroupConfig, ...] = Field()
+
 
 @dataclass(frozen=True)
 class HighwayConfig(ConfigItem):
@@ -1140,7 +1165,8 @@ class TransitConfig(ConfigItem):
     initial_wait_perception_factor: float
     transfer_wait_perception_factor: float
     walk_perception_factor: float
-    drive_perception_factor: float
+    #drive_perception_factor: float
+    
     max_transfers: int
     output_skim_path: pathlib.Path
     fares_path: pathlib.Path
@@ -1149,6 +1175,8 @@ class TransitConfig(ConfigItem):
     use_fares: bool
     override_connectors: bool
     override_connector_times: bool
+    initial_boarding_penalty: Optional[float] = Field(default=None, ge=0)
+    transfer_boarding_penalty: Optional[float] = Field(default=None, ge=0)
     input_connector_access_times_path: Optional[pathlib.Path] = Field(default=None)
     input_connector_egress_times_path: Optional[pathlib.Path] = Field(default=None)
     output_stop_usage_path: Optional[pathlib.Path] = Field(default=None)
@@ -1158,6 +1186,8 @@ class TransitConfig(ConfigItem):
     classes: Tuple[TransitClassConfig, ...] = Field()
     use_ccr: bool = False
     congested_transit_assignment: bool = False
+    capacitated_transit_assignment: bool = False
+    station_capacity_transit_assignment: bool = False
     mask_noncombo_allpen: bool = False
     mask_over_3_xfers: bool = False
     use_peaking_factor: bool = False

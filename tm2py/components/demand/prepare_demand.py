@@ -162,30 +162,25 @@ class PrepareHighwayDemand(PrepareDemand):
         num_total_zones = self.num_total_zones
         
         # Highway, passenger and truck
-        for klass in self.controller.config.highway.classes:
-            name, description, demand_config = klass.name, klass.description, klass.demand
-            demand = np.zeros((num_total_zones, num_total_zones))
-            
-            for time_period in self.time_period_names:
-                scenario = self.get_emme_scenario(self._emmebank.path, time_period)
+        for time_period in self.time_period_names:
+            scenario = self.get_emme_scenario(self._emmebank.path, time_period)
+            for klass in self.controller.config.highway.classes:
+                name, description, demand_config = klass.name, klass.description, klass.demand
+                demand = np.zeros((num_total_zones, num_total_zones))
                 for file_config in demand_config:
-                    demand = demand + self._read_demand(file_config, time_period, num_total_zones)
-            triptables.write_array(demand, name = name)
+                    demand += self._read_demand(file_config, time_period, num_total_zones)
+                triptables.write_array(demand, name = f'{name}_{time_period}')
         
         # Transit
-        for klass in self.controller.config.transit.classes:
-            name, description = klass.name.upper(), klass.description
-            demand = np.zeros((num_total_zones, num_total_zones))
-            
-            for time_period in self.time_period_names:
-                scenario = self.get_emme_scenario(self._emmebank.path, time_period)
+        for time_period in self.time_period_names:
+            scenario = self.get_emme_scenario(self._emmebank.path, time_period)
+            for klass in self.controller.config.transit.classes:
+                name, description = klass.name.upper(), klass.description
                 path = self.get_abs_path(self.controller.config.household.transit_demand_file)
-                demand += self._read(path.format(period=time_period), name, num_total_zones)
-            triptables.write_array(demand, name = name)
+                demand = self._read(path.format(period=time_period), name, num_total_zones)
+                triptables.write_array(demand, name = f'{name}_{time_period}')
         
         triptables.close()
-                
-                
 
     def _read_demand(self, file_config, time_period, num_zones):
         # Load demand from cross-referenced source file,

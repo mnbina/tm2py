@@ -122,7 +122,7 @@
 [air_passenger]
     output_trip_table_directory = "demand_matrices/highway/air_passenger"
     outfile_trip_table_tmp = "tripsAirPax{period}.omx"
-    highway_demand_file = "demand_matrices/highway/air_passenger/tripsAirPax{period}.omx"
+    highway_demand_file = "demand_matrices/highway/air_passenger/2015_tripsAirPax{period}.omx"
     input_demand_folder = "inputs/nonres"
     input_demand_filename_tmpl = "{year}_{direction}{airport}.csv"
     reference_start_year = "2007"
@@ -886,6 +886,24 @@
 		skim_selected_time_periods = ["am","pm"]
 		output_network_attr_filename = "output_summaries/network_attrs_{iteration}.parquet"
 		output_network_summary_filename = "output_summaries/network_summary_{iteration}.csv"
+		[[highway.convergence.summary_mode_group]]
+			name = "KNR Transit"
+			modes = ["KNR_TRN_WLK", "WLK_TRN_KNR"]
+		[[highway.convergence.summary_mode_group]]
+			name = "PNR Transit"
+			modes = ["PNR_TRN_WLK", "WLK_TRN_PNR"]		
+		[[highway.convergence.summary_mode_group]]
+			name = "Walk access transit"
+			modes = ["WLK_TRN_WLK"]
+		[[highway.convergence.summary_mode_group]]
+			name = "Truck"
+			modes = ["trk", "lrgtrk"]
+		[[highway.convergence.summary_mode_group]]
+			name = "HOV"
+			modes = ["s2", "s3"]
+		[[highway.convergence.summary_mode_group]]
+			name = "Drive alone"
+			modes = ["da"]
 
 [transit]
     apply_msa_demand = false
@@ -898,7 +916,7 @@
     max_transfers = 3
     use_ccr = false
     output_skim_path = "skims/transit"
-    output_skim_filename_tmpl = "trnskm{period}_{set_name}.omx"
+    output_skim_filename_tmpl = "trnskm{time_period}_{set_name}.omx"
     output_skim_matrixname_tmpl = "{property}"
     output_stop_usage_path = "output_summaries\\stop_usage_{period}.csv"
     output_transit_boardings_path = "output_summaries\\boardings_by_line_{period}.csv"
