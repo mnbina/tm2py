@@ -803,12 +803,12 @@ class HighwayTollsConfig(ConfigItem):
     """
 
     file_path: pathlib.Path = Field()
+    bridgetoll_file_path: pathlib.Path = Field()
     valuetoll_start_tollbooth_code: int = Field(gt=1)
     src_vehicle_group_names: Tuple[str, ...] = Field()
     dst_vehicle_group_names: Tuple[str, ...] = Field()
     run_dynamic_toll: bool = Field(default=False)
     max_dynamic_valuetoll: float = Field()
-    bridetoll_file_path: pathlib.Path = Field()
 
     @validator("dst_vehicle_group_names", always=True)
     def dst_vehicle_group_names_length(value, values):
@@ -859,6 +859,7 @@ class HighwayMsaConfig(ConfigItem):
         prev_wgt: weight for weighted average volume in previous iteration(s)
         curr_wgt: weight for volume in current iteration
     """
+    apply_msa: bool = Field(default=False)
     write_iteration_flow: bool = Field(default=False)
     prev_wgt: List[float] = Field(default=[])
     curr_wgt: List[float] = Field(default=[])
@@ -1056,7 +1057,7 @@ class HighwayConfig(ConfigItem):
         """Validate classes .skims, .toll, and .excluded_links values."""
         if "tolls" not in values:
             return value
-        avail_skims = ["time", "dist", "hovdist", "tolldist", "freeflowtime", "bridgetoll", 'valuetoll', 'btoll', 'vtoll']
+        avail_skims = ["time", "dist", "hovdist", "tolldist", "freeflowtime", "bridgetoll", "valuetoll", "btoll", "vtoll", "gctime", "cost"]
         available_link_sets = ["is_sr", "is_sr2", "is_sr3", "is_auto_only"]
         avail_toll_attrs = []
         for name in values["tolls"].dst_vehicle_group_names:
@@ -1163,7 +1164,7 @@ class TransitConfig(ConfigItem):
     initial_wait_perception_factor: float
     transfer_wait_perception_factor: float
     walk_perception_factor: float
-    #drive_perception_factor: float
+    drive_perception_factor: float
     
     max_transfers: int
     output_skim_path: pathlib.Path
