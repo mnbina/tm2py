@@ -171,13 +171,15 @@ class TransitAssignment(Component):
             with self._setup(scenario, period):
                 if self.controller.iteration >= 1:
                     self.import_demand_matrices(period.name, scenario)
+                    use_ccr = self.controller.config.transit.use_ccr
+                    congested_transit_assignment = self.controller.config.transit.congested_transit_assignment
                 else:
                     self.create_empty_demand_matrices(period.name, scenario)
-
-                use_ccr = self.controller.config.transit.use_ccr
+                    use_ccr = False
+                    congested_transit_assignment = False
+                
                 use_fares = self.controller.config.transit.use_fares
-                use_peaking_factor = self.controller.config.transit.use_peaking_factor
-                congested_transit_assignment = self.controller.config.transit.congested_transit_assignment
+                use_peaking_factor = self.controller.config.transit.use_peaking_factor           
                 
                 network = scenario.get_network()
                 self.update_auto_times(network, period)
