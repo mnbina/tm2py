@@ -1384,7 +1384,7 @@ class TransitAssignment(Component):
             )
             omx_file_path = os.path.join(
                 output_skim_path,
-                self.controller.config.transit.output_skim_filename_tmpl.format(period=period, set_name=set_name))
+                self.controller.config.transit.output_skim_filename_tmpl.format(time_period=period, set_name=set_name))
             os.makedirs(os.path.dirname(omx_file_path), exist_ok=True)
 
             for skim in _skim_names:

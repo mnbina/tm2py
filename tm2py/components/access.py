@@ -115,7 +115,9 @@ class HomeAccessibility(Component):
             Or part of network.skims?
         """
         _ref_scenario_id = self.controller.config.time_periods[0].emme_scenario_id
-        return self.emmebank.scenario(_ref_scenario_id)
+        if self.emmebank.scenario(_ref_scenario_id):
+            return self.emmebank.scenario(_ref_scenario_id)
+        return self.emmebank.scenario(1)
 
     @property
     def employment_df(self):
@@ -128,8 +130,8 @@ class HomeAccessibility(Component):
         if skim_prop is None:
             skim_prop = formulas['prop']
         if mode == 'auto':
-            return np.add.reduce([get_omx_skim_as_numpy(self.controller, *matrix, property=skim_prop) for matrix in formulas[time_period][0]]) + \
-                np.add.reduce([get_omx_skim_as_numpy(self.controller, *matrix, property=skim_prop) for matrix in formulas[time_period][1]]).T
+            return np.add.reduce([get_omx_skim_as_numpy(self.controller, *matrix, property=skim_prop, force_read = ['highway', 'da']) for matrix in formulas[time_period][0]]) + \
+                np.add.reduce([get_omx_skim_as_numpy(self.controller, *matrix, property=skim_prop, force_read =  ['highway', 'da']) for matrix in formulas[time_period][1]]).T
         elif mode == 'transit':
             ivt_matrix_names = [dict(zip(['skim_mode','time_period','property'], matrix_name[0] + [matrix_name[1]])) for matrix_name in itertools.product(formulas[time_period][0], formulas['ivt'])]
             ivt_matrix_names_T = [dict(zip(['skim_mode','time_period','property'], matrix_name[0] + [matrix_name[1]])) for matrix_name in itertools.product(formulas[time_period][1], formulas['ivt'])]
