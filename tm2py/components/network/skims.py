@@ -57,6 +57,7 @@ def get_omx_skim_as_numpy(
     time_period: str,
     property: str = "time",
     omx_manager: OMXManager = None,
+    force_read: list = None
 ) -> NumpyArray:
     """Get OMX skim by time and mode from folder and return a zone-to-zone NumpyArray.
 
@@ -68,6 +69,7 @@ def get_omx_skim_as_numpy(
         mode: Mode to get.
         time_period: Time period to get.
         property: Property to get. Defaults to "time".
+        force_read: in case of config skim mode and assignment mode mismatch, provides mode class (highway/transit,active) and skim mode name. (e.g., ['highway', 'DA'])
     """
 
     if time_period.upper() not in controller.time_period_names:
@@ -80,24 +82,65 @@ def get_omx_skim_as_numpy(
     _trn_classes = {c.name: c for c in controller.config.transit.classes}
     _nm_classes = {c.name: c for c in controller.config.active_modes.classes}
 
-    if skim_mode in _hwy_classes.keys():
-        _config = controller.config.highway
-        _mode_config = _hwy_classes[skim_mode]
-    elif skim_mode in _trn_classes.keys():
-        _config = controller.config.transit
-        _mode_config = _trn_classes[skim_mode]
-    elif skim_mode in _nm_classes.keys():
-        _config = controller.config.active_modes
-        _mode_config = _nm_classes[skim_mode]
 
+    if force_read:
+        if force_read[0] == 'highway':
+            _config = controller.config.highway
+            _matrix_name = _config.output_skim_matrixname_tmpl.format(
+                class_name=force_read[1],
+                property_name=property,
+            )
+            _filename = _config.output_skim_filename_tmpl.format(
+                time_period=time_period.lower()
+            )
+        
+        elif force_read[0] == 'transit':
+            _config = controller.config.transit
+            _matrix_name = _config.output_skim_matrixname_tmpl.format(
+                time_period=time_period.lower(),
+                mode =force_read[1],
+                property=property
+            )
+            _filename = _config.output_skim_filename_tmpl.format(
+                time_period=time_period,
+                set_name = force_read[1],
+            )
+        
+            
+        elif force_read[0] == 'active_modes':
+            _config = controller.config.active_modes
+            _matrix_name = _config.output_skim_matrixname_tmpl.format(
+                time_period=time_period.lower(),
+                mode=force_read[1],
+                property=property
+            )
+            _filename = _config.output_skim_filename_tmpl.format(
+                time_period=time_period,
+                mode = force_read[1],
+            )
+            
+            
     else:
-        raise NotImplementedError("Haven't implemented non highway/transit/non-motorized skim access")
+        if skim_mode in _hwy_classes.keys():
+            _config = controller.config.highway
+            _mode_config = _hwy_classes[skim_mode]
+        
+        elif skim_mode in _trn_classes.keys():
+            _config = controller.config.transit
+            _mode_config = _trn_classes[skim_mode]
+        
+        elif skim_mode in _nm_classes.keys():
+            _config = controller.config.active_modes
+            _mode_config = _nm_classes[skim_mode]
+        
+        else:
+            raise NotImplementedError("Haven't implemented non highway/transit/non-motorized skim access")
 
-    if property not in list(_mode_config["skims"]) + [e.upper() for e in _mode_config["skims"]]: #TODO: this needs to be case-insensitive
-        raise ValueError(
-            f"Property {property} not an available skim in mode {skim_mode}.\
-            Available skims are:  {_mode_config['skims']}"
-        )
+        if property not in list(_mode_config["skims"]) + [e.upper() for e in _mode_config["skims"]]: #TODO: this needs to be case-insensitive
+            raise ValueError(
+                f"Property {property} not an available skim in mode {skim_mode}.\
+                Available skims are:  {_mode_config['skims']}"
+            )
 
     if skim_mode in _hwy_classes.keys():
         _matrix_name = _config.output_skim_matrixname_tmpl.format(
