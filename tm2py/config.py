@@ -809,7 +809,6 @@ class HighwayTollsConfig(ConfigItem):
     dst_vehicle_group_names: Tuple[str, ...] = Field()
     run_dynamic_toll: bool = Field(default=False)
     max_dynamic_valuetoll: float = Field()
-    bridetoll_file_path: pathlib.Path = Field()
 
     @validator("dst_vehicle_group_names", always=True)
     def dst_vehicle_group_names_length(value, values):
@@ -1165,7 +1164,7 @@ class TransitConfig(ConfigItem):
     initial_wait_perception_factor: float
     transfer_wait_perception_factor: float
     walk_perception_factor: float
-    #drive_perception_factor: float
+    drive_perception_factor: float
     
     max_transfers: int
     output_skim_path: pathlib.Path
