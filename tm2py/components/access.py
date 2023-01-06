@@ -115,7 +115,9 @@ class HomeAccessibility(Component):
             Or part of network.skims?
         """
         _ref_scenario_id = self.controller.config.time_periods[0].emme_scenario_id
-        return self.emmebank.scenario(_ref_scenario_id)
+        if self.emmebank.scenario(_ref_scenario_id):
+            return self.emmebank.scenario(_ref_scenario_id)
+        return self.emmebank.scenario(1)
 
     @property
     def employment_df(self):

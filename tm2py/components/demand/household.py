@@ -144,12 +144,18 @@ class HouseholdModel(Component):
 
     def _run_resident_model(self):
         sample_rate_iteration_values = self.controller.config.household.sample_rate_iteration
-        if len(sample_rate_iteration_values) != self.controller.config.run.end_iteration - self.controller.config.run.start_iteration + 1:
-            raise Exception("The length of sample rate values does not match the number of iterations.")
-        
-        sample_rate_iteration = dict(zip(
-            range(self.controller.config.run.start_iteration, self.controller.config.run.end_iteration + 1), 
-            sample_rate_iteration_values))
+        if self.controller.config.run.start_iteration != 0:
+            if len(sample_rate_iteration_values) != self.controller.config.run.end_iteration - self.controller.config.run.start_iteration + 1:
+                raise Exception("The length of sample rate values does not match the number of iterations.")
+            sample_rate_iteration = dict(zip(
+                range(self.controller.config.run.start_iteration, self.controller.config.run.end_iteration + 1), 
+                sample_rate_iteration_values))
+        else:
+            if len(sample_rate_iteration_values) != self.controller.config.run.end_iteration - self.controller.config.run.start_iteration:
+                raise Exception("The length of sample rate values does not match the number of iterations.")
+            sample_rate_iteration = dict(zip(
+                range(self.controller.config.run.start_iteration + 1, self.controller.config.run.end_iteration + 1), 
+                sample_rate_iteration_values))
         
         iteration = self.controller.iteration
         sample_rate = sample_rate_iteration[iteration]

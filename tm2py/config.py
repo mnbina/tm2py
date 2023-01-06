@@ -809,7 +809,6 @@ class HighwayTollsConfig(ConfigItem):
     dst_vehicle_group_names: Tuple[str, ...] = Field()
     run_dynamic_toll: bool = Field(default=False)
     max_dynamic_valuetoll: float = Field()
-    bridetoll_file_path: pathlib.Path = Field()
 
     @validator("dst_vehicle_group_names", always=True)
     def dst_vehicle_group_names_length(value, values):
@@ -942,12 +941,13 @@ class ConvergenceReportConfig(ConfigItem):
     output_triptable_path: str = Field()
     output_skim_path: str = Field()
     selected_od_pair: Tuple[int, ...] = Field()
-    selected_links: Tuple[int, ...] = Field()
     ft_types: Tuple[int, ...] = Field()
     skim_selected_time_periods: Tuple[str, ...] = Field()
     output_network_attr_filename: str = Field()
     output_network_summary_filename: str = Field()
     summary_mode_group: Tuple[ConvergenceReportModeGroupConfig, ...] = Field()
+    selected_links: Dict[float, str] = Field()
+    
 
 
 @dataclass(frozen=True)
@@ -1165,7 +1165,7 @@ class TransitConfig(ConfigItem):
     initial_wait_perception_factor: float
     transfer_wait_perception_factor: float
     walk_perception_factor: float
-    #drive_perception_factor: float
+    drive_perception_factor: float
     
     max_transfers: int
     output_skim_path: pathlib.Path
