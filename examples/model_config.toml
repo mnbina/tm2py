@@ -82,7 +82,7 @@
         8 = 'knr'
         9 = 'RIDEHAIL'
 	[household.income_segment]
-        enabled = false
+        enabled = true
         segment_suffixes = ["LowInc", "MedInc", "HighInc", "XHighInc"]
         cutoffs = [0, 30000, 60000, 100000]
 
@@ -99,10 +99,10 @@
     [accessibility.formula_auto]
         # second element of list contains matrices to be transposed
         # formatted as a list of [mode name, time period]
-        "peak" = [[['da','AM']],
-            [['da', 'PM']]]
-        "offpeak" = [[['da','MD']],
-            [['da', 'MD']]]
+        "peak" = [[['dah','AM']],
+            [['dah', 'PM']]]
+        "offpeak" = [[['dah','MD']],
+            [['dah', 'MD']]]
         "prop" = 'TIME'
     [accessibility.formula_transit]
         "peak" = [[['wlk_trn_wlk','AM']],
@@ -882,11 +882,27 @@
 		output_triptable_path = "output_summaries/trip_tables_{iteration}.omx"
 		output_skim_path = "output_summaries/skims_{iteration}.omx"
 		selected_od_pair = [1,100]
-		selected_links = [5,10,15]
 		skim_selected_time_periods = ["am","pm"]
 		ft_types = [1,2,4,5,6]
 		output_network_attr_filename = "output_summaries/network_attrs_{iteration}.parquet"
 		output_network_summary_filename = "output_summaries/network_summary_{iteration}.csv"
+		
+		[highway.convergence.selected_links]
+			38545="Bay Bridge west span (eastbound)"
+			4166="Bay Bridge west span (westbound)"
+			3087470="I-80 corridor between Richmond and Oakland (southbound)"
+			3149662="I-80 corridor between Richmond and Oakland (northbound)"
+			4045624="I-80 corridor between Richmond and Oakland (southbound)"
+			4089555="I-80 corridor between Richmond and Oakland (northbound)"
+			3057003="580 between Pleasanton and Livermore (westbound)"
+			3160653="580 between Pleasanton and Livermore (eastbound)"
+			1034144="101 between SF and San Mateo County (southbound)"
+			1040116="101 between SF and San Mateo County (northbound)"
+			1048514="280 between SF and San Mateo County (southbound)"
+			1070169="280 between SF and San Mateo County (northbound)"
+			3055218="I-880 between hayward and fremont parallel to BART services (northbound)"
+			3004982="I-880 between hayward and fremont parallel to BART services (southbound)"
+		
 		[[highway.convergence.summary_mode_group]]
 			name = "KNR Transit"
 			modes = ["KNR_TRN_WLK", "WLK_TRN_KNR"]
@@ -904,7 +920,9 @@
 			modes = ["s2", "s3"]
 		[[highway.convergence.summary_mode_group]]
 			name = "Drive alone"
-			modes = ["da"]
+			modes = ["dah"]
+		
+		
 
 [transit]
     apply_msa_demand = false

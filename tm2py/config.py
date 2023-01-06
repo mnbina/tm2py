@@ -941,12 +941,13 @@ class ConvergenceReportConfig(ConfigItem):
     output_triptable_path: str = Field()
     output_skim_path: str = Field()
     selected_od_pair: Tuple[int, ...] = Field()
-    selected_links: Tuple[int, ...] = Field()
     ft_types: Tuple[int, ...] = Field()
     skim_selected_time_periods: Tuple[str, ...] = Field()
     output_network_attr_filename: str = Field()
     output_network_summary_filename: str = Field()
     summary_mode_group: Tuple[ConvergenceReportModeGroupConfig, ...] = Field()
+    selected_links: Dict[float, str] = Field()
+    
 
 
 @dataclass(frozen=True)
