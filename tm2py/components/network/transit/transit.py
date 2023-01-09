@@ -65,19 +65,24 @@ def calc_segment_cost(transit_volume, capacity, segment):
     if transit_volume <= 0:
         return 0.0
     line = segment.line
-    # need assignment period in seated_capacity calc?
-    seated_capacity = line.vehicle.seated_capacity * {0} * 60 / line.headway
-    num_seated = min(transit_volume, seated_capacity)
-    num_standing = max(transit_volume - seated_capacity, 0)
+    mode_char = line{1}
+    if mode_char == "p":
+        congestion = 0.15 * ((transit_volume / capacity) ** 4)
+    else:
+        # need assignment period in seated_capacity calc?
+        seated_capacity = line.vehicle.seated_capacity * {0} * 60 / line.headway
+        num_seated = min(transit_volume, seated_capacity)
+        num_standing = max(transit_volume - seated_capacity, 0)
 
-    vcr = transit_volume / capacity
-    crowded_factor = (((
-           (min_seat_weight+(max_seat_weight-min_seat_weight)*(vcr)**power_seat_weight)*num_seated
-           +(min_stand_weight+(max_stand_weight-min_stand_weight)*(vcr)**power_stand_weight)*num_standing
-           )/(transit_volume)))
+        vcr = transit_volume / capacity
+        crowded_factor = (((
+            (min_seat_weight+(max_seat_weight-min_seat_weight)*(vcr)**power_seat_weight)*num_seated
+            +(min_stand_weight+(max_stand_weight-min_stand_weight)*(vcr)**power_stand_weight)*num_standing
+            )/(transit_volume)))
+        congestion = max(crowded_factor, 1.0) - 1.0
 
     # Toronto implementation limited factor between 1.0 and 10.0
-    return max(crowded_factor, 1.0) - 1.0
+    return congestion
 """
 
 _headway_cost_function = """
@@ -897,7 +902,7 @@ class TransitAssignment(Component):
             # }
             func = {
                 "type": "CUSTOM",
-                "python_function": _segment_cost_function.format(period.length_hours),
+                "python_function": _segment_cost_function.format(period.length_hours, mode_attr),
                 "congestion_attribute": "us3",
                 "orig_func": False,
                 "assignment_period": period.length_hours,
