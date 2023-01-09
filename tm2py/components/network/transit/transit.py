@@ -152,16 +152,11 @@ class TransitAssignment(Component):
     @LogStartEnd("transit assignment and skims")
     def run(self):
         """Run transit assignment and skims."""
-        #project_path = os.path.join(self.root_dir, self.controller.config.emme.project_path)
-        #self._emme_manager = _emme_tools.EmmeManager()
-        # Initialize Emme desktop if not already started
-        #emme_app = self._emme_manager.project(project_path)
+        project_path = self.get_abs_path(self.controller.config.emme.project_path)
+        emme_app = self.controller.emme_manager.project(project_path)
         if not os.path.isabs(self.controller.config.emme.transit_database_path):
             emmebank_path = self.get_abs_path(self.controller.config.emme.transit_database_path)
         emmebank = self.controller.emme_manager.emmebank(emmebank_path)
-        #self._emme_manager.init_modeller(emme_app)
-        #emmebank_path = os.path.join(self.root_dir, self.controller.config.emme.transit_database_path)
-        #self._emmebank = emmebank = self._emme_manager.emmebank(emmebank_path)
         ref_scenario = emmebank.scenario(self.controller.config.time_periods[0].emme_scenario_id)
         period_names = [time.name for time in self.controller.config.time_periods]
         self.initialize_skim_matrices(period_names, ref_scenario)
@@ -181,20 +176,26 @@ class TransitAssignment(Component):
                 use_fares = self.controller.config.transit.use_fares
                 use_peaking_factor = self.controller.config.transit.use_peaking_factor           
                 
+                # update network before assignment
                 network = scenario.get_network()
+
                 self.update_auto_times(network, period)
                 if self.controller.config.transit.get("override_connector_times", False):
                     self.update_connector_times(scenario, network, period)
                 # TODO: could set attribute_values instead of full publish
 
-                self.update_pnr_penalty(network)
+                self.update_pnr_penalty(network, deflator=self.controller.config.transit.fare_2015_to_2000_deflator)
 
                 # peaking factor
                 if use_peaking_factor:
-                    if (period.name == 'am') and (ea_df is None):
+                    path_boardings = self.get_abs_path(self.controller.config.transit.output_transit_boardings_path)
+                    ea_df_path = path_boardings.format(period='ea_pnr')
+                    
+                    if (period.name == 'am') and (os.path.isfile(ea_df_path)==False):
                         raise Exception("run ea period first to account for the am peaking factor")
 
-                    if (period.name == 'am') and (ea_df is not None):
+                    if (period.name == 'am') and (os.path.isfile(ea_df_path)==True):
+                        ea_df = pd.read_csv(ea_df_path)
                         if scenario.extra_attribute("@orig_hdw") is None:
                             scenario.create_extra_attribute("TRANSIT_LINE", "@orig_hdw")
                         if "@orig_hdw" in network.attributes("TRANSIT_LINE"):
@@ -215,7 +216,7 @@ class TransitAssignment(Component):
                             else:
                                 ea_boardings = 0
 
-                            pnr_peaking_factor =(line_cap-ea_boardings)/line_cap
+                            pnr_peaking_factor =(line_cap-ea_boardings)/line_cap #substract ea boardings from am parking capacity
                             non_pnr_peaking_factor = self.controller.config.transit.am_peaking_factor
 
                             # in Emme transit assignment, the capacity is computed for each transit line as: 60 * assignment_period * vehicle.total_capacity / line.headway
@@ -224,7 +225,7 @@ class TransitAssignment(Component):
                             if pnr_peaking_factor>0:
                                 pnr_line_hdw = line_hdw/pnr_peaking_factor 
                             else:
-                                pnr_line_hdw = line_hdw  # 999  fix it later
+                                pnr_line_hdw = 999  # 999  fix it later
 
                             non_pnr_line_hdw = line_hdw/non_pnr_peaking_factor
 
@@ -268,15 +269,6 @@ class TransitAssignment(Component):
                 )
                 self.export_skims(period.name, scenario)
 
-                # if use_ccr and save_iter_flows:
-                #     self.save_per_iteration_flows(scenario)
-
-                # if output_transit_boardings:
-                #     desktop.data_explorer().replace_primary_scenario(scenario)
-                #     output_transit_boardings_file = _os.path.join(
-                #          _os.getcwd(), args.trn_path, "boardings_by_line_{}.csv".format(period))
-                #     export_boardings_by_line(emme_app, output_transit_boardings_file)
-
                 if (period.name == 'ea') and use_peaking_factor:
                     line_name=[]
                     boards=[]
@@ -294,8 +286,14 @@ class TransitAssignment(Component):
                     ea_df["boardings"]  = boards
                     ea_df["line_name_am"]  = ea_df["line_name"].str.replace('EA','AM')
 
+                    path_boardings = self.get_abs_path(self.controller.config.transit.output_transit_boardings_path)
+                    ea_df.to_csv(path_boardings.format(period='ea_pnr'), index=False)
+       
                 if self.controller.config.transit.get("output_transit_boardings_path"):
                     self.export_boardings_by_line(scenario, period, use_fares)
+                if self.controller.config.transit.get("output_shapefile_path"):
+                    emme_app.data_explorer().replace_primary_scenario(scenario)
+                    self.export_segment_shapefile(emme_app, period)
                 if self.controller.config.transit.get("output_stop_usage_path"):
                     self.export_connector_flows(scenario, period)
 
@@ -331,7 +329,7 @@ class TransitAssignment(Component):
                 auto_time = auto_link.auto_time
                 area_type = auto_link['@area_type']
                 if auto_time > 0:
-                    # work in progress https://github.com/BayAreaMetro/travel-model-one/blob/master/model-files/scripts/skims/PrepHwyNet.job#L106
+                    # https://github.com/BayAreaMetro/travel-model-one/blob/master/model-files/scripts/skims/PrepHwyNet.job#L106
                     tran_speed = 60 * tran_link.length/auto_time
                     if (tran_link['@ft']<=4 or tran_link['@ft']==8) and (tran_speed<6):
                         tran_speed = 6
@@ -341,8 +339,8 @@ class TransitAssignment(Component):
                         tran_link["@trantime"] = 60 * tran_link.length/tran_speed
                     else:
                         tran_link["@trantime"] = auto_time
-                    tran_link.data1 = tran_link["@trantime"]
-                # TODO: add bus time calculation below
+                    tran_link.data1 = tran_link["@trantime"] # used in Mixed-Mode transit assigment
+                # add bus time calculation below
                     if tran_link["@ft"] in [1,2,3,8]:
                         delayfactor = 0.0
                     else:
@@ -362,20 +360,23 @@ class TransitAssignment(Component):
             if segment['@schedule_time'] <= 0 and segment.link is not None:
                 segment.data1 = segment["@trantime_seg"] = segment.link["@trantime"]
 
-
-    def update_pnr_penalty(self, network):
+    def update_pnr_penalty(self, network, deflator):
         for segment in network.transit_segments():
             if "BART_acc" in segment.id:
                 if "West Oakland" in segment.id:
-                    segment["@board_cost"] = 12.4*(180.20/258.27) # 2015 to 2000 delfator
+                    segment["@board_cost"] = 12.4*deflator
+                elif "Glen Park" in segment.id:
+                    segment["@board_cost"] = 13.0*deflator
+                elif "Lake Merritt" in segment.id:
+                    segment["@board_cost"] = 11.0*deflator
+                elif "San Bruno" in segment.id:
+                    segment["@board_cost"] = 4.5*deflator
+                elif "Fruitvale" in segment.id:
+                    segment["@board_cost"] = 4.5*deflator             
                 else:
-                    segment["@board_cost"] = 3.0*(180.20/258.27)
+                    segment["@board_cost"] = 3.0*deflator
             elif "Caltrain_acc" in segment.id:
-                segment["@board_cost"] = 5.5*(180.20/258.27)
-            # else:  # already used deflated fare inputs
-            #     segment["@board_cost"] = segment["@board_cost"]*(180.20/258.27)
-            #     segment["@invehicle_cost"] = segment["@invehicle_cost"]*(180.20/258.27)
-
+                segment["@board_cost"] = 5.5*deflator
 
     def update_connector_times(self, scenario, network, period):
         params = self.controller.config.transit
@@ -387,7 +388,6 @@ class TransitAssignment(Component):
             if attr_name in network.attributes("LINK"):
                 network.delete_attribute("LINK", attr_name)
             network.create_attribute("LINK", attr_name, 9999)
-        period_name = period.name.lower()
 
         for link in network.links():
             if link.modes.intersection(set([network.mode('a'), network.mode('e')])):
@@ -399,42 +399,6 @@ class TransitAssignment(Component):
             else:
                 link['@access_pfactor'] = 1
 
-        # lookup adjacent real stop to account for connector splitting
-        # connectors = _defaultdict(lambda: {})
-        # for zone in network.centroids():
-        #     taz_id = int(zone["@taz_id"])
-        #     for link in zone.outgoing_links():
-        #         stop_id = int(link.j_node["#node_id"])
-        #         connectors[taz_id][stop_id] = link
-        #     for link in zone.incoming_links():
-        #         stop_id = int(link.i_node["#node_id"])
-        #         connectors[stop_id][taz_id] = link
-        # with open(os.path.join(self.root_dir, self.controller.config.transit.input_connector_access_times_path), 'r') as f:
-        #     header = [x.strip() for x in next(f).split(",")]
-        #     for line in f:
-        #         tokens = line.split(",")
-        #         data = dict(zip(header, tokens))
-        #         if data["time_period"].lower() == period_name:
-        #             taz = int(data["from_taz"])
-        #             stop = int(data["to_stop"])
-        #             connector = connectors[taz][stop]
-        #             attr_name = connector_attrs[int(data["skim_set"])]
-        #             connector[attr_name] = float(data["est_walk_min"])
-        # with open(os.path.join(self.root_dir, self.controller.config.transit.input_connector_egress_times_path), 'r') as f:
-        #     header = [x.strip() for x in next(f).split(",")]
-        #     for line in f:
-        #         tokens = line.split(",")
-        #         data = dict(zip(header, tokens))
-        #         if data["time_period"].lower() == period_name:
-        #             taz = int(data["to_taz"])
-        #             stop = int(data["from_stop"])
-        #             connector = connectors[stop][taz]
-        #             attr_name = connector_attrs[int(data["skim_set"])]
-        #             connector[attr_name] = float(data["est_walk_min"])
-        # NOTE: publish in calling setup function ...
-        # attrs = connector_attrs.values()
-        # values = network.get_attribute_values("LINK", attrs)
-        # scenario.set_attribute_values("LINK", attrs, values)
 
     @LogStartEnd("initialize matrices")
     def initialize_skim_matrices(self, time_periods, scenario):
@@ -687,7 +651,7 @@ class TransitAssignment(Component):
             "demand": "",  # demand matrix specified below
             "waiting_time": {
                 "effective_headways": params["effective_headway_source"],
-                "headway_fraction": 0.5,
+                "headway_fraction": "@hdw_fraction",
                 "perception_factor": params["initial_wait_perception_factor"],
                 "spread_factor": 1.0,
             },
@@ -739,30 +703,6 @@ class TransitAssignment(Component):
 
             all_modes = get_fare_modes(mode_types["TRN"])
             project_dir = os.path.dirname(os.path.dirname(scenario.emmebank.path))
-            # with open(
-            #         os.path.join(
-            #             project_dir, "Specifications", "%s_ALLPEN_journey_levels.ems" % period.name
-            #         ),
-            #         "r",
-            # ) as f:
-            #     journey_levels = _json.load(f)["journey_levels"]
-            # # add transfer wait perception penalty
-            # for jls in [journey_levels]:
-            #     for level in jls[1:]:
-            #         level["waiting_time"] = {
-            #             "headway_fraction": 0.5,
-            #             "effective_headways": params["effective_headway_source"],
-            #             "spread_factor": 1,
-            #             "perception_factor": params["transfer_wait_perception_factor"]
-            #         }
-            #         # if params.get("transfer_boarding_penalty", False): 
-            #         level["boarding_time"] = {"on_lines": {
-            #             "penalty": "@xboard_penalty", "perception_factor": 1}
-            #         }
-            #     # add in the correct value of time parameter
-            #     for level in jls:
-            #         if level["boarding_cost"]:
-            #             level["boarding_cost"]["on_segments"]["perception_factor"] = fare_perception
 
             PNR_TRN_WLK_journey_levels = update_journey_levels_with_fare(
                 project_dir, 
@@ -808,6 +748,11 @@ class TransitAssignment(Component):
                 params["transfer_wait_perception_factor"],
                 "@xboard_penalty"
             )
+            WLK_TRN_WLK_journey_levels = journey_levels
+            PNR_TRN_WLK_journey_levels = journey_levels
+            WLK_TRN_PNR_journey_levels = journey_levels
+            KNR_TRN_WLK_journey_levels = journey_levels
+            WLK_TRN_KNR_journey_levels = journey_levels
             mode_attr = ".mode.mode_id"
         print(all_modes)
         skim_parameters = OrderedDict(
@@ -1442,6 +1387,52 @@ class TransitAssignment(Component):
                                                 ]]))
                 f.write("\n")
 
+    def export_segment_shapefile(self, emme_app, period):
+        project = emme_app.project
+        path_shapefile = self.get_abs_path(self.controller.config.transit.output_shapefile_path)
+        table = project.new_network_table("TRANSIT_SEGMENT")
+        column = _worksheet.Column()
+        column_names = {'line':'line',
+                        'i':'i_node',
+                        'j':'j_node',
+                        'length':'length',
+                        'dwt':'dwt',
+                        'ttf':'ttf',
+                        'voltr':'voltr',
+                        'board':'board',
+                        'timtr':'con_time',
+                        '@trantime_seg':'uncon_time',
+                        'mode':'mode',
+                        'mdesc':'mdesc',
+                        'hdw':'hdw',
+                        '@orig_hdw':'orig_hdw',
+                        'speed':'speed',
+                        'vmode':'vehmode',
+                        'vauteq':'vauteq',
+                        'vcaps':'vcaps',
+                        'vcapt':'vcapt',
+                        'caps':'caps',
+                        'capt':'capt',
+                        'inboa':'inboa',
+                        'fiali':'fiali',
+                        '#link_id':'#link_id',
+                        '@aux_vol_pnr_trn_wlk':'aux_ptw',
+                        '@aux_vol_wlk_trn_pnr':'aux_wtp',
+                        '@aux_vol_knr_trn_wlk':'aux_ktw',
+                        '@aux_vol_wlk_trn_knr':'aux_wtk',
+                        '@aux_vol_wlk_trn_wlk':'aux_wtw',
+                        }
+        i = 0
+        for key, item in column_names.items():
+            column.expression = key
+            column.name = item
+            table.add_column(i, column)
+            i += 1
+        seg_dt = table.save_as_data_table(f"{period.name}_assn", overwrite=True)
+        seg_data = seg_dt.get_data()
+        seg_data.export_to_shapefile(path_shapefile.format(period=period.name), overwrite=True)
+        table.close()
+
     def export_connector_flows(self, scenario, period):
         # export boardings and alightings by stop (connector) and TAZ
         modeller = self.controller.emme_manager.modeller()
@@ -1670,13 +1661,16 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_percep
 
         for level in new_journey_levels[2:-1]:
             level["waiting_time"] = {
-                "headway_fraction": 0.5,
+                "headway_fraction": "@hdw_fraction",
                 "effective_headways": params["effective_headway_source"],
                 "spread_factor": 1,
-                "perception_factor": params["transfer_wait_perception_factor"]
+                "perception_factor": "@wait_pfactor"
             }
-            level["boarding_time"] = {"on_lines": {
-                "penalty": "@xboard_penalty", "perception_factor": 1}
+            level["boarding_time"] = {
+            "on_lines": {
+                "penalty": "@xboard_penalty", "perception_factor": 1},
+            "at_nodes": {
+                "penalty": "@xboard_nodepen", "perception_factor": 1}, 
             }
         # add in the correct value of time parameter
         for level in new_journey_levels:
@@ -1772,13 +1766,16 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_percep
 
         for level in new_journey_levels[1:-2]:
             level["waiting_time"] = {
-                "headway_fraction": 0.5,
+                "headway_fraction": "@hdw_fraction",
                 "effective_headways": params["effective_headway_source"],
                 "spread_factor": 1,
-                "perception_factor": params["transfer_wait_perception_factor"]
+                "perception_factor": "@wait_pfactor"
             }
-            level["boarding_time"] = {"on_lines": {
-                "penalty": "@xboard_penalty", "perception_factor": 1}
+            level["boarding_time"] = {
+            "on_lines": {
+                "penalty": "@xboard_penalty", "perception_factor": 1},
+            "at_nodes": {
+                "penalty": "@xboard_nodepen", "perception_factor": 1}, 
             }
         # add in the correct value of time parameter
         for level in new_journey_levels:
@@ -1879,13 +1876,16 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_percep
 
         for level in new_journey_levels[2:-1]:
             level["waiting_time"] = {
-                "headway_fraction": 0.5,
+                "headway_fraction": "@hdw_fraction",
                 "effective_headways": params["effective_headway_source"],
                 "spread_factor": 1,
-                "perception_factor": params["transfer_wait_perception_factor"]
+                "perception_factor": "@wait_pfactor"
             }
-            level["boarding_time"] = {"on_lines": {
-                "penalty": "@xboard_penalty", "perception_factor": 1}
+            level["boarding_time"] = {
+            "on_lines": {
+                "penalty": "@xboard_penalty", "perception_factor": 1},
+            "at_nodes": {
+                "penalty": "@xboard_nodepen", "perception_factor": 1}, 
             }
         # add in the correct value of time parameter
         for level in new_journey_levels:
@@ -1984,13 +1984,16 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_percep
 
         for level in new_journey_levels[1:-2]:
             level["waiting_time"] = {
-                "headway_fraction": 0.5,
+                "headway_fraction": "@hdw_fraction",
                 "effective_headways": params["effective_headway_source"],
                 "spread_factor": 1,
-                "perception_factor": params["transfer_wait_perception_factor"]
+                "perception_factor": "@wait_pfactor"
             }
-            level["boarding_time"] = {"on_lines": {
-                "penalty": "@xboard_penalty", "perception_factor": 1}
+            level["boarding_time"] = {
+            "on_lines": {
+                "penalty": "@xboard_penalty", "perception_factor": 1},
+            "at_nodes": {
+                "penalty": "@xboard_nodepen", "perception_factor": 1}, 
             }
         # add in the correct value of time parameter
         for level in new_journey_levels:
@@ -2014,13 +2017,16 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_percep
 
         for level in new_journey_levels[1:]:
             level["waiting_time"] = {
-                "headway_fraction": 0.5,
+                "headway_fraction": "@hdw_fraction",
                 "effective_headways": params["effective_headway_source"],
                 "spread_factor": 1,
-                "perception_factor": params["transfer_wait_perception_factor"]
+                "perception_factor": "@wait_pfactor"
             }
-            level["boarding_time"] = {"on_lines": {
-                "penalty": "@xboard_penalty", "perception_factor": 1}
+            level["boarding_time"] = {
+            "on_lines": {
+                "penalty": "@xboard_penalty", "perception_factor": 1},
+            "at_nodes": {
+                "penalty": "@xboard_nodepen", "perception_factor": 1}, 
             }
         # add in the correct value of time parameter
         for level in new_journey_levels:

@@ -1100,6 +1100,8 @@ class TransitModeConfig(ConfigItem):
     speed_miles_per_hour: Optional[str] = Field(default="")
     initial_boarding_penalty: Optional[float] = Field(default=None, ge=0)
     transfer_boarding_penalty: Optional[float] = Field(default=None, ge=0)
+    headway_fraction: Optional[float] = Field(default=None, ge=0)
+    transfer_wait_perception_factor: Optional[float] = Field(default=None, ge=0)
 
     @validator("in_vehicle_perception_factor", always=True)
     def in_vehicle_perception_factor_valid(value, values):
@@ -1125,6 +1127,20 @@ class TransitModeConfig(ConfigItem):
     @validator("transfer_boarding_penalty", always=True)
     def transfer_boarding_penalty_valid(value, values):
         """Validate transfer_boarding_penalty exists if assign_type is TRANSIT."""
+        if "assign_type" in values and values["assign_type"] == "TRANSIT":
+            assert value is not None, "must be specified when assign_type==TRANSIT"
+        return value
+
+    @validator("headway_fraction", always=True)
+    def headway_fraction_valid(value, values):
+        """Validate headway_fraction exists if assign_type is TRANSIT."""
+        if "assign_type" in values and values["assign_type"] == "TRANSIT":
+            assert value is not None, "must be specified when assign_type==TRANSIT"
+        return value
+
+    @validator("transfer_wait_perception_factor", always=True)
+    def transfer_wait_perception_factor_valid(value, values):
+        """Validate transfer_wait_perception_factor exists if assign_type is TRANSIT."""
         if "assign_type" in values and values["assign_type"] == "TRANSIT":
             assert value is not None, "must be specified when assign_type==TRANSIT"
         return value
@@ -1173,6 +1189,7 @@ class TransitConfig(ConfigItem):
     fare_matrix_path: pathlib.Path
     fare_max_transfer_distance_miles: float
     use_fares: bool
+    fare_2015_to_2000_deflator: float
     override_connectors: bool
     override_connector_times: bool
     initial_boarding_penalty: Optional[float] = Field(default=None, ge=0)
@@ -1183,6 +1200,7 @@ class TransitConfig(ConfigItem):
     output_skim_filename_tmpl: str = Field()
     output_skim_matrixname_tmpl: str = Field()
     output_transit_boardings_path: str = Field()
+    output_shapefile_path: str = Field()
     classes: Tuple[TransitClassConfig, ...] = Field()
     use_ccr: bool = False
     congested_transit_assignment: bool = False
