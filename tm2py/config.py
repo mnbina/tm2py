@@ -102,6 +102,7 @@ class RunConfig(ConfigItem):
     start_iteration: int = Field(ge=0)
     end_iteration: int = Field(gt=0)
     start_component: Optional[Union[ComponentNames, EmptyString]] = Field(default="")
+    warmstart: Optional[bool] = Field(default=False)
     warmstart_check: Optional[bool] = Field(default=False)
 
     @validator("end_iteration", allow_reuse=True)
@@ -255,9 +256,9 @@ class TimeOfDayConfig(ConfigItem):
 class HouseholdConfig(ConfigItem):
     """Household (residents) model parameters."""
 
-    highway_demand_file: pathlib.Path
-    transit_demand_file: pathlib.Path
-    active_demand_file: pathlib.Path
+    highway_demand_file: str
+    transit_demand_file: str
+    active_demand_file: str
     ctramp_run_dir: pathlib.Path
     host_ip_address: str
     sample_rate_iteration: list

@@ -234,7 +234,7 @@ class RunController:
         Iterates through the self._queued_components and runs them.
         """
         self._iteration = None
-        if self.config.run.start_iteration > 1 and self.config.run.warmstart_check:
+        if self.config.run.start_iteration > 1 and self.config.run.warmstart and self.config.run.warmstart_check:
             self.warmstart_check()
         while self._queued_components:
             self.run_next()
@@ -374,43 +374,24 @@ class RunController:
     
     def warmstart_check(self):
         """
-        Check if required input files and folders exist before running the components.
+        Check if required warmstart demand files and folders exist before running the components.
         """
-        _run_components = set(self.config.run.initial_components) | set(self.config.run.global_iteration_components) | set(self.config.run.final_components)
+        _run_components = [comp[1] for comp in self._queued_components]
         
-        if 'create_tod_scenarios' in _run_components:
-            _config_type = 'emme'
-            _config = self.config.getattr(_config_type)
-            path_keys = ['project_path', 'highway_database_path', 'transit_database_path']
-            for path_key in path_keys:
-                path = _config.getattr(path_key)
-                if not os.path.exists(self.get_abs_path(path)):
-                    raise ValueError(f'Missing input for component create_tod_scenarios: {_config_type}.{path_key}')
+        if 'highway' in _run_components:
+            for time_period in self.time_period_names:
+                if not os.path.exists(self.get_abs_path(self.config.household.highway_demand_file.format(period = time_period))):
+                    raise ValueError(f'Missing input for component highway: household.highway_demand_file during time period {time_period}')  
+                if not os.path.exists(self.get_abs_path(self.config.air_passenger.highway_demand_file.format(period = time_period))):
+                    raise ValueError(f'Missing input for component highway: air_passenger.highway_demand_file during time period {time_period}')  
+                if not os.path.exists(self.get_abs_path(self.config.internal_external.highway_demand_file.format(period = time_period))):
+                    raise ValueError(f'Missing input for component highway: air_passenger.highway_demand_file during time period {time_period}')  
         
-        if 'prepare_network_highway' in _run_components:
-            _config_type = 'emme'
-            _config = self.config.getattr(_config_type)
-            path_keys = ['project_path', 'highway_database_path']
-            for path_key in path_keys:
-                path = _config.getattr(path_key)
-                if not os.path.exists(self.get_abs_path(path)):
-                    raise ValueError(f'Missing input for component prepare_network_highway: {_config_type}.{path_key}')
-                    
-        if 'prepare_network_transit' in _run_components:
-            _config_type = 'emme'
-            _config = self.config.getattr(_config_type)
-            path_keys = ['project_path', 'highway_database_path']
-            for path_key in path_keys:
-                path = _config.getattr(path_key)
-                if not os.path.exists(self.get_abs_path(path)):
-                    raise ValueError(f'Missing input for component prepare_network_transit: {_config_type}.{path_key}')
-                    
-        if 'household' in _run_components:
-            self.config.household.ctramp_run_dir
-            if not os.path.exists(self.config.household.ctramp_run_dir):
-                raise ValueError(f'Missing input for component household: household.ctramp_run_dir')        
+        if 'transit' in _run_components:
+            for time_period in self.time_period_names:
+                if not os.path.exists(self.get_abs_path(self.config.household.transit_demand_file.format(period = time_period))):
+                    raise ValueError(f'Missing input for component transit: household.transit_demand_file during time period {time_period}')  
+
             
-            # Skims need to exist in either the CT-RAMP directory or the examples folders
-            
-        #TODO: highway, transit (requiring Emme project, demand matrices); truck (requiring input factors, highway skims); home_accessibility (requiring highway, transit, active skims)
+        #TODO: highway, transit (requiring Emme project); truck (requiring input factors, highway skims); home_accessibility (requiring highway, transit, active skims)
         #TODO: make sure to check skim file names with time periods filled in
