@@ -1435,7 +1435,10 @@ class TransitAssignment(Component):
             i += 1
         seg_dt = table.save_as_data_table(f"{period.name}_assn", overwrite=True)
         seg_data = seg_dt.get_data()
-        seg_data.export_to_shapefile(path_shapefile.format(period=period.name), overwrite=True)
+        filelist = [f for f in os.listdir(os.path.join(path_shapefile.format(period=period.name), "..")) if f.startswith(f"{period.name}_assn")]
+        for f in filelist:
+            os.remove(os.path.join(path_shapefile.format(period=period.name), "..", f))
+        seg_data.export_to_shapefile(path_shapefile.format(period=period.name))
         table.close()
 
     def export_connector_flows(self, scenario, period):
