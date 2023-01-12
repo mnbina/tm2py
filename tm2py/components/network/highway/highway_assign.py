@@ -254,7 +254,7 @@ class HighwayAssignment(Component):
         write_iteration_flow = self.controller.config.highway.msa.write_iteration_flow
         net_calc = NetworkCalculator(scenario)
 
-        if iteration == 1 or self.controller.config.run.warmstart: 
+        if iteration == 1 or ( (iteration == 0) & self.controller.config.run.warmstart): 
             # carry over current flow to the averaged flow attribute
             net_calc("@total_flow_avg", "@total_flow")
             for assign_class in self.config.classes:
