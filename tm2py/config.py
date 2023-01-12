@@ -808,6 +808,9 @@ class HighwayTollsConfig(ConfigItem):
     src_vehicle_group_names: Tuple[str, ...] = Field()
     dst_vehicle_group_names: Tuple[str, ...] = Field()
     run_dynamic_toll: bool = Field(default=False)
+    dynamic_toll_inner_iter: int = Field()
+    valuetoll_increment: float = Field()
+    output_valuetoll_path: str = Field()
     max_dynamic_valuetoll: float = Field()
 
     @validator("dst_vehicle_group_names", always=True)

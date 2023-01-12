@@ -588,11 +588,14 @@
         # to toll specific links (each link with a different toll needs a different TOLLBOOTH code).
         valuetoll_start_tollbooth_code = 11
         # temporary settings for dynamic tolling
-        run_dynamic_toll = false
+        run_dynamic_toll = true
+        dynamic_toll_inner_iter = 20
+        valuetoll_increment = 0.25
         max_dynamic_valuetoll = 0.5
+        output_valuetoll_path = "dynamic_valuetolls/"
 
     [highway.msa]
-        apply_msa = false
+        apply_msa = true
         write_iteration_flow = false
         # weights for calculating average volume (parameters are from TM1.5 RunModel.bat)
         # value at index 0 is wgt for iteration 0

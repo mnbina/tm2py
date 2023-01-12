@@ -72,8 +72,6 @@ class PrepareNetwork(Component):
     @LogStartEnd("Prepare network attributes and modes")
     def run(self):
         """Run network preparation step."""
-        self.dynamic_toll_change = 0
-
         for time in self.time_period_names:
             with self.controller.emme_manager.logbook_trace(
                 f"prepare for highway assignment {time}"
@@ -81,23 +79,14 @@ class PrepareNetwork(Component):
                 scenario = self.get_emme_scenario(
                     self.controller.config.emme.highway_database_path, time
                 )
-                if self.controller.iteration == 0 and self.controller._dynamic_toll_iter == 0: # only do this in the 1st iteration, otherwise attribute values will be reset
-                    self._create_class_attributes(scenario, time)
+                self._create_class_attributes(scenario, time)
                 network = scenario.get_network()
                 self._set_tolls(network, time)
                 self._set_vdf_attributes(network, time)
                 self._set_link_modes(network)
                 self._calc_link_skim_lengths(network)
                 self._calc_link_class_costs(network)
-                self._calc_total_flow(network)
                 scenario.publish_network(network)
-
-        if self.controller.config.highway.tolls.run_dynamic_toll:
-            # accumulate dynamic toll iteration
-            if (self.controller._dynamic_toll_iter > 0) and (not self.dynamic_toll_change):
-                self.controller._stop_dynamic_toll = True
-            if not self.controller._stop_dynamic_toll:
-                self.controller._dynamic_toll_iter += 1
 
     def validate_inputs(self):
         """Validate inputs files are correct, raise if an error is found."""
@@ -142,12 +131,21 @@ class PrepareNetwork(Component):
             ]
         }
 
-        if self.controller.config.highway.msa.apply_msa or self.config.tolls.run_dynamic_toll:
+        if self.config.tolls.run_dynamic_toll: 
+            # cover cases when:
+            # (1) only dynamic_toll=True 
+            # (2) when both dynamic_tolling and apply_msa are True
             attributes["LINK"].extend([
                 ("@total_flow", "total traffic flow"),
-                ("@vc", "volume to capacity ratio")
+                ("@vc", "volume to capacity ratio"),
+                ("@update_dynamic_toll", "need to update dynamic toll or not")
+            ])
+        elif self.controller.config.highway.msa.apply_msa: # if dynamic_tolling=False but apply_msa=True
+            attributes["LINK"].extend([
+                ("@total_flow", "total traffic flow")
             ])
 
+        # add avg volume attributes
         if self.controller.config.highway.msa.apply_msa:
             attributes["LINK"].extend([
                     ("@total_flow_avg", "average total traffic flow"),
@@ -155,11 +153,6 @@ class PrepareNetwork(Component):
             if self.controller.config.highway.msa.write_iteration_flow:
                 for iteration in range(1, self.controller.config.run.end_iteration + 1):
                     attributes["LINK"].append((f"@total_flow_{iteration}", f"total traffic flow iter{iteration}"))
-
-        if self.config.tolls.run_dynamic_toll:
-            attributes["LINK"].extend([
-                ("@update_dynamic_toll", "need to update dynamic toll or not")
-            ])
 
         # toll field attributes by bridge and value and toll definition
         dst_veh_groups = self.config.tolls.dst_vehicle_group_names
@@ -193,14 +186,6 @@ class PrepareNetwork(Component):
                     f'{time_period} {assign_class["description"]} link avg volume'[:40],
                 )
             )
-            if self.controller.config.highway.msa.write_iteration_flow:
-                for iteration in range(1, self.controller.config.run.end_iteration + 1):
-                    attributes["LINK"].append(
-                        (
-                            f"@flow_{assign_class.name.lower()}_{iteration}",
-                            f'{time_period} {assign_class["description"]} link volume{iteration}'[:40],
-                        )
-                    )
 
         for domain, attrs in attributes.items():
             for name, desc in attrs:
@@ -214,63 +199,15 @@ class PrepareNetwork(Component):
         run_dynamic_toll = self.config.tolls.run_dynamic_toll
 
         if run_dynamic_toll:
-            # if using dynamic tolling method, only read in bridge tolls
-            toll_index = self._get_toll_indices(toll_file_path = self.get_abs_path(self.config.tolls.bridgetoll_file_path))
-            global_iteration = self.controller.iteration
-            self.logger.log(f"current global iter: {global_iteration}, dynamic toll iter: {self.controller._dynamic_toll_iter}")
+            toll_file_path = self.config.tolls.bridgetoll_file_path
+        else:
+            toll_file_path = self.config.tolls.file_path
 
-            # set up initial state
-            if global_iteration == 0 and self.controller._dynamic_toll_iter == 0:
-                for link in network.links():
-                    if link["@tollbooth"]:
-                        if link["@tollbooth"] < valuetoll_start_tollbooth_code:  # bridge toll is fixed using lookup
-                            index = int(
-                                link["@tollbooth"] * 1000
-                                + link["@tollseg"] * 10
-                                + link["@useclass"]
-                            )
-                            data_row = toll_index.get(index)
-                            if data_row is None:
-                                self.logger.warn(
-                                    f"set tolls failed index lookup {index}, link {link.id}",
-                                    indent=True,
-                                )
-                                continue  # tolls will remain at zero
-                            for src_veh, dst_veh in zip(src_veh_groups, dst_veh_groups):
-                                link[f"@bridgetoll_{dst_veh}"] = (
-                                    float(data_row[f"toll{time_period.lower()}_{src_veh}"]) * 100
-                                )
-                        else: # initialize valuetoll to 0
-                            link["@update_dynamic_toll"] = 1 # flag the link indicates that toll rate should be updated
-                            for src_veh, dst_veh in zip(src_veh_groups, dst_veh_groups):
-                                link[f"@valuetoll_{dst_veh}"] = 0
-
-            # update valuetoll rates dynamically in later iterations
-            else:
-                # TODO: consider having different increment value by veh class
-                VALUETOLL_INCREMENT = 0.25
-                max_dynamic_valuetoll = self.config.tolls.max_dynamic_valuetoll
-                for link in network.links():
-                    if link["@tollbooth"] > 0 and link["@tollbooth"] >= valuetoll_start_tollbooth_code: # only update tolls for valuetoll links
-                        if link["@vc"] > 1 and link["@update_dynamic_toll"] == 1:
-                            self.dynamic_toll_change += 1
-                            increase_ratio = round(link["@vc"])
-                            for src_veh, dst_veh in zip(src_veh_groups, dst_veh_groups): # tollway with a per-mile charge
-                                # calculate per-mile charge
-                                valuetoll_per_mile = (link[f"@valuetoll_{dst_veh}"] / link.length) / 100
-                                # updated valuetoll
-                                increased_valuetoll = valuetoll_per_mile + VALUETOLL_INCREMENT * increase_ratio
-                                if increased_valuetoll > max_dynamic_valuetoll:
-                                    link[f"@valuetoll_{dst_veh}"] = (max_dynamic_valuetoll * link.length * 100)
-                                    link["@update_dynamic_toll"] = 0 # set link update_dynamic_toll to 0
-                                else:
-                                    link[f"@valuetoll_{dst_veh}"] = (increased_valuetoll * link.length * 100)
-
-        else: # if run_dynamic_toll is False
-            # use lookup table that contains both bridge & value tolls
-            toll_index = self._get_toll_indices(toll_file_path = self.get_abs_path(self.config.tolls.file_path))
+        if self.controller.iteration == 0:
+            toll_index = self._get_toll_indices(toll_file_path = self.get_abs_path(toll_file_path))
             for link in network.links():
-                if link["@tollbooth"]:
+                # set bridgetoll
+                if link["@tollbooth"] > 0 and link["@tollbooth"] < valuetoll_start_tollbooth_code:
                     index = int(
                         link["@tollbooth"] * 1000
                         + link["@tollseg"] * 10
@@ -283,20 +220,40 @@ class PrepareNetwork(Component):
                             indent=True,
                         )
                         continue  # tolls will remain at zero
-                    # if index is below tollbooth start index then this is a bridge
-                    # (point toll), available for all traffic assignment classes
-                    if link["@tollbooth"] < valuetoll_start_tollbooth_code:
+                    for src_veh, dst_veh in zip(src_veh_groups, dst_veh_groups):
+                        link[f"@bridgetoll_{dst_veh}"] = (
+                            float(data_row[f"toll{time_period.lower()}_{src_veh}"]) * 100
+                        )
+                # set valuetoll
+                elif link["@tollbooth"] >= valuetoll_start_tollbooth_code:
+                    if run_dynamic_toll: # initialize valuetoll to 0
                         for src_veh, dst_veh in zip(src_veh_groups, dst_veh_groups):
-                            link[f"@bridgetoll_{dst_veh}"] = (
-                                float(data_row[f"toll{time_period.lower()}_{src_veh}"]) * 100
-                            )
-                    else:  # else, this is a tollway with a per-mile charge
+                            link[f"@valuetoll_{dst_veh}"] = 0
+                    else: # if not running dynamic toll, set per-mile valuetoll based on lookup
                         for src_veh, dst_veh in zip(src_veh_groups, dst_veh_groups):
                             link[f"@valuetoll_{dst_veh}"] = (
                                 float(data_row[f"toll{time_period.lower()}_{src_veh}"])
                                 * link.length
                                 * 100
                             )
+        else: # note: for global iteration >= 1, `set_toll` will only be called when valuetoll for some links need to be updated
+            assert run_dynamic_toll == True, "in global iteration>=1, `set_toll` should only be called when run_dynamic_toll is True"
+            # update valuetoll for links flagged by @update_dynamic_toll==1
+            valuetoll_increment = self.config.tolls.valuetoll_increment
+            max_dynamic_valuetoll = self.config.tolls.max_dynamic_valuetoll
+            for link in network.links():
+                if link["@tollbooth"] >= valuetoll_start_tollbooth_code and link["@update_dynamic_toll"] == 1:
+                    assert link["@vc"] > 1, "update_dynamic_toll should be 0 if vc <= 1"
+                    increment_steps = round(link["@vc"])
+                    for dst_veh in dst_veh_groups:
+                        valuetoll_per_mile = (link[f"@valuetoll_{dst_veh}"] / link.length) / 100  # calculate per-mile charge
+                        # updated valuetoll (capped by max_dynamic_valuetoll)
+                        increased_valuetoll = valuetoll_per_mile + valuetoll_increment * increment_steps
+                        if increased_valuetoll > max_dynamic_valuetoll:
+                            link[f"@valuetoll_{dst_veh}"] = (max_dynamic_valuetoll * link.length * 100)
+                        else:
+                            link[f"@valuetoll_{dst_veh}"] = (increased_valuetoll * link.length * 100)
+
 
     def _get_toll_indices(self, toll_file_path: str) -> Dict[int, Dict[str, str]]:
         """Get the mapping of toll lookup table from the toll reference file."""
@@ -340,11 +297,6 @@ class PrepareNetwork(Component):
                 t_o = dist / link["@free_flow_speed"]
                 link["@ja"] = 16 * (t_c - t_o) ** 2
 
-    def _calc_total_flow(self, network: EmmeNetwork):
-        for link in network.links():
-            link["@total_flow"] = 0
-            for assign_class in self.config.classes:
-                link["@total_flow"] += link[f"@flow_{assign_class.name.lower()}"]
 
     def _set_link_modes(self, network: EmmeNetwork):
         """Set the link modes based on the per-class 'excluded_links' set."""
