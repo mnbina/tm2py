@@ -23,6 +23,7 @@ from io import RawIOBase
 from multiprocessing.sharedctypes import Value
 from pathlib import Path
 from typing import Any, Collection, Dict, List, Tuple, Union
+import shutil
 
 from tm2py.components.access import HomeAccessibility
 from tm2py.components.component import Component
@@ -234,11 +235,39 @@ class RunController:
         Iterates through the self._queued_components and runs them.
         """
         self._iteration = None
-        if self.config.run.start_iteration > 1 and self.config.run.warmstart and self.config.run.warmstart_check:
+        if self.config.run.warmstart and self.config.run.warmstart_check:
             self.warmstart_check()
+        if self.config.run.warmstart:
+            self.copy_warmstart_demand()
         while self._queued_components:
             self.run_next()
+    
+    def copy_warmstart_demand(self):
+        for time_period in self.time_period_names:
+            for src_fn_template, dst_fn_template in zip(
+                [self.config.run.warmstart.household_highway_demand_file, 
+                self.config.run.warmstart.household_transit_demand_file,
+                self.config.run.warmstart.air_passenger_highway_demand_file,
+                self.config.run.warmstart.internal_external_highway_demand_file,
+                self.config.run.warmstart.truck_highway_demand_file
+                ],
+                
+                [self.config.household.highway_demand_file, 
+                self.config.household.transit_demand_file,
+                self.config.air_passenger.highway_demand_file,
+                self.config.internal_external.highway_demand_file,
+                self.config.truck.highway_demand_file
+                ] 
+                ):
+                
+                src_fn = self.get_abs_path(src_fn_template.format(period = time_period))
+                dst_fn = self.get_abs_path(dst_fn_template.format(period = time_period))
+                Path(dst_fn).parents[0].mkdir(parents=True, exist_ok=True) 
+                shutil.copy2(src_fn, dst_fn)
+                
+            
 
+    
     def run_next(self):
         """Run next component in the queue."""
         if not self._queued_components:
@@ -376,21 +405,23 @@ class RunController:
         """
         Check if required warmstart demand files and folders exist before running the components.
         """
-        _run_components = [comp[1] for comp in self._queued_components]
+        _run_components = [name for iteration, name, component in self._queued_components]
         
         if 'highway' in _run_components:
             for time_period in self.time_period_names:
-                if not os.path.exists(self.get_abs_path(self.config.household.highway_demand_file.format(period = time_period))):
-                    raise ValueError(f'Missing input for component highway: household.highway_demand_file during time period {time_period}')  
-                if not os.path.exists(self.get_abs_path(self.config.air_passenger.highway_demand_file.format(period = time_period))):
-                    raise ValueError(f'Missing input for component highway: air_passenger.highway_demand_file during time period {time_period}')  
-                if not os.path.exists(self.get_abs_path(self.config.internal_external.highway_demand_file.format(period = time_period))):
-                    raise ValueError(f'Missing input for component highway: air_passenger.highway_demand_file during time period {time_period}')  
+                if not os.path.exists(self.get_abs_path(self.config.run.warmstart.household_highway_demand_file.format(period = time_period))):
+                    raise ValueError(f'Missing input for component highway: run.warmstart.household_highway_demand_file during time period {time_period}')  
+                if not os.path.exists(self.get_abs_path(self.config.run.warmstart.air_passenger_highway_demand_file.format(period = time_period))):
+                    raise ValueError(f'Missing input for component highway: run.warmstart.air_passenger_highway_demand_file during time period {time_period}')  
+                if not os.path.exists(self.get_abs_path(self.config.run.warmstart.internal_external_highway_demand_file.format(period = time_period))):
+                    raise ValueError(f'Missing input for component highway: run.warmstart.internal_external_highway_demand_file during time period {time_period}')  
+                if not os.path.exists(self.get_abs_path(self.config.run.warmstart.truck_highway_demand_file.format(period = time_period))):
+                    raise ValueError(f'Missing input for component highway: run.warmstart.truck_highway_demand_file during time period {time_period}')  
         
         if 'transit' in _run_components:
             for time_period in self.time_period_names:
-                if not os.path.exists(self.get_abs_path(self.config.household.transit_demand_file.format(period = time_period))):
-                    raise ValueError(f'Missing input for component transit: household.transit_demand_file during time period {time_period}')  
+                if not os.path.exists(self.get_abs_path(self.config.run.warmstart.household_transit_demand_file.format(period = time_period))):
+                    raise ValueError(f'Missing input for component transit: .run.warmstart.household_transit_demand_file during time period {time_period}')  
 
             
         #TODO: highway, transit (requiring Emme project); truck (requiring input factors, highway skims); home_accessibility (requiring highway, transit, active skims)

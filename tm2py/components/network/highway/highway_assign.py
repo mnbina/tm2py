@@ -126,7 +126,7 @@ class HighwayAssignment(Component):
     def run(self):
         """Run highway assignment."""
         demand = PrepareHighwayDemand(self.controller)
-        if self.controller.iteration >= 0 or self.controller.config.run.warmstart:
+        if self.controller.iteration >= 0:
             demand.run()
         for time in self.time_period_names:
             scenario = self.get_emme_scenario(
@@ -487,7 +487,7 @@ class AssignmentClass:
             A nested dictionary corresponding to the expected Emme traffic
             class specification used in the SOLA assignment.
         """
-        if self.iteration == 0:
+        if self.iteration == 0 and not self.controller.config.run.warmstart:
             demand_matrix = 'ms"zero"'
         else:
             demand_matrix = f'mf"{self.time_period}_{self.name}"'
