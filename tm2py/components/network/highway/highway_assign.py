@@ -130,13 +130,12 @@ class HighwayAssignment(Component):
         demand = PrepareHighwayDemand(self.controller)
         iteration = self.controller.iteration
         dst_veh_groups = self.config.tolls.dst_vehicle_group_names
-        run_dynamic_toll = self.controller.config.highway.tolls.run_dynamic_toll
+        run_dynamic_toll = self.config.tolls.run_dynamic_toll
         valuetoll_start_tollbooth_code = self.config.tolls.valuetoll_start_tollbooth_code
         max_dynamic_valuetoll = self.config.tolls.max_dynamic_valuetoll
-        apply_msa = self.controller.config.highway.msa.apply_msa
+        apply_msa = self.config.msa.apply_msa
 
         demand.run()
-
         for time in self.time_period_names:
             scenario = self.get_emme_scenario(
                 self.controller.config.emme.highway_database_path, time
@@ -145,7 +144,7 @@ class HighwayAssignment(Component):
                 assign_classes = [
                     AssignmentClass(c, time, iteration) for c in self.config.classes
                 ]
-                if (iteration > 0) & (self.controller.config.highway.run_maz_assignment):
+                if (iteration > 0) & (self.config.run_maz_assignment):
                     self._copy_maz_flow(scenario)
                 elif iteration == 0:
                     self._reset_background_traffic(scenario)
@@ -162,7 +161,7 @@ class HighwayAssignment(Component):
                     for dynamic_toll_iteration in range(1, 6):
                         assign_spec = self._get_assignment_spec(assign_classes)
                         if dynamic_toll_iteration < 5:
-                            assign_spec["stopping_criteria"]["max_iterations"] = self.controller.config.highway.tolls.dynamic_toll_inner_iter
+                            assign_spec["stopping_criteria"]["max_iterations"] = self.config.tolls.dynamic_toll_inner_iter
                         stopping_criteria = assign_spec["stopping_criteria"]
                         self._run_sola_traffic_assignment(scenario, assign_spec, chart_log_interval=1)
                         self._calc_total_flow(scenario)
@@ -193,7 +192,7 @@ class HighwayAssignment(Component):
                                 # if there is no valuetoll updated needed before 5th dynamic toll iteration,
                                 # run remaining iterations upto the original max_iteration settings
                                 assign_spec = self._get_assignment_spec(assign_classes)
-                                assign_spec["stopping_criteria"]["max_iterations"] -= self.controller.config.highway.tolls.dynamic_toll_inner_iter
+                                assign_spec["stopping_criteria"]["max_iterations"] -= self.config.tolls.dynamic_toll_inner_iter
                                 stopping_iterations = assign_spec["stopping_criteria"]["max_iterations"]
                                 self._run_sola_traffic_assignment(scenario, assign_spec, chart_log_interval=1)
                             break # stop running another dynamic toll assignment iteration
@@ -369,7 +368,7 @@ class HighwayAssignment(Component):
 
     def _calc_weighted_avg_flow(self, scenario: EmmeScenario):
         iteration = self.controller.iteration
-        write_iteration_flow = self.controller.config.highway.msa.write_iteration_flow
+        write_iteration_flow = self.config.msa.write_iteration_flow
         net_calc = NetworkCalculator(scenario)
 
         if iteration == 1: 
@@ -382,8 +381,8 @@ class HighwayAssignment(Component):
                 net_calc(f"@total_flow_{iteration}", "@total_flow")
 
         elif iteration >= 2:
-            prev_wgt = self.controller.config.highway.msa.prev_wgt[iteration]
-            curr_wgt = self.controller.config.highway.msa.curr_wgt[iteration]
+            prev_wgt = self.config.msa.prev_wgt[iteration]
+            curr_wgt = self.config.msa.curr_wgt[iteration]
             assert prev_wgt + curr_wgt == 1, "total weight for msa calculation should sum to 1"
 
             if iteration >= 1 and write_iteration_flow:

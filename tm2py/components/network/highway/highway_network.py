@@ -118,6 +118,11 @@ class PrepareNetwork(Component):
 
     def _create_class_attributes(self, scenario: EmmeScenario, time_period: str):
         """Create required network attributes including per-class cost and flow attributes."""
+        run_dynamic_toll = self.config.tolls.run_dynamic_toll
+        apply_msa = self.config.msa.apply_msa
+        write_iteration_flow = self.config.msa.write_iteration_flow
+        dst_veh_groups = self.config.tolls.dst_vehicle_group_names
+
         create_attribute = self.controller.emme_manager.tool(
             "inro.emme.data.extra_attribute.create_extra_attribute"
         )
@@ -131,7 +136,7 @@ class PrepareNetwork(Component):
             ]
         }
 
-        if self.config.tolls.run_dynamic_toll: 
+        if run_dynamic_toll: 
             # cover cases when:
             # (1) only dynamic_toll=True 
             # (2) when both dynamic_tolling and apply_msa are True
@@ -140,22 +145,21 @@ class PrepareNetwork(Component):
                 ("@vc", "volume to capacity ratio"),
                 ("@update_dynamic_toll", "need to update dynamic toll or not")
             ])
-        elif self.controller.config.highway.msa.apply_msa: # if dynamic_tolling=False but apply_msa=True
+        elif apply_msa: # if dynamic_tolling=False but apply_msa=True
             attributes["LINK"].extend([
                 ("@total_flow", "total traffic flow")
             ])
 
         # add avg volume attributes
-        if self.controller.config.highway.msa.apply_msa:
+        if apply_msa:
             attributes["LINK"].extend([
                     ("@total_flow_avg", "average total traffic flow"),
                 ])
-            if self.controller.config.highway.msa.write_iteration_flow:
+            if write_iteration_flow:
                 for iteration in range(1, self.controller.config.run.end_iteration + 1):
                     attributes["LINK"].append((f"@total_flow_{iteration}", f"total traffic flow iter{iteration}"))
 
         # toll field attributes by bridge and value and toll definition
-        dst_veh_groups = self.config.tolls.dst_vehicle_group_names
         for dst_veh in dst_veh_groups:
             for toll_type in "bridge", "value":
                 attributes["LINK"].append(
