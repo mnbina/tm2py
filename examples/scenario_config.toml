@@ -16,18 +16,18 @@
     start_component = ""
     initial_components = [
         "create_tod_scenarios",
-        #"prepare_network_highway",
-        #"highway",
+        "prepare_network_highway",
+        "highway",
         "prepare_network_transit",
-        #"transit",
-        #"convergence_report"
+        "transit",
+        "convergence_report"
     ]
     global_iteration_components = [
         #"home_accessibility",
-        "household", 
-        #"truck",
-        "highway",
-        "transit",
+        # "household", 
+        # "truck",
+        # "highway",
+        # "transit",
         #"convergence_report"
     ]
     final_components = []
@@ -35,8 +35,8 @@
     end_iteration = 1
 
     [run.warmstart]
-        warmstart = false
-        warmstart_check = false
+        warmstart = true
+        warmstart_check = true
         household_highway_demand_file = "warmstart/demand_matrices/highway/household/TAZ_Demand_{period}.omx"
         household_transit_demand_file = "warmstart/demand_matrices/transit/trn_demand_v9_trim_{period}.omx"
         air_passenger_highway_demand_file = "warmstart/demand_matrices/highway/air_passenger/2015_tripsAirPax{period}.omx"
