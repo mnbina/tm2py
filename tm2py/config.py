@@ -79,6 +79,30 @@ ComponentNames = Literal[
 EmptyString = Literal[""]
 
 
+    
+@dataclass(frozen=True)
+class WarmStartConfig(ConfigItem):
+    """Warm start parameters.
+
+    Note that the components will be executed in the order listed.
+
+    Properties:
+        warmstart: Boolean indicating whether warmstart demand matrices are used.
+        warmstart_check: if on, check that demand matrix files exist.
+        household_highway_demand_file: file name template of warmstart household highway demand matrices.
+        household_transit_demand_file: file name template of warmstart household transit demand matrices.
+        air_passenger_highway_demand_file: file name template of warmstart airport highway demand matrices.
+        internal_external_highway_demand_file: file name template of warmstart internal-external highway demand matrices.
+    """
+
+    warmstart: Optional[bool] = Field(default=False)
+    warmstart_check: Optional[bool] = Field(default=False)
+    household_highway_demand_file: Optional[str] = Field(default="")
+    household_transit_demand_file: Optional[str] = Field(default="")
+    air_passenger_highway_demand_file: Optional[str] = Field(default="")
+    internal_external_highway_demand_file: Optional[str] = Field(default="")
+    truck_highway_demand_file: Optional[str] = Field(default="")
+
 @dataclass(frozen=True)
 class RunConfig(ConfigItem):
     """Model run parameters.
@@ -94,6 +118,7 @@ class RunConfig(ConfigItem):
         global_iteration_components: list of component to run at every subsequent
             iteration (max(1, start_iteration) to end_iteration), in order.
         final_components: list of components to run after final iteration, in order
+        warmstart: warmstart configuration, including file locations.
     """
 
     initial_components: Tuple[ComponentNames, ...]
@@ -101,9 +126,9 @@ class RunConfig(ConfigItem):
     final_components: Tuple[ComponentNames, ...]
     start_iteration: int = Field(ge=0)
     end_iteration: int = Field(gt=0)
+    warmstart: WarmStartConfig = WarmStartConfig()
     start_component: Optional[Union[ComponentNames, EmptyString]] = Field(default="")
-    warmstart: Optional[bool] = Field(default=False)
-    warmstart_check: Optional[bool] = Field(default=False)
+    
 
     @validator("end_iteration", allow_reuse=True)
     def end_iteration_gt_start(cls, value, values):
@@ -133,8 +158,6 @@ class RunConfig(ConfigItem):
                 ), f"'start_component' ({value}) must be one of the components listed in\
                     global_iteration_components if 'start_iteration > 0'"
         return value
-    
-
 
 LogLevel = Literal[
     "TRACE", "DEBUG", "DETAIL", "INFO", "STATUS", "WARN", "ERROR", "FATAL"
@@ -256,10 +279,9 @@ class TimeOfDayConfig(ConfigItem):
 class HouseholdConfig(ConfigItem):
     """Household (residents) model parameters."""
 
-    highway_demand_file: pathlib.Path
-    transit_demand_file: pathlib.Path
-    warmstart_transit_demand_file: pathlib.Path
-    active_demand_file: pathlib.Path
+    highway_demand_file: str
+    transit_demand_file: str
+    active_demand_file: str
     ctramp_run_dir: pathlib.Path
     host_ip_address: str
     sample_rate_iteration: list

@@ -15,23 +15,30 @@
 [run]
     start_component = ""
     initial_components = [
-		"create_tod_scenarios",
-		"prepare_network_highway",
-		"highway",
-		"prepare_network_transit",
-		"transit",
-		"convergence_report"		
+        "create_tod_scenarios",
+        #"prepare_network_highway",
+        #"highway",
+        "prepare_network_transit",
+        #"transit",
+        #"convergence_report"
     ]
     global_iteration_components = [
-		"home_accessibility", # needs to be updated everytime after skims are updated
-		"household", 
-		"truck",
-		"highway",
-		"transit",
-		"convergence_report"	
+        #"home_accessibility",
+        "household", 
+        #"truck",
+        "highway",
+        "transit",
+        #"convergence_report"
     ]
     final_components = []
     start_iteration = 0
     end_iteration = 1
-	warmstart_check = false
-    warmstart = true 
+
+    [run.warmstart]
+        warmstart = false
+        warmstart_check = false
+        household_highway_demand_file = "warmstart/demand_matrices/highway/household/TAZ_Demand_{period}.omx"
+        household_transit_demand_file = "warmstart/demand_matrices/transit/trn_demand_v9_trim_{period}.omx"
+        air_passenger_highway_demand_file = "warmstart/demand_matrices/highway/air_passenger/2015_tripsAirPax{period}.omx"
+        internal_external_highway_demand_file = "warmstart/demand_matrices/highway/internal_external/tripsIx{period}.omx"
+        truck_highway_demand_file = "warmstart/demand_matrices/highway/commercial/tripstrk{period}.omx"

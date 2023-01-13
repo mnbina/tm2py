@@ -195,11 +195,16 @@ class PrepareHighwayDemand(PrepareDemand):
     def prepare_household_demand(self):
         """Prepares highway and transit household demand matrices from trip lists produced by CT-RAMP.
         """
+        iteration = self.controller.iteration
+        
+        # Create folders if they don't exist
+        pathlib.Path(self.get_abs_path(self.controller.config.household.highway_demand_file)).parents[0].mkdir(parents=True, exist_ok=True) 
+        pathlib.Path(self.get_abs_path(self.controller.config.household.transit_demand_file)).parents[0].mkdir(parents=True, exist_ok=True) 
+        pathlib.Path(self.get_abs_path(self.controller.config.household.active_demand_file)).parents[0].mkdir(parents=True, exist_ok=True) 
         
         
-        
-        indiv_trip_file = pathlib.Path(self.controller.config.household.ctramp_run_dir) / self.controller.config.household.ctramp_indiv_trip_file.format(iteration = self.controller.iteration)
-        joint_trip_file = pathlib.Path(self.controller.config.household.ctramp_run_dir) / self.controller.config.household.ctramp_joint_trip_file.format(iteration = self.controller.iteration)
+        indiv_trip_file = pathlib.Path(self.controller.config.household.ctramp_run_dir) / self.controller.config.household.ctramp_indiv_trip_file.format(iteration = iteration)
+        joint_trip_file = pathlib.Path(self.controller.config.household.ctramp_run_dir) / self.controller.config.household.ctramp_joint_trip_file.format(iteration = iteration)
         it_full, jt_full = pd.read_csv(indiv_trip_file), pd.read_csv(joint_trip_file)
         
         # Add time period, expanded count
@@ -231,7 +236,9 @@ class PrepareHighwayDemand(PrepareDemand):
         income_segment_config = self.controller.config.household.income_segment
         
         if income_segment_config['enabled']:
-            hh_file = pathlib.Path(self.controller.config.household.ctramp_run_dir) / self.controller.config.household.ctramp_hh_file.format(iteration = self.controller.iteration)
+            # This only affects highway trip tables.
+            
+            hh_file = pathlib.Path(self.controller.config.household.ctramp_run_dir) / self.controller.config.household.ctramp_hh_file.format(iteration = iteration)
             hh = pd.read_csv(hh_file, usecols = ['hh_id', 'income'])
             it_full = it_full.merge(hh, on = 'hh_id', how = 'left')
             jt_full = jt_full.merge(hh, on = 'hh_id', how = 'left')
@@ -241,7 +248,7 @@ class PrepareHighwayDemand(PrepareDemand):
             it_full['income_seg'] = pd.cut(it_full['income'], right =False, 
                                bins = income_segment_config['cutoffs'] + [float('inf')], 
                                labels = suffixes).astype(str)
-                               
+
             jt_full['income_seg'] = pd.cut(jt_full['income'], right =False, 
                                bins = income_segment_config['cutoffs'] + [float('inf')], 
                                labels = suffixes).astype(str)
@@ -249,7 +256,11 @@ class PrepareHighwayDemand(PrepareDemand):
             it_full['income_seg'] = ''
             jt_full['income_seg'] = ''
             suffixes = ['']
-
+        
+        # groupby objects for combinations of time period - income segmentation, used for highway modes only
+        it_grp = it_full.groupby(['time_period', 'income_seg'])
+        jt_grp = jt_full.groupby(['time_period', 'income_seg'])
+        
         for time_period in time_periods_sorted:
             self.logger.debug(f"Producing household demand matrices for period {time_period}")
             
@@ -264,9 +275,42 @@ class PrepareHighwayDemand(PrepareDemand):
             transit_out_file.open()
             active_out_file.open()
             
-            it_grp = it_full.groupby(['time_period', 'income_seg'])
-            jt_grp = jt_full.groupby(['time_period', 'income_seg'])
             
+            # Transit and active modes: one matrix per time period per mode
+            it = it_full[it_full.time_period == time_period]
+            jt = jt_full[jt_full.time_period == time_period]
+            
+            for trip_mode in mode_name_dict:
+                if trip_mode in [4,5]:
+                    matrix_name =  mode_name_dict[trip_mode]
+                    self.logger.debug(f"Writing out mode {mode_name_dict[trip_mode]}")
+                    active_out_file.write_array(numpy_array=combine_trip_lists(it,jt, trip_mode), name = matrix_name)
+                    
+                elif trip_mode == 6:
+                    matrix_name = "WLK_TRN_WLK"
+                    self.logger.debug(f"Writing out mode WLK_TRN_WLK")
+                    transit_out_file.write_array(numpy_array=combine_trip_lists(it,jt, trip_mode), name = matrix_name)
+                    
+                elif trip_mode in [7,8]:
+                    it_outbound, it_inbound = it[it.inbound == 0], it[it.inbound == 1]
+                    jt_outbound, jt_inbound = jt[jt.inbound == 0], jt[jt.inbound == 1]
+                    
+                    matrix_name = f'{mode_name_dict[trip_mode].upper()}_TRN_WLK' 
+                    
+                    self.logger.debug(f"Writing out mode {mode_name_dict[trip_mode].upper() + '_TRN_WLK'}")
+                    transit_out_file.write_array(
+                        numpy_array=combine_trip_lists(it_outbound,jt_outbound, trip_mode), 
+                        name = matrix_name)
+                    
+                    matrix_name = f'WLK_TRN_{mode_name_dict[trip_mode].upper()}' 
+                    
+                    self.logger.debug(f"Writing out mode {'WLK_TRN_' + mode_name_dict[trip_mode].upper()}")
+                    transit_out_file.write_array(
+                        numpy_array=combine_trip_lists(it_inbound,jt_inbound, trip_mode), 
+                        name = matrix_name)
+            
+
+            # Highway modes: one matrix per suffix (income class) per time period per mode
             for suffix in suffixes:
 
                 highway_cache = {}
@@ -285,34 +329,6 @@ class PrepareHighwayDemand(PrepareDemand):
                 for trip_mode in mode_name_dict:
                     if trip_mode in [1,2,3]: # currently hard-coded based on Travel Mode trip mode codes
                         highway_cache[mode_name_dict[trip_mode]] = combine_trip_lists(it,jt, trip_mode)
-                        
-                    elif trip_mode in [4,5]:
-                        matrix_name = f'{mode_name_dict[trip_mode]}_{suffix}' if suffix else mode_name_dict[trip_mode]
-                        self.logger.debug(f"Writing out mode {mode_name_dict[trip_mode]}")
-                        active_out_file.write_array(numpy_array=combine_trip_lists(it,jt, trip_mode), name = matrix_name)
-                        
-                    elif trip_mode == 6:
-                        matrix_name = f'WLK_TRN_WLK_{suffix}' if suffix else "WLK_TRN_WLK"
-                        self.logger.debug(f"Writing out mode WLK_TRN_WLK")
-                        transit_out_file.write_array(numpy_array=combine_trip_lists(it,jt, trip_mode), name = matrix_name)
-                        
-                    elif trip_mode in [7,8]:
-                        it_outbound, it_inbound = it[it.inbound == 0], it[it.inbound == 1]
-                        jt_outbound, jt_inbound = jt[jt.inbound == 0], jt[jt.inbound == 1]
-                        
-                        matrix_name =  f'{mode_name_dict[trip_mode].upper()}_TRN_WLK_{suffix}' if suffix else f'{mode_name_dict[trip_mode].upper()}_TRN_WLK' 
-                        
-                        self.logger.debug(f"Writing out mode {mode_name_dict[trip_mode].upper() + '_TRN_WLK'}")
-                        transit_out_file.write_array(
-                            numpy_array=combine_trip_lists(it_outbound,jt_outbound, trip_mode), 
-                            name = matrix_name)
-                        
-                        matrix_name = f'WLK_TRN_{mode_name_dict[trip_mode].upper()}_{suffix}' if suffix else f'WLK_TRN_{mode_name_dict[trip_mode].upper()}' 
-                        
-                        self.logger.debug(f"Writing out mode {'WLK_TRN_' + mode_name_dict[trip_mode].upper()}")
-                        transit_out_file.write_array(
-                            numpy_array=combine_trip_lists(it_inbound,jt_inbound, trip_mode), 
-                            name = matrix_name)
 
                     elif trip_mode == 9:
                         # identify the correct mode split factors for da, sr2, sr3
