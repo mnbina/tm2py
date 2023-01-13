@@ -168,7 +168,7 @@ class TransitAssignment(Component):
             with self._setup(scenario, period):
                 use_fares = self.controller.config.transit.use_fares
                 use_peaking_factor = self.controller.config.transit.use_peaking_factor
-                warm_start =  self.controller.config.run.warmstart
+                warm_start =  self.controller.config.run.warmstart.warmstart
 
                 if self.controller.iteration == 0:
                     use_ccr = False
@@ -183,8 +183,8 @@ class TransitAssignment(Component):
                     # if run warm start, trim the demands based on based on extended transit assignment and run congested assignment
                     # otherwise run with 0 demands
                     if warm_start:
-                        omx_filename_template = os.path.join(self.controller.config.household.warmstart_transit_demand_file)
-                        self.import_demand_matrices(period.name, scenario, omx_filename_template=omx_filename_template)
+                        demand_tables = os.path.join(self.controller.config.run.warmstart.household_transit_demand_file)
+                        self.import_demand_matrices(period.name, scenario, omx_filename_template=demand_tables)
                         self.assign_and_skim(
                             scenario,
                             network,
@@ -194,7 +194,6 @@ class TransitAssignment(Component):
                             use_ccr=use_ccr,
                             congested_transit_assignment=congested_transit_assignment
                         )
-                        self.export_skims(period.name, scenario)
                         self.trim_demands(scenario, period)
 
                         congested_transit_assignment = True
@@ -246,8 +245,8 @@ class TransitAssignment(Component):
                     self.update_auto_times(network, period)
                     scenario.publish_network(network)
 
-                    omx_filename_template = os.path.join(self.controller.config.household.transit_demand_file)
-                    self.import_demand_matrices(period.name, scenario, omx_filename_template=omx_filename_template)
+                    demand_tables = os.path.join(self.controller.config.household.transit_demand_file)
+                    self.import_demand_matrices(period.name, scenario, omx_filename_template=demand_tables)
                     self.assign_and_skim(
                         scenario,
                         network,
@@ -594,8 +593,7 @@ class TransitAssignment(Component):
                 mode_types["KNR_ACCESS"].append(mode.mode_id)
                 mode_types["KNR_EGRESS"].append(mode.mode_id)
             elif mode.type in ["LOCAL","PREMIUM","PNR_dummy"]:
-                mode_types["TRN"].append(mode.mode_id)       
-        print(mode_types)            
+                mode_types["TRN"].append(mode.mode_id)                 
         with self.controller.emme_manager.logbook_trace("Transit assignment and skims for period %s" % period.name):
             self.run_assignment(
                 scenario,
@@ -793,7 +791,6 @@ class TransitAssignment(Component):
             KNR_TRN_WLK_journey_levels = journey_levels
             WLK_TRN_KNR_journey_levels = journey_levels
             mode_attr = ".mode.mode_id"
-        print(all_modes)
         skim_parameters = OrderedDict(
             [
                 (

@@ -46,7 +46,6 @@
 [household]
     highway_demand_file = "demand_matrices/highway/household/TAZ_Demand_{period}.omx"
     transit_demand_file = "demand_matrices/transit/trn_demand_v9_trim_{period}.omx"
-    warmstart_transit_demand_file = "demand_matrices/warmstart/trn_demand_v9_trim_{period}.omx"
     active_demand_file = "demand_matrices/active/nm_demand_{period}.omx"
     ctramp_indiv_trip_file = "main/indivTripData_{iteration}.csv"
     ctramp_joint_trip_file = "main/jointTripData_{iteration}.csv"
@@ -954,10 +953,10 @@
     use_fares = true
     fare_2015_to_2000_deflator = 0.698 #180.20/258.27
     # transit assignment methods
-    congested_transit_assignment = true # temp
+    congested_transit_assignment = true
     use_ccr = false
     # peaking factor option
-    use_peaking_factor = true  # temp
+    use_peaking_factor = true
     am_peaking_factor = 1.219
     pm_peaking_factor = 1.262
 
