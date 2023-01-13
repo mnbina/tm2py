@@ -189,11 +189,8 @@ class HighwayAssignment(Component):
                             scenario.publish_network(network)
                         else:
                             if dynamic_toll_iteration < 5:
-                                # if there is no valuetoll updated needed before 5th dynamic toll iteration,
-                                # run remaining iterations upto the original max_iteration settings
+                                # if there is no valuetoll updated needed before 5th dynamic toll iteration
                                 assign_spec = self._get_assignment_spec(assign_classes)
-                                assign_spec["stopping_criteria"]["max_iterations"] -= self.config.tolls.dynamic_toll_inner_iter
-                                stopping_iterations = assign_spec["stopping_criteria"]["max_iterations"]
                                 self._run_sola_traffic_assignment(scenario, assign_spec, chart_log_interval=1)
                             break # stop running another dynamic toll assignment iteration
                     if iteration == self.controller.config.run.end_iteration:
