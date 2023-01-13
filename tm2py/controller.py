@@ -235,9 +235,10 @@ class RunController:
         Iterates through the self._queued_components and runs them.
         """
         self._iteration = None
-        if self.config.run.warmstart.warmstart and self.config.run.warmstart.warmstart_check and self.config.run.start_iteration == 0:
+
+        if self.config.run.warmstart.warmstart and self.config.run.warmstart.warmstart_check and (self.config.run.start_iteration == 0):
             self.warmstart_check()
-        if self.config.run.warmstart.warmstart & self.config.run.start_iteration == 0:
+        if self.config.run.warmstart.warmstart and (self.config.run.start_iteration == 0):
             self.copy_warmstart_demand()
         while self._queued_components:
             self.run_next()
@@ -281,12 +282,6 @@ class RunController:
         component.run()
         self.completed_components.append((iteration, name, component))
 
-        if self.config.highway.tolls.run_dynamic_toll:
-            # if the current component is "highway" and dynamic tolling is turned on
-            if name == "highway" and not self._stop_dynamic_toll:
-                self.logger.log("add dynamic toll iteration")
-                self._add_component_to_queue(iteration, "highway", insert_to_front=True)
-                self._add_component_to_queue(iteration, "prepare_network_highway", insert_to_front=True)
 
     def _queue_components(self, run_components: Collection[str] = None):
         """Add components per iteration to queue according to input Config.
