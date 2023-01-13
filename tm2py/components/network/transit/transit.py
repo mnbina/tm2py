@@ -434,7 +434,7 @@ class TransitAssignment(Component):
                 boards.append(boardings)
             ea_pnr_df["line_name"]  = line_name
             ea_pnr_df["boardings"]  = boards
-            ea_pnr_df["line_name_am"]  = ea_df["line_name"].str.replace('EA','AM') #will substract ea boardings from am parking capacity
+            ea_pnr_df["line_name_am"]  = ea_pnr_df["line_name"].str.replace('EA','AM') #will substract ea boardings from am parking capacity
             path_boardings = self.get_abs_path(self.controller.config.transit.output_transit_boardings_path)
             ea_pnr_df.to_csv(path_boardings.format(period='ea_pnr'), index=False)
 
