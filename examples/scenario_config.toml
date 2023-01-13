@@ -31,6 +31,7 @@
 		"convergence_report"	
     ]
     final_components = []
-    start_iteration = 1
+    start_iteration = 0
     end_iteration = 1
 	warmstart_check = false
+    warmstart = true 

@@ -102,6 +102,7 @@ class RunConfig(ConfigItem):
     start_iteration: int = Field(ge=0)
     end_iteration: int = Field(gt=0)
     start_component: Optional[Union[ComponentNames, EmptyString]] = Field(default="")
+    warmstart: Optional[bool] = Field(default=False)
     warmstart_check: Optional[bool] = Field(default=False)
 
     @validator("end_iteration", allow_reuse=True)
@@ -257,6 +258,7 @@ class HouseholdConfig(ConfigItem):
 
     highway_demand_file: pathlib.Path
     transit_demand_file: pathlib.Path
+    warmstart_transit_demand_file: pathlib.Path
     active_demand_file: pathlib.Path
     ctramp_run_dir: pathlib.Path
     host_ip_address: str
@@ -1173,6 +1175,7 @@ class TransitConfig(ConfigItem):
     fare_matrix_path: pathlib.Path
     fare_max_transfer_distance_miles: float
     use_fares: bool
+    fare_2015_to_2000_deflator: float
     override_connectors: bool
     override_connector_times: bool
     initial_boarding_penalty: Optional[float] = Field(default=None, ge=0)
@@ -1183,6 +1186,7 @@ class TransitConfig(ConfigItem):
     output_skim_filename_tmpl: str = Field()
     output_skim_matrixname_tmpl: str = Field()
     output_transit_boardings_path: str = Field()
+    output_shapefile_path: str = Field()
     classes: Tuple[TransitClassConfig, ...] = Field()
     use_ccr: bool = False
     congested_transit_assignment: bool = False
