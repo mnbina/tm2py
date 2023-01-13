@@ -590,8 +590,8 @@
         # temporary settings for dynamic tolling
         run_dynamic_toll = true
         dynamic_toll_inner_iter = 20
-        valuetoll_increment = 0.25
-        max_dynamic_valuetoll = 0.5
+        valuetoll_increment = 0.1
+        max_dynamic_valuetoll = 1.0
         output_valuetoll_path = "dynamic_valuetolls/"
 
     [highway.msa]
