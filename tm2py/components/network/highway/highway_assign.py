@@ -254,7 +254,7 @@ class HighwayAssignment(Component):
         write_iteration_flow = self.controller.config.highway.msa.write_iteration_flow
         net_calc = NetworkCalculator(scenario)
 
-        if iteration == 1: 
+        if iteration == 1 or ( (iteration == 0) & self.controller.config.run.warmstart): 
             # carry over current flow to the averaged flow attribute
             net_calc("@total_flow_avg", "@total_flow")
             for assign_class in self.config.classes:
@@ -273,7 +273,7 @@ class HighwayAssignment(Component):
                 net_calc(f"@flow_{assign_class.name.lower()}", f"@flow_{assign_class.name.lower()}_avg")
 
         # write out iteration total flow and flow by class
-        if iteration >= 1 and write_iteration_flow:
+        if (iteration >= 1 or self.controller.config.run.warmstart) and write_iteration_flow:
             net_calc(f"@total_flow_{iteration}", "@total_flow")
             for assign_class in self.config.classes:
                 net_calc(f"@flow_{assign_class.name.lower()}_{iteration}", f"@flow_{assign_class.name.lower()}")
@@ -487,7 +487,7 @@ class AssignmentClass:
             A nested dictionary corresponding to the expected Emme traffic
             class specification used in the SOLA assignment.
         """
-        if self.iteration == 0:
+        if self.iteration == 0 and not self.controller.config.run.warmstart:
             demand_matrix = 'ms"zero"'
         else:
             demand_matrix = f'mf"{self.time_period}_{self.name}"'

@@ -23,6 +23,7 @@ from io import RawIOBase
 from multiprocessing.sharedctypes import Value
 from pathlib import Path
 from typing import Any, Collection, Dict, List, Tuple, Union
+import shutil
 
 from tm2py.components.access import HomeAccessibility
 from tm2py.components.component import Component
@@ -234,11 +235,39 @@ class RunController:
         Iterates through the self._queued_components and runs them.
         """
         self._iteration = None
-        if self.config.run.start_iteration > 1 and self.config.run.warmstart_check:
+        if self.config.run.warmstart and self.config.run.warmstart_check and self.config.run.start_iteration == 0:
             self.warmstart_check()
+        if self.config.run.warmstart & self.config.run.start_iteration == 0:
+            self.copy_warmstart_demand()
         while self._queued_components:
             self.run_next()
+    
+    def copy_warmstart_demand(self):
+        for time_period in self.time_period_names:
+            for src_fn_template, dst_fn_template in zip(
+                [self.config.run.warmstart.household_highway_demand_file, 
+                self.config.run.warmstart.household_transit_demand_file,
+                self.config.run.warmstart.air_passenger_highway_demand_file,
+                self.config.run.warmstart.internal_external_highway_demand_file,
+                self.config.run.warmstart.truck_highway_demand_file
+                ],
+                
+                [self.config.household.highway_demand_file, 
+                self.config.household.transit_demand_file,
+                self.config.air_passenger.highway_demand_file,
+                self.config.internal_external.highway_demand_file,
+                self.config.truck.highway_demand_file
+                ] 
+                ):
+                
+                src_fn = self.get_abs_path(src_fn_template.format(period = time_period))
+                dst_fn = self.get_abs_path(dst_fn_template.format(period = time_period))
+                Path(dst_fn).parents[0].mkdir(parents=True, exist_ok=True) 
+                shutil.copy2(src_fn, dst_fn)
+                
+            
 
+    
     def run_next(self):
         """Run next component in the queue."""
         if not self._queued_components:
@@ -374,43 +403,26 @@ class RunController:
     
     def warmstart_check(self):
         """
-        Check if required input files and folders exist before running the components.
+        Check if required warmstart demand files and folders exist before running the components.
         """
-        _run_components = set(self.config.run.initial_components) | set(self.config.run.global_iteration_components) | set(self.config.run.final_components)
+        _run_components = [name for iteration, name, component in self._queued_components]
         
-        if 'create_tod_scenarios' in _run_components:
-            _config_type = 'emme'
-            _config = self.config.getattr(_config_type)
-            path_keys = ['project_path', 'highway_database_path', 'transit_database_path']
-            for path_key in path_keys:
-                path = _config.getattr(path_key)
-                if not os.path.exists(self.get_abs_path(path)):
-                    raise ValueError(f'Missing input for component create_tod_scenarios: {_config_type}.{path_key}')
+        if 'highway' in _run_components:
+            for time_period in self.time_period_names:
+                if not os.path.exists(self.get_abs_path(self.config.run.warmstart.household_highway_demand_file.format(period = time_period))):
+                    raise ValueError(f'Missing input for component highway: run.warmstart.household_highway_demand_file during time period {time_period}')  
+                if not os.path.exists(self.get_abs_path(self.config.run.warmstart.air_passenger_highway_demand_file.format(period = time_period))):
+                    raise ValueError(f'Missing input for component highway: run.warmstart.air_passenger_highway_demand_file during time period {time_period}')  
+                if not os.path.exists(self.get_abs_path(self.config.run.warmstart.internal_external_highway_demand_file.format(period = time_period))):
+                    raise ValueError(f'Missing input for component highway: run.warmstart.internal_external_highway_demand_file during time period {time_period}')  
+                if not os.path.exists(self.get_abs_path(self.config.run.warmstart.truck_highway_demand_file.format(period = time_period))):
+                    raise ValueError(f'Missing input for component highway: run.warmstart.truck_highway_demand_file during time period {time_period}')  
         
-        if 'prepare_network_highway' in _run_components:
-            _config_type = 'emme'
-            _config = self.config.getattr(_config_type)
-            path_keys = ['project_path', 'highway_database_path']
-            for path_key in path_keys:
-                path = _config.getattr(path_key)
-                if not os.path.exists(self.get_abs_path(path)):
-                    raise ValueError(f'Missing input for component prepare_network_highway: {_config_type}.{path_key}')
-                    
-        if 'prepare_network_transit' in _run_components:
-            _config_type = 'emme'
-            _config = self.config.getattr(_config_type)
-            path_keys = ['project_path', 'highway_database_path']
-            for path_key in path_keys:
-                path = _config.getattr(path_key)
-                if not os.path.exists(self.get_abs_path(path)):
-                    raise ValueError(f'Missing input for component prepare_network_transit: {_config_type}.{path_key}')
-                    
-        if 'household' in _run_components:
-            self.config.household.ctramp_run_dir
-            if not os.path.exists(self.config.household.ctramp_run_dir):
-                raise ValueError(f'Missing input for component household: household.ctramp_run_dir')        
+        if 'transit' in _run_components:
+            for time_period in self.time_period_names:
+                if not os.path.exists(self.get_abs_path(self.config.run.warmstart.household_transit_demand_file.format(period = time_period))):
+                    raise ValueError(f'Missing input for component transit: .run.warmstart.household_transit_demand_file during time period {time_period}')  
+
             
-            # Skims need to exist in either the CT-RAMP directory or the examples folders
-            
-        #TODO: highway, transit (requiring Emme project, demand matrices); truck (requiring input factors, highway skims); home_accessibility (requiring highway, transit, active skims)
+        #TODO: highway, transit (requiring Emme project); truck (requiring input factors, highway skims); home_accessibility (requiring highway, transit, active skims)
         #TODO: make sure to check skim file names with time periods filled in
