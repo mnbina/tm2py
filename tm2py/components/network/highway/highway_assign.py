@@ -142,7 +142,7 @@ class HighwayAssignment(Component):
             )
             with self._setup(scenario, time):
                 assign_classes = [
-                    AssignmentClass(c, time, iteration) for c in self.config.classes
+                    AssignmentClass(c, time, iteration, self.controller.config.run.warmstart.warmstart) for c in self.config.classes
                 ]
                 if (iteration > 0) & (self.config.run_maz_assignment):
                     self._copy_maz_flow(scenario)
@@ -368,7 +368,7 @@ class HighwayAssignment(Component):
         write_iteration_flow = self.config.msa.write_iteration_flow
         net_calc = NetworkCalculator(scenario)
 
-        if iteration == 1: 
+        if iteration == 1 or ( (iteration == 0) & self.controller.config.run.warmstart.warmstart): 
             # carry over current flow to the averaged flow attribute
             net_calc("@total_flow_avg", "@total_flow")
             for assign_class in self.config.classes:
@@ -572,17 +572,19 @@ class HighwayAssignment(Component):
 class AssignmentClass:
     """Highway assignment class, represents data from config and conversion to Emme specs."""
 
-    def __init__(self, class_config, time_period, iteration):
+    def __init__(self, class_config, time_period, iteration, warmstart):
         """Constructor of Highway Assignment class.
 
         Args:
             class_config (_type_): _description_
             time_period (_type_): _description_
             iteration (_type_): _description_
+            warmstart (Boolean): warmstart switch
         """
         self.class_config = class_config
         self.time_period = time_period
         self.iteration = iteration
+        self.warmstart = warmstart
         self.name = class_config["name"].lower()
         self.skims = class_config.get("skims", [])
 
@@ -598,7 +600,7 @@ class AssignmentClass:
             A nested dictionary corresponding to the expected Emme traffic
             class specification used in the SOLA assignment.
         """
-        if self.iteration == 0:
+        if (self.iteration == 0) and not self.warmstart:
             demand_matrix = 'ms"zero"'
         else:
             demand_matrix = f'mf"{self.time_period}_{self.name}"'
