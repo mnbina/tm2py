@@ -154,6 +154,11 @@ class TransitAssignment(Component):
         """Run transit assignment and skims."""
         project_path = self.get_abs_path(self.controller.config.emme.project_path)
         emme_app = self.controller.emme_manager.project(project_path)
+        data_explorer = emme_app.data_explorer()
+        all_databases = data_explorer.databases()
+        for database in all_databases:
+            if "transit" in database.name():
+                database.open()
         if not os.path.isabs(self.controller.config.emme.transit_database_path):
             emmebank_path = self.get_abs_path(self.controller.config.emme.transit_database_path)
         emmebank = self.controller.emme_manager.emmebank(emmebank_path)
@@ -261,7 +266,7 @@ class TransitAssignment(Component):
                 if self.controller.config.transit.get("output_transit_boardings_path"):
                     self.export_boardings_by_line(scenario, period, use_fares)
                 if self.controller.config.transit.get("output_shapefile_path"):
-                    emme_app.data_explorer().replace_primary_scenario(scenario)
+                    data_explorer.replace_primary_scenario(scenario)
                     self.export_segment_shapefile(emme_app, period)
                 if self.controller.config.transit.get("output_stop_usage_path"):
                     self.export_connector_flows(scenario, period)
