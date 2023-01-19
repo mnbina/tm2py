@@ -133,7 +133,7 @@ class HighwayAssignment(Component):
         run_dynamic_toll = self.config.tolls.run_dynamic_toll
         valuetoll_start_tollbooth_code = self.config.tolls.valuetoll_start_tollbooth_code
         max_dynamic_valuetoll = self.config.tolls.max_dynamic_valuetoll
-        apply_msa = self.config.msa.apply_msa
+        warmstart = self.config.run.warmstart.warmstart
 
         demand.run()
         for time in self.time_period_names:
@@ -156,7 +156,12 @@ class HighwayAssignment(Component):
 
                 if not run_dynamic_toll:
                     self._run_sola_traffic_assignment(scenario, assign_spec, chart_log_interval=1)
-                else: #if run_dynamic_toll 
+                elif iteration == 0 and (not warmstart):
+                    # if run_dynamic_toll = True, warmstart = False, iteration = 0
+                    self._run_sola_traffic_assignment(scenario, assign_spec, chart_log_interval=1)
+                else: 
+                    # (1) run_dynamic_toll = True, warmstart = False, iteration >= 1, or
+                    # (2) run_dynamic_toll = True, warmstart = True
                     # run maximum 5 times of dynamic tolling
                     # break out the loop if no valuetoll need to be updated
                     for dynamic_toll_iteration in range(1, 6):
@@ -207,7 +212,6 @@ class HighwayAssignment(Component):
                         class_config["skims"],
                     )
                 self._export_skims(scenario, time)
-
 
                 if self.logger.debug_enabled:
                     self._log_debug_report(scenario, time)
