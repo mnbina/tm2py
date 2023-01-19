@@ -596,11 +596,6 @@
 
     [highway.msa]
         apply_msa = true
-        write_iteration_flow = false
-        # weights for calculating average volume (parameters are from TM1.5 RunModel.bat)
-        # value at index 0 is wgt for iteration 0
-        prev_wgt = [0.0, 0.0, 0.5, 0.67]
-        curr_wgt = [1.0, 1.0, 0.5, 0.33]
 
 
     [highway.maz_to_maz]

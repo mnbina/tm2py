@@ -881,15 +881,9 @@ class HighwayMsaConfig(ConfigItem):
     """Highway MSA calculation parameters
 
     Properties:
-        write_iteration_flow: write out total flow and flow by vehicle 
-            classes for each global iteration if set to true
-        prev_wgt: weight for weighted average volume in previous iteration(s)
-        curr_wgt: weight for volume in current iteration
+        apply_msa: true if apply msa (averaging demands)
     """
     apply_msa: bool = Field(default=False)
-    write_iteration_flow: bool = Field(default=False)
-    prev_wgt: List[float] = Field(default=[])
-    curr_wgt: List[float] = Field(default=[])
 
 
 @dataclass(frozen=True)

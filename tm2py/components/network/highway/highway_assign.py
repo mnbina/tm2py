@@ -152,17 +152,16 @@ class HighwayAssignment(Component):
                     None
                 self._create_skim_matrices(scenario, assign_classes)
 
-                if iteration == 0 or not run_dynamic_toll:
-                    assign_spec = self._get_assignment_spec(assign_classes)
+                assign_spec = self._get_assignment_spec(assign_classes)
+
+                if not run_dynamic_toll:
                     self._run_sola_traffic_assignment(scenario, assign_spec, chart_log_interval=1)
-                else: #iteration > 0 and run_dynamic_toll 
+                else: #if run_dynamic_toll 
                     # run maximum 5 times of dynamic tolling
                     # break out the loop if no valuetoll need to be updated
                     for dynamic_toll_iteration in range(1, 6):
-                        assign_spec = self._get_assignment_spec(assign_classes)
                         if dynamic_toll_iteration < 5:
                             assign_spec["stopping_criteria"]["max_iterations"] = self.config.tolls.dynamic_toll_inner_iter
-                        stopping_criteria = assign_spec["stopping_criteria"]
                         self._run_sola_traffic_assignment(scenario, assign_spec, chart_log_interval=1)
                         self._calc_total_flow(scenario)
                         self._calc_vc(scenario)
@@ -209,37 +208,10 @@ class HighwayAssignment(Component):
                     )
                 self._export_skims(scenario, time)
 
-                if iteration > 0 and apply_msa:
-                    if not run_dynamic_toll:
-                        self._calc_total_flow(scenario) # only needed if not previously calculated by dynamic tolling step
-                    self._calc_weighted_avg_flow(scenario)
-
-                    # in global iteration 1, if apply_msa=True, set bpr to use @total_flow instead of volau + volad
-                    if iteration == 1:
-                        self._set_msa_vdf_functions()
 
                 if self.logger.debug_enabled:
                     self._log_debug_report(scenario, time)
 
-
-    def _set_msa_vdf_functions(self):
-        emmebank_path = self.get_abs_path(self.controller.config.emme.highway_database_path)
-        emme_manager = _emme_tools.manager.EmmeManager()
-        emmebank = emme_manager.emmebank(emmebank_path)
-        emmebank.extra_function_parameters.el4 = "@total_flow"
-        bpr_tmplt = "el1 * (1 + 0.20 * (el4/el2/0.75)^6)"
-        akcelik_tmplt = (
-            "(el1 + 60 * (0.25 *(el4/el2 - 1 + "
-            "((el4/el2 - 1)^2 + el3 * el4/el2)^0.5)))"
-        )
-        for f_id in ["fd1", "fd2"]:
-            if emmebank.function(f_id):
-                emmebank.delete_function(f_id)
-            emmebank.create_function(f_id, bpr_tmplt)
-        for f_id in ["fd3", "fd4", "fd5", "fd6", "fd7", "fd9", "fd10", "fd11", "fd12", "fd13", "fd14", "fd99"]:
-            if emmebank.function(f_id):
-                emmebank.delete_function(f_id)
-            emmebank.create_function(f_id, akcelik_tmplt)
 
     def _run_sola_traffic_assignment(self, scenario, assign_spec, chart_log_interval=1):
         with self.logger.log_start_end(
@@ -362,32 +334,6 @@ class HighwayAssignment(Component):
             return f"{prev_wgt} * @total_flow_avg + {curr_wgt} * @total_flow"
         else:
             return f"{prev_wgt} * @flow_{assign_class.name.lower()}_avg + {curr_wgt} * @flow_{assign_class.name.lower()}"
-
-    def _calc_weighted_avg_flow(self, scenario: EmmeScenario):
-        iteration = self.controller.iteration
-        write_iteration_flow = self.config.msa.write_iteration_flow
-        net_calc = NetworkCalculator(scenario)
-
-        if iteration == 1 or ( (iteration == 0) & self.controller.config.run.warmstart.warmstart): 
-            # carry over current flow to the averaged flow attribute
-            net_calc("@total_flow_avg", "@total_flow")
-            for assign_class in self.config.classes:
-                net_calc(f"@flow_{assign_class.name.lower()}_avg", f"@flow_{assign_class.name.lower()}")
-
-            if write_iteration_flow:
-                net_calc(f"@total_flow_{iteration}", "@total_flow")
-
-        elif iteration >= 2:
-            prev_wgt = self.config.msa.prev_wgt[iteration]
-            curr_wgt = self.config.msa.curr_wgt[iteration]
-            assert prev_wgt + curr_wgt == 1, "total weight for msa calculation should sum to 1"
-
-            if iteration >= 1 and write_iteration_flow:
-                net_calc(f"@total_flow_{iteration}", "@total_flow")
-
-            total_flow_expression = self._get_msa_calc_expression(prev_wgt, curr_wgt, True)
-            net_calc("@total_flow_avg", total_flow_expression)
-            net_calc("@total_flow", "@total_flow_avg") # overwrite @total_flow with the averaged total flow
 
     def _create_skim_matrices(
         self, scenario: EmmeScenario, assign_classes: List[AssignmentClass]
