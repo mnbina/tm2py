@@ -60,7 +60,11 @@ class PrepareDemand(Component, ABC):
     def _save_demand(self, name, demand, scenario, description="", apply_msa=False):
         matrix = self._emmebank.matrix(f'mf"{name}"')
         msa_iteration = self.controller.iteration
-        if not apply_msa or msa_iteration <= 1:
+        end_iteration = self.controller.config.run.end_iteration
+        # iteration 0 & 1: do not average demand
+        # iteration 2 ~ end_iteration-1, use average demand
+        # iteration end_iteration: do not average demand
+        if (not apply_msa) or (msa_iteration <= 1) or (msa_iteration == end_iteration):
             if not matrix:
                 ident = self._emmebank.available_matrix_identifier("FULL")
                 matrix = self._emmebank.create_matrix(ident)
@@ -140,6 +144,7 @@ class PrepareHighwayDemand(PrepareDemand):
                  "factor": <factor to apply to demand in this file>}
             time_period (str): the time time_period ID (name)
         """
+        apply_msa = self.controller.config.highway.msa.apply_msa
         scenario = self.get_emme_scenario(self._emmebank.path, time_period)
         num_zones = len(scenario.zone_numbers)
         demand = self._read_demand(demand_config[0], time_period, num_zones)
@@ -147,7 +152,7 @@ class PrepareHighwayDemand(PrepareDemand):
             demand = demand + self._read_demand(file_config, time_period, num_zones)
         demand_name = f"{time_period}_{name}"
         description = f"{time_period} {description} demand"
-        self._save_demand(demand_name, demand, scenario, description, apply_msa=True)
+        self._save_demand(demand_name, demand, scenario, description, apply_msa=apply_msa)
         
     def export_trip_tables(self):
     
