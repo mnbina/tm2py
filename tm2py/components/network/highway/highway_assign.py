@@ -333,12 +333,6 @@ class HighwayAssignment(Component):
         # for links with @capacity == 0, such as ml that has 0 lane in that period, keep vc as 0
         net_calc(result="@vc", expression="@total_flow / @capacity", selections={"link": "not @capacity=0"})
 
-    def _get_msa_calc_expression(self, prev_wgt=0, curr_wgt=1, total=True, assign_class=None):
-        if total:
-            return f"{prev_wgt} * @total_flow_avg + {curr_wgt} * @total_flow"
-        else:
-            return f"{prev_wgt} * @flow_{assign_class.name.lower()}_avg + {curr_wgt} * @flow_{assign_class.name.lower()}"
-
     def _create_skim_matrices(
         self, scenario: EmmeScenario, assign_classes: List[AssignmentClass]
     ):
