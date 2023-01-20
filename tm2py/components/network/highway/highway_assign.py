@@ -133,7 +133,7 @@ class HighwayAssignment(Component):
         run_dynamic_toll = self.config.tolls.run_dynamic_toll
         valuetoll_start_tollbooth_code = self.config.tolls.valuetoll_start_tollbooth_code
         max_dynamic_valuetoll = self.config.tolls.max_dynamic_valuetoll
-        warmstart = self.config.run.warmstart.warmstart
+        warmstart = self.controller.config.run.warmstart.warmstart
 
         demand.run()
         for time in self.time_period_names:
