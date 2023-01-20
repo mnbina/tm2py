@@ -152,12 +152,12 @@ class HighwayAssignment(Component):
                     None
                 self._create_skim_matrices(scenario, assign_classes)
 
-                assign_spec = self._get_assignment_spec(assign_classes)
-
                 if not run_dynamic_toll:
+                    assign_spec = self._get_assignment_spec(assign_classes)
                     self._run_sola_traffic_assignment(scenario, assign_spec, chart_log_interval=1)
                 elif iteration == 0 and (not warmstart):
                     # if run_dynamic_toll = True, warmstart = False, iteration = 0
+                    assign_spec = self._get_assignment_spec(assign_classes)
                     self._run_sola_traffic_assignment(scenario, assign_spec, chart_log_interval=1)
                 else: 
                     # (1) run_dynamic_toll = True, warmstart = False, iteration >= 1, or
@@ -165,6 +165,7 @@ class HighwayAssignment(Component):
                     # run maximum 5 times of dynamic tolling
                     # break out the loop if no valuetoll need to be updated
                     for dynamic_toll_iteration in range(1, 6):
+                        assign_spec = self._get_assignment_spec(assign_classes)
                         if dynamic_toll_iteration < 5:
                             assign_spec["stopping_criteria"]["max_iterations"] = self.config.tolls.dynamic_toll_inner_iter
                         self._run_sola_traffic_assignment(scenario, assign_spec, chart_log_interval=1)
