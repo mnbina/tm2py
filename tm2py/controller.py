@@ -235,6 +235,7 @@ class RunController:
         Iterates through the self._queued_components and runs them.
         """
         self._iteration = None
+
         if self.config.run.warmstart.warmstart and self.config.run.warmstart.warmstart_check and (self.config.run.start_iteration == 0):
             self.warmstart_check()
         if self.config.run.warmstart.warmstart and (self.config.run.start_iteration == 0):

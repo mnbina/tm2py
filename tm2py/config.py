@@ -1194,6 +1194,7 @@ class TransitConfig(ConfigItem):
     fare_matrix_path: pathlib.Path
     fare_max_transfer_distance_miles: float
     use_fares: bool
+    fare_2015_to_2000_deflator: float
     override_connectors: bool
     override_connector_times: bool
     initial_boarding_penalty: Optional[float] = Field(default=None, ge=0)
@@ -1204,6 +1205,7 @@ class TransitConfig(ConfigItem):
     output_skim_filename_tmpl: str = Field()
     output_skim_matrixname_tmpl: str = Field()
     output_transit_boardings_path: str = Field()
+    output_shapefile_path: str = Field()
     classes: Tuple[TransitClassConfig, ...] = Field()
     use_ccr: bool = False
     congested_transit_assignment: bool = False
