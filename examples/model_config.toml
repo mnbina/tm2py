@@ -903,8 +903,8 @@
 			1040116="101 between SF and San Mateo County (northbound)"
 			1048514="280 between SF and San Mateo County (southbound)"
 			1070169="280 between SF and San Mateo County (northbound)"
-			3055218="I-880 between hayward and fremont parallel to BART services (northbound)"
-			3004982="I-880 between hayward and fremont parallel to BART services (southbound)"
+			3055218="I-880 between Hayward and Fremont parallel to BART services (northbound)"
+			3004982="I-880 between Hayward and Fremont parallel to BART services (southbound)"
 		
 		[[highway.convergence.summary_mode_group]]
 			name = "KNR Transit"
@@ -920,7 +920,7 @@
 			modes = ["trk", "lrgtrk"]
 		[[highway.convergence.summary_mode_group]]
 			name = "HOV"
-			modes = ["s2", "s3"]
+			modes = ["s2h", "s3h"]
 		[[highway.convergence.summary_mode_group]]
 			name = "Drive alone"
 			modes = ["dah"]
