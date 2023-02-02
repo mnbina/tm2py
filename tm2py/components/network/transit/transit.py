@@ -265,9 +265,9 @@ class TransitAssignment(Component):
                 
                 if self.controller.config.transit.get("output_transit_boardings_path"):
                     self.export_boardings_by_line(scenario, period, use_fares)
-                if self.controller.config.transit.get("output_shapefile_path"):
-                    data_explorer.replace_primary_scenario(scenario)
-                    self.export_segment_shapefile(emme_app, period)
+                # if self.controller.config.transit.get("output_shapefile_path"): need further test
+                #     data_explorer.replace_primary_scenario(scenario)
+                #     self.export_segment_shapefile(emme_app, period)
                 if self.controller.config.transit.get("output_stop_usage_path"):
                     self.export_connector_flows(scenario, period)
 
