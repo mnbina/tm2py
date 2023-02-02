@@ -311,7 +311,7 @@ class TransitAssignment(Component):
                         tran_link["@trantime"] = 60 * tran_link.length/tran_speed
                     else:
                         tran_link["@trantime"] = auto_time
-                    tran_link.data1 = tran_link["@trantime"]
+                    tran_link.data1 = tran_link["@trantime"]  # used in Mixed-Mode transit assigment
                 # bus time calculation
                     if tran_link["@ft"] in [1,2,3,8]:
                         delayfactor = 0.0
@@ -694,7 +694,7 @@ class TransitAssignment(Component):
             "demand": "",  # demand matrix specified below
             "waiting_time": {
                 "effective_headways": params["effective_headway_source"],
-                "headway_fraction": 0.5,
+                "headway_fraction": "@hdw_fraction",
                 "perception_factor": params["initial_wait_perception_factor"],
                 "spread_factor": 1.0,
             },
@@ -787,8 +787,9 @@ class TransitAssignment(Component):
             journey_levels = get_jl_xfer_penalty(
                 all_modes,
                 params["effective_headway_source"],
-                params["transfer_wait_perception_factor"],
-                "@xboard_penalty"
+                "@wait_pfactor",
+                "@xboard_penalty",
+                "@xboard_nodepen"
             )
             WLK_TRN_WLK_journey_levels = journey_levels
             PNR_TRN_WLK_journey_levels = journey_levels
@@ -1595,7 +1596,7 @@ class TransitAssignment(Component):
                 ]
                 matrix_calc(spec_list, scenario=scenario, num_processors=num_processors)
 
-def get_jl_xfer_penalty(modes, effective_headway_source, xfer_perception_factor, xfer_boarding_penalty):
+def get_jl_xfer_penalty(modes, effective_headway_source, xfer_perception_factor, xfer_boarding_penalty, xfer_node_boarding_penalty):
     level_rules = [{
         "description": "",
         "destinations_reachable": True,
@@ -1606,7 +1607,7 @@ def get_jl_xfer_penalty(modes, effective_headway_source, xfer_perception_factor,
             "destinations_reachable": True,
             "transition_rules": [{"mode": m, "next_journey_level": 1} for m in modes],
             "waiting_time": {
-                "headway_fraction": 0.5,
+                "headway_fraction": "@hdw_fraction",
                 "effective_headways": effective_headway_source,
                 "spread_factor": 1,
                 "perception_factor": xfer_perception_factor
@@ -1618,6 +1619,13 @@ def get_jl_xfer_penalty(modes, effective_headway_source, xfer_perception_factor,
         level_rules[1]["boarding_time"] = {"on_lines": {
             "penalty": xfer_boarding_penalty, "perception_factor": 1}
         }
+        if xfer_node_boarding_penalty is not None:
+            level_rules[1]["boarding_time"] = {
+            "on_lines": {
+                "penalty": xfer_boarding_penalty, "perception_factor": 1},
+            "at_nodes": {
+                "penalty": xfer_node_boarding_penalty, "perception_factor": 1}, 
+            }
     return level_rules
 
 
@@ -1737,13 +1745,16 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_percep
 
         for level in new_journey_levels[2:-1]:
             level["waiting_time"] = {
-                "headway_fraction": 0.5,
+                "headway_fraction": "@hdw_fraction",
                 "effective_headways": params["effective_headway_source"],
                 "spread_factor": 1,
-                "perception_factor": params["transfer_wait_perception_factor"]
+                "perception_factor": "@wait_pfactor"
             }
-            level["boarding_time"] = {"on_lines": {
-                "penalty": "@xboard_penalty", "perception_factor": 1}
+            level["boarding_time"] = {
+            "on_lines": {
+                "penalty": "@xboard_penalty", "perception_factor": 1},
+            "at_nodes": {
+                "penalty": "@xboard_nodepen", "perception_factor": 1}, 
             }
         # add in the correct value of time parameter
         for level in new_journey_levels:
@@ -1839,13 +1850,16 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_percep
 
         for level in new_journey_levels[1:-2]:
             level["waiting_time"] = {
-                "headway_fraction": 0.5,
+                "headway_fraction": "@hdw_fraction",
                 "effective_headways": params["effective_headway_source"],
                 "spread_factor": 1,
-                "perception_factor": params["transfer_wait_perception_factor"]
+                "perception_factor": "@wait_pfactor"
             }
-            level["boarding_time"] = {"on_lines": {
-                "penalty": "@xboard_penalty", "perception_factor": 1}
+            level["boarding_time"] = {
+            "on_lines": {
+                "penalty": "@xboard_penalty", "perception_factor": 1},
+            "at_nodes": {
+                "penalty": "@xboard_nodepen", "perception_factor": 1}, 
             }
         # add in the correct value of time parameter
         for level in new_journey_levels:
@@ -1946,13 +1960,16 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_percep
 
         for level in new_journey_levels[2:-1]:
             level["waiting_time"] = {
-                "headway_fraction": 0.5,
+                "headway_fraction": "@hdw_fraction",
                 "effective_headways": params["effective_headway_source"],
                 "spread_factor": 1,
-                "perception_factor": params["transfer_wait_perception_factor"]
+                "perception_factor": "@wait_pfactor"
             }
-            level["boarding_time"] = {"on_lines": {
-                "penalty": "@xboard_penalty", "perception_factor": 1}
+            level["boarding_time"] = {
+            "on_lines": {
+                "penalty": "@xboard_penalty", "perception_factor": 1},
+            "at_nodes": {
+                "penalty": "@xboard_nodepen", "perception_factor": 1}, 
             }
         # add in the correct value of time parameter
         for level in new_journey_levels:
@@ -2051,13 +2068,16 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_percep
 
         for level in new_journey_levels[1:-2]:
             level["waiting_time"] = {
-                "headway_fraction": 0.5,
+                "headway_fraction": "@hdw_fraction",
                 "effective_headways": params["effective_headway_source"],
                 "spread_factor": 1,
-                "perception_factor": params["transfer_wait_perception_factor"]
+                "perception_factor": "@wait_pfactor"
             }
-            level["boarding_time"] = {"on_lines": {
-                "penalty": "@xboard_penalty", "perception_factor": 1}
+            level["boarding_time"] = {
+            "on_lines": {
+                "penalty": "@xboard_penalty", "perception_factor": 1},
+            "at_nodes": {
+                "penalty": "@xboard_nodepen", "perception_factor": 1}, 
             }
         # add in the correct value of time parameter
         for level in new_journey_levels:
@@ -2081,13 +2101,16 @@ def update_journey_levels_with_fare(project_dir, period, class_name, fare_percep
 
         for level in new_journey_levels[1:]:
             level["waiting_time"] = {
-                "headway_fraction": 0.5,
+                "headway_fraction": "@hdw_fraction",
                 "effective_headways": params["effective_headway_source"],
                 "spread_factor": 1,
-                "perception_factor": params["transfer_wait_perception_factor"]
+                "perception_factor": "@wait_pfactor"
             }
-            level["boarding_time"] = {"on_lines": {
-                "penalty": "@xboard_penalty", "perception_factor": 1}
+            level["boarding_time"] = {
+            "on_lines": {
+                "penalty": "@xboard_penalty", "perception_factor": 1},
+            "at_nodes": {
+                "penalty": "@xboard_nodepen", "perception_factor": 1}, 
             }
         # add in the correct value of time parameter
         for level in new_journey_levels:
