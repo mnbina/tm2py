@@ -626,7 +626,7 @@
         excluded_links = [ "is_sr",]
         value_of_time = 12.86
         operating_cost_per_mile = 13.61
-        toll = [ "@bridgetoll_daxh" ]
+        toll = [ "@bridgetoll_daxh", "@valuetoll_daxh" ]
         skims = [ "time", "dist", "freeflowtime", "btoll", "vtoll", "gctime", "cost", ]
         output_skim_matrixname_tmpl = "{property_name}{class_name}"
         [[highway.classes.demand]]
@@ -645,7 +645,7 @@
         excluded_links = [ "is_sr",]
         value_of_time = 10.44
         operating_cost_per_mile = 13.61
-        toll = [ "@bridgetoll_dah" ]
+        toll = [ "@bridgetoll_dah", "@valuetoll_dah" ]
         skims = [ "time", "dist", "freeflowtime", "btoll", "vtoll", "gctime", "cost", ]
         output_skim_matrixname_tmpl = "{property_name}{class_name}"
         [[highway.classes.demand]]
@@ -661,7 +661,7 @@
         excluded_links = [ "is_sr",]
         value_of_time = 8.81
         operating_cost_per_mile = 13.61
-        toll = [ "@bridgetoll_dam" ]
+        toll = [ "@bridgetoll_dam", "@valuetoll_dam" ]
         skims = [ "time", "dist", "freeflowtime", "btoll", "vtoll", "gctime", "cost", ]
         output_skim_matrixname_tmpl = "{property_name}{class_name}"
         [[highway.classes.demand]]
@@ -677,7 +677,7 @@
         excluded_links = [ "is_sr",]
         value_of_time = 6.01
         operating_cost_per_mile = 13.61
-        toll = [ "@bridgetoll_dal" ]
+        toll = [ "@bridgetoll_dal", "@valuetoll_dal" ]
         skims = [ "time", "dist", "freeflowtime", "btoll", "vtoll", "gctime", "cost", ]
         output_skim_matrixname_tmpl = "{property_name}{class_name}"
         [[highway.classes.demand]]
@@ -694,7 +694,7 @@
         excluded_links = [ "is_sr3",]
         value_of_time = 12.86
         operating_cost_per_mile = 13.61
-        toll = [ "@bridgetoll_s2xh" ]
+        toll = [ "@bridgetoll_s2xh", "@valuetoll_s2xh" ]
         toll_factor = 0.5714285714285714
         skims = [ "time", "dist", "freeflowtime", "btoll", "vtoll", "gctime", "cost", ]
         output_skim_matrixname_tmpl = "{property_name}{class_name}"
@@ -715,7 +715,7 @@
         excluded_links = [ "is_sr3",]
         value_of_time = 10.44
         operating_cost_per_mile = 13.61
-        toll = [ "@bridgetoll_s2h" ]
+        toll = [ "@bridgetoll_s2h", "@valuetoll_s2h" ]
         toll_factor = 0.5714285714285714
         skims = [ "time", "dist", "freeflowtime", "btoll", "vtoll", "gctime", "cost", ]
         output_skim_matrixname_tmpl = "{property_name}{class_name}"
@@ -733,7 +733,7 @@
         excluded_links = [ "is_sr3",]
         value_of_time = 8.81
         operating_cost_per_mile = 13.61
-        toll = [ "@bridgetoll_s2m" ]
+        toll = [ "@bridgetoll_s2m", "@valuetoll_s2m" ]
         toll_factor = 0.5714285714285714
         skims = [ "time", "dist", "freeflowtime", "btoll", "vtoll", "gctime", "cost", ]
         output_skim_matrixname_tmpl = "{property_name}{class_name}"
@@ -751,7 +751,7 @@
         excluded_links = [ "is_sr3",]
         value_of_time = 6.01
         operating_cost_per_mile = 13.61
-        toll = [ "@bridgetoll_s2l" ]
+        toll = [ "@bridgetoll_s2l", "@valuetoll_s2l" ]
         toll_factor = 0.5714285714285714
         skims = [ "time", "dist", "freeflowtime", "btoll", "vtoll", "gctime", "cost", ]
         output_skim_matrixname_tmpl = "{property_name}{class_name}"
@@ -770,7 +770,7 @@
         excluded_links = []
         value_of_time = 12.86
         operating_cost_per_mile = 13.61
-        toll = ["@bridgetoll_s3xh"]
+        toll = [ "@bridgetoll_s3xh", "@valuetoll_s3xh" ]
         toll_factor = 0.4
         skims = [ "time", "dist", "freeflowtime", "btoll", "vtoll", "gctime", "cost", ]
         output_skim_matrixname_tmpl = "{property_name}{class_name}"
@@ -791,7 +791,7 @@
         excluded_links = []
         value_of_time = 10.44
         operating_cost_per_mile = 13.61
-        toll = ["@bridgetoll_s3h"]
+        toll = [ "@bridgetoll_s3h", "@valuetoll_s3h" ]
         toll_factor = 0.4
         skims = [ "time", "dist", "freeflowtime", "btoll", "vtoll", "gctime", "cost", ]
         output_skim_matrixname_tmpl = "{property_name}{class_name}"
@@ -809,7 +809,7 @@
         excluded_links = []
         value_of_time = 8.81
         operating_cost_per_mile = 13.61
-        toll = ["@bridgetoll_s3m"]
+        toll = [ "@bridgetoll_s3m", "@valuetoll_s3m" ]
         toll_factor = 0.4
         skims = [ "time", "dist", "freeflowtime", "btoll", "vtoll", "gctime", "cost", ]
         output_skim_matrixname_tmpl = "{property_name}{class_name}"
@@ -827,7 +827,7 @@
         excluded_links = []
         value_of_time = 6.01
         operating_cost_per_mile = 13.61
-        toll = ["@bridgetoll_s3l"]
+        toll = [ "@bridgetoll_s3l", "@valuetoll_s3l" ]
         toll_factor = 0.4
         skims = [ "time", "dist", "freeflowtime", "btoll", "vtoll", "gctime", "cost", ]
         output_skim_matrixname_tmpl = "{property_name}{class_name}"
@@ -846,7 +846,7 @@
         excluded_links = ["is_sr",]
         value_of_time = 29.92
         operating_cost_per_mile = 24.71
-        toll = ["@bridgetoll_sml"]
+        toll = [ "@bridgetoll_vsm", "@bridgetoll_sml", "@bridgetoll_med", "@valuetoll_vsm", "@valuetoll_sml", "@valuetoll_med" ]
         skims = [ "time", "dist", "freeflowtime", "btoll_vsm", "btoll_sml", "btoll_med", "gctime", "cost", ]
         output_skim_matrixname_tmpl = "{property_name}{class_name}"
         [[highway.classes.demand]]
@@ -865,7 +865,7 @@
         excluded_links = ["is_auto_only"]
         value_of_time = 29.92
         operating_cost_per_mile = 24.71
-        toll = ["@bridgetoll_lrg"]
+        toll = [ "@bridgetoll_lrg", "@valuetoll_lrg" ]
         pce = 2.0
         skims = [ "time", "dist", "freeflowtime", "btoll_lrg", "gctime", "cost", ]
         output_skim_matrixname_tmpl = "{property_name}{class_name}"
