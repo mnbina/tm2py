@@ -201,6 +201,7 @@ class HighwayAssignment(Component):
                         # if need to update valuetoll, call set_tolls function
                         if update_toll_required:
                             PrepareNetwork(controller=self._controller)._set_dynamic_tolls(network=network)
+                            PrepareNetwork(controller=self._controller)._calc_link_class_costs(network=network)
                             scenario.publish_network(network)
                         else:
                             if dynamic_toll_iteration < 5 and valuetoll_links_exist:
