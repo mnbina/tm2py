@@ -589,6 +589,7 @@
         valuetoll_start_tollbooth_code = 11
         # temporary settings for dynamic tolling
         run_dynamic_toll = true
+        max_dynamic_toll_iter = 5
         dynamic_toll_inner_iter = 20
         valuetoll_increment = 0.1
         max_dynamic_valuetoll = 1.0
