@@ -846,7 +846,7 @@
         excluded_links = ["is_sr",]
         value_of_time = 29.92
         operating_cost_per_mile = 24.71
-        toll = [ "@bridgetoll_vsm", "@bridgetoll_sml", "@bridgetoll_med", "@valuetoll_vsm", "@valuetoll_sml", "@valuetoll_med" ]
+        toll = [ "@bridgetoll_sml", "@valuetoll_sml" ]
         skims = [ "time", "dist", "freeflowtime", "btoll_vsm", "btoll_sml", "btoll_med", "gctime", "cost", ]
         output_skim_matrixname_tmpl = "{property_name}{class_name}"
         [[highway.classes.demand]]
