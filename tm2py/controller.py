@@ -310,8 +310,8 @@ class RunController:
             _final_components = [c for c in _final_components if c in run_components]
         
             #printing run components by iteration type (initial, global, final) in order
-            if self.config.run.start_iteration == 0:
-                print('Initial components', _initial_components)
+            
+            print('Initial components', _initial_components)
             print('Global iteration components', _global_iter_components)
             print('Final components', _final_components)
             
