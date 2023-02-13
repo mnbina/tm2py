@@ -216,6 +216,8 @@ class TimePeriodConfig(ConfigItem):
             capacites in the highway network
         emme_scenario_id: scenario ID to use for Emme per-period
             assignment (highway and transit) scenarios
+        transit_assn_max_iteration: max iterations in congested 
+            transit assignment stopping criteria
     """
 
     name: str = Field(max_length=4)
@@ -223,6 +225,7 @@ class TimePeriodConfig(ConfigItem):
     length_hours: float = Field(gt=0)
     highway_capacity_factor: float = Field(gt=0)
     emme_scenario_id: int = Field(ge=1)
+    transit_assn_max_iteration: int = Field(ge=1)
     description: Optional[str] = Field(default="")
 
 
@@ -1222,6 +1225,7 @@ class TransitConfig(ConfigItem):
     output_skim_matrixname_tmpl: str = Field()
     output_transit_boardings_path: str = Field()
     output_shapefile_path: str = Field()
+    output_station_to_station_flow_path: str = Field()
     classes: Tuple[TransitClassConfig, ...] = Field()
     use_ccr: bool = False
     congested_transit_assignment: bool = False

@@ -174,6 +174,7 @@ class TransitAssignment(Component):
                 use_fares = self.controller.config.transit.use_fares
                 use_peaking_factor = self.controller.config.transit.use_peaking_factor
                 warm_start =  self.controller.config.run.warmstart.warmstart
+                max_iteration = period.transit_assn_max_iteration
 
                 if self.controller.iteration == 0:
                     use_ccr = False
@@ -194,6 +195,7 @@ class TransitAssignment(Component):
                             scenario,
                             network,
                             period=period,
+                            max_iteration=max_iteration,
                             assignment_only=False,
                             use_fares=use_fares,
                             use_ccr=use_ccr,
@@ -218,6 +220,7 @@ class TransitAssignment(Component):
                             scenario,
                             network,
                             period=period,
+                            max_iteration=max_iteration,
                             assignment_only=False,
                             use_fares=use_fares,
                             use_ccr=use_ccr,
@@ -234,6 +237,7 @@ class TransitAssignment(Component):
                             scenario,
                             network,
                             period=period,
+                            max_iteration=max_iteration,
                             assignment_only=False,
                             use_fares=use_fares,
                             use_ccr=use_ccr,
@@ -256,6 +260,7 @@ class TransitAssignment(Component):
                         scenario,
                         network,
                         period=period,
+                        max_iteration=max_iteration,
                         assignment_only=False,
                         use_fares=use_fares,
                         use_ccr=use_ccr,
@@ -270,6 +275,8 @@ class TransitAssignment(Component):
                 #     self.export_segment_shapefile(emme_app, period)
                 if self.controller.config.transit.get("output_stop_usage_path"):
                     self.export_connector_flows(scenario, period)
+                if self.controller.config.transit.get("output_station_to_station_flow_path"):
+                    self.export_boardings_by_station(network, use_fares, period, scenario)
 
     @_context
     def _setup(self, scenario, period):
@@ -564,6 +571,7 @@ class TransitAssignment(Component):
                         scenario,
                         network,
                         period,
+                        max_iteration,
                         assignment_only=False,
                         use_fares=False,
                         use_ccr=False,
@@ -605,6 +613,7 @@ class TransitAssignment(Component):
                 period,
                 network,
                 mode_types,
+                max_iteration,
                 use_fares,
                 use_ccr,
                 congested_transit_assignment
@@ -678,6 +687,7 @@ class TransitAssignment(Component):
             period,
             network,
             mode_types,
+            max_iteration,
             use_fares=False,
             use_ccr=False,
             congested_transit_assignment=False
@@ -892,7 +902,7 @@ class TransitAssignment(Component):
                 "assignment_period": period.duration,
             }
             stop = {
-                "max_iterations": 10,
+                "max_iterations": max_iteration,
                 "relative_difference": 0.01,
                 "percent_segments_over_capacity": 0.01,
             }
@@ -942,7 +952,7 @@ class TransitAssignment(Component):
                 "assignment_period": period.length_hours,
             }
             stop = {
-                "max_iterations": 10,
+                "max_iterations": max_iteration,
                 "normalized_gap": 0.01,
                 "relative_gap": 0.001
             }
@@ -1082,6 +1092,38 @@ class TransitAssignment(Component):
                 scenario=scenario,
                 num_processors=num_processors,
             )
+
+            walk_perception_factor = self.controller.config.transit.get("walk_perception_factor", 2)
+            drive_perception_factor = self.controller.config.transit.get("drive_perception_factor", 2)
+            # divide drive and walk time by mode specific perception factor to get the actual time
+            # because the mode specific perception factors are hardcoded in the mode definition
+            spec_list = [
+                {
+                    "type": "MATRIX_CALCULATION",
+                    "constraint": None,
+                    "result": f'mf"{skim_name}_DTIME"',
+                    "expression": f'mf"{skim_name}_DTIME"/{drive_perception_factor}',
+                },
+                {
+                    "type": "MATRIX_CALCULATION",
+                    "constraint": None,
+                    "result": f'mf"{skim_name}_WAUX"',
+                    "expression": f'mf"{skim_name}_WAUX"/{walk_perception_factor}',
+                },
+                {
+                    "type": "MATRIX_CALCULATION",
+                    "constraint": None,
+                    "result": f'mf"{skim_name}_WACC"',
+                    "expression": f'mf"{skim_name}_WACC"/{walk_perception_factor}',
+                },
+                {
+                    "type": "MATRIX_CALCULATION",
+                    "constraint": None,
+                    "result": f'mf"{skim_name}_WEGR"',
+                    "expression": f'mf"{skim_name}_WEGR"/{walk_perception_factor}',
+                },
+            ]
+            matrix_calc(spec_list, scenario=scenario, num_processors=num_processors)
 
         with self.controller.emme_manager.logbook_trace("In-vehicle time by mode"):
             mode_combinations = [
@@ -1595,6 +1637,52 @@ class TransitAssignment(Component):
                 },
                 ]
                 matrix_calc(spec_list, scenario=scenario, num_processors=num_processors)
+
+    def export_boardings_by_station(self, network, use_fares, period, scenario):
+        modeller = self.controller.emme_manager.modeller()
+        sta2sta = modeller.tool(
+            "inro.emme.transit_assignment.extended.station_to_station_analysis")
+        sta2sta_spec = {
+            "type": "EXTENDED_TRANSIT_STATION_TO_STATION_ANALYSIS",
+            "transit_line_selections": {
+                "first_boarding": "mode=h",
+                "last_alighting": "mode=h"
+            },
+            "analyzed_demand": None,
+        }
+
+        # map to used modes in apply fares case
+        fare_modes = _defaultdict(lambda: set([]))
+        if use_fares:
+            for line in network.transit_lines():
+                fare_modes[line["#src_mode"]].add(line.mode.id)
+        else:
+            fare_modes = dict(m, [m])
+
+        operator_dict = {
+        # mode: network_selection
+            'bart': "h",
+            'caltrain': "r"
+        }
+
+        with _m.logbook_trace("Writing station-to-station summaries for period %s" % period.name):
+            for access_mode in _all_access_modes:
+                for op, cut in operator_dict.items():
+                    class_name = access_mode
+                    demand_matrix = "mf%s_%s" % (access_mode, period.name)
+                    output_file_name = self.get_abs_path(self.controller.config.transit.output_station_to_station_flow_path)
+
+                    sta2sta_spec['transit_line_selections']['first_boarding'] = "mode="+",".join(list(fare_modes[cut])) 
+                    sta2sta_spec['transit_line_selections']['last_alighting'] = "mode="+",".join(list(fare_modes[cut])) 
+                    sta2sta_spec['analyzed_demand'] = demand_matrix
+
+                    output_path = output_file_name.format(operator=op, set_name=access_mode, period=period.name)
+                    sta2sta(specification=sta2sta_spec,
+                            output_file=output_path,
+                            scenario=scenario,
+                            append_to_output_file=False,
+                            class_name=class_name)
+
 
 def get_jl_xfer_penalty(modes, effective_headway_source, xfer_perception_factor, xfer_boarding_penalty, xfer_node_boarding_penalty):
     level_rules = [{
