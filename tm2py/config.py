@@ -136,8 +136,8 @@ class RunConfig(ConfigItem):
         if values.get("start_iteration"):
             assert (
                 value >= values["start_iteration"]
-            ), f"'end_iteration' ({value}) must be greater than 'start_iteration'\
-                ({values['start_iteration']})"
+            ), f"'end_iteration' ({value}) must be greater than 'start_iteration' " \
+               f"({values['start_iteration']})"
         return value
 
     @validator("start_component", allow_reuse=True)
@@ -150,13 +150,13 @@ class RunConfig(ConfigItem):
             if values.get("start_iteration") == 0:
                 assert value in values.get(
                     "initial_components", [value]
-                ), f"'start_component' ({value}) must be one of the components listed in\
-                    initial_components if 'start_iteration = 0'"
+                ), f"'start_component' ({value}) must be one of the components " \
+                   f"listed in initial_components if 'start_iteration = 0'"
             else:
                 assert value in values.get(
                     "global_iteration_components", [values]
-                ), f"'start_component' ({value}) must be one of the components listed in\
-                    global_iteration_components if 'start_iteration > 0'"
+                ), f"'start_component' ({value}) must be one of the components " \
+                   f"listed in global_iteration_components if 'start_iteration > 0'"
         return value
 
 LogLevel = Literal[
@@ -247,16 +247,16 @@ class TimeSplitConfig(ConfigItem):
     def __post_init__(self):
         if self.od and any([self.production, self.attraction]):
             raise ValueError(
-                f"TimeSplitConfig: Must either specifify an od or any of\
-            production/attraction - not both.\n{self}"
+                f"TimeSplitConfig: Must either specifify an od or any of "
+                f"production/attraction - not both.\n{self}"
             )
 
         if not all([self.production, self.attraction]) and any(
             [self.production, self.attraction]
         ):
             raise ValueError(
-                f"TimeSplitConfig: Must have both production AND attraction\
-            if one of them is specified."
+                f"TimeSplitConfig: Must have both production AND attraction "
+                f"if one of them is specified."
             )
 
 
@@ -309,8 +309,8 @@ class HouseholdConfig(ConfigItem):
         """Validate CT-RAMP run folder exists."""
         if not value:
             return value
-        assert os.path.exists(value),  f"'ctramp_run_dir' ({value})\
-            must be an existing folder)"
+        assert os.path.exists(value),  f"'ctramp_run_dir' ({value}) " \
+                                       f"must be an existing folder)"
         return value
 
 @dataclass(frozen=True)
@@ -404,13 +404,13 @@ class MatrixFactorConfig(ConfigItem):
     def valid_factor(value, values):
         assert (
             "i_factor" not in values.keys()
-        ), "Found both `factor` and\
-            `i_factor` in MatrixFactorConfig. Should be one or the other."
+        ), "Found both `factor` and `i_factor` in MatrixFactorConfig. " \
+           "Should be one or the other."
 
         assert (
             "j_factor" not in values.keys()
-        ), "Found both `factor` and\
-            `j_factor` in MatrixFactorConfig. Should be one or the other."
+        ), "Found both `factor` and `j_factor` in MatrixFactorConfig. " \
+           "Should be one or the other."
 
 
 @dataclass(frozen=True)
