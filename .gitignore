@@ -133,4 +133,4 @@ dmypy.json
 .pyre/
 
 #convergence reports
-.examples/highway_convergence_report.txt
+examples/highway_convergence_report.txt
