@@ -957,6 +957,7 @@
     fare_2015_to_2000_deflator = 0.698 #180.20/258.27
     # transit assignment methods
     congested_transit_assignment = true
+    trim_demand_before_congested_transit_assignment = true
     use_ccr = false
     # peaking factor option
     use_peaking_factor = true

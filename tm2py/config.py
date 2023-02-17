@@ -1229,6 +1229,7 @@ class TransitConfig(ConfigItem):
     classes: Tuple[TransitClassConfig, ...] = Field()
     use_ccr: bool = False
     congested_transit_assignment: bool = False
+    trim_demand_before_congested_transit_assignment: bool = False
     capacitated_transit_assignment: bool = False
     station_capacity_transit_assignment: bool = False
     mask_noncombo_allpen: bool = False

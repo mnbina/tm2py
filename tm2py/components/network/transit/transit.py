@@ -175,6 +175,7 @@ class TransitAssignment(Component):
                 use_peaking_factor = self.controller.config.transit.use_peaking_factor
                 warm_start =  self.controller.config.run.warmstart.warmstart
                 max_iteration = period.transit_assn_max_iteration
+                trim_demand_before_congested_transit_assignment = self.controller.config.transit.trim_demand_before_congested_transit_assignment
 
                 if self.controller.iteration == 0:
                     use_ccr = False
@@ -186,7 +187,7 @@ class TransitAssignment(Component):
                     scenario.publish_network(network)
 
                     # run extended transit assignment and skimming
-                    # if run warm start, trim the demands based on based on extended transit assignment and run congested assignment
+                    # if run warm start, trim the demands based on extended transit assignment and run congested assignment
                     # otherwise run with 0 demands
                     if warm_start:
                         demand_tables = os.path.join(self.controller.config.run.warmstart.household_transit_demand_file)
@@ -256,6 +257,20 @@ class TransitAssignment(Component):
 
                     demand_tables = os.path.join(self.controller.config.household.transit_demand_file)
                     self.import_demand_matrices(period.name, scenario, omx_filename_template=demand_tables)
+                    if trim_demand_before_congested_transit_assignment and congested_transit_assignment:
+                        # trim the demands based on extended transit assignment
+                        self.assign_and_skim(
+                            scenario,
+                            network,
+                            period=period,
+                            max_iteration=max_iteration,
+                            assignment_only=False,
+                            use_fares=use_fares,
+                            use_ccr=False,
+                            congested_transit_assignment=False
+                        )
+                        self.trim_demands(scenario, period)
+                    
                     self.assign_and_skim(
                         scenario,
                         network,
@@ -1616,6 +1631,12 @@ class TransitAssignment(Component):
                 skim_name = "%s_%s" % (period.name, name)
                 demand_name = "%s_%s" % (name, period.name)
                 spec_list = [
+                {  # initialize TRIM skim
+                    "type": "MATRIX_CALCULATION",
+                    "constraint": None,
+                    "result": f'mf"{skim_name}_TRIM"',
+                    "expression": '0',
+                },
                 {  # matrix used for trimming demands, set value to 1 if IVT is not infinite
                     "type": "MATRIX_CALCULATION",
                     "constraint": {
