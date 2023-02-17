@@ -835,6 +835,7 @@ class HighwayTollsConfig(ConfigItem):
     src_vehicle_group_names: Tuple[str, ...] = Field()
     dst_vehicle_group_names: Tuple[str, ...] = Field()
     run_dynamic_toll: bool = Field(default=False)
+    max_dynamic_toll_iter: int = Field()
     dynamic_toll_inner_iter: int = Field()
     valuetoll_increment: float = Field()
     output_valuetoll_path: str = Field()
