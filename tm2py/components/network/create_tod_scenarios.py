@@ -294,7 +294,7 @@ class CreateTODScenarios(Component):
                         seg.j_node['@wait_pfactor'] = transfer_wait_perception_factor[line.vehicle.mode.id]
                 elif line.vehicle.mode.id =="h":
                     for seg in line.segments():
-                        if seg.i_node['#node_id'] in [2625944]: # hardcode Bart station: 19th street
+                        if seg.i_node['#node_id'] in [2625944, 2625943]: # hardcode Bart station: 19th street, MacArthur
                             seg.i_node['@xboard_nodepen'] = 0.1           
 
             ref_scenario.publish_network(network)

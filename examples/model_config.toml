@@ -8,30 +8,35 @@
     length_hours = 3
     highway_capacity_factor = 3
     emme_scenario_id = 11
+    transit_assn_max_iteration = 1
 [[time_periods]]
     name = "am"
     start_hour = 6
     length_hours = 4
     highway_capacity_factor = 3.65
     emme_scenario_id = 12
+    transit_assn_max_iteration = 10
 [[time_periods]]
     name = "md"
     start_hour = 10
     length_hours = 5
     highway_capacity_factor = 5
     emme_scenario_id = 13
+    transit_assn_max_iteration = 1
 [[time_periods]]
     name = "pm"
     start_hour = 15
     length_hours = 4
     highway_capacity_factor = 3.65
     emme_scenario_id = 14
+    transit_assn_max_iteration = 10
 [[time_periods]]
     name = "ev"
     start_hour = 19
     length_hours = 8
     highway_capacity_factor = 8
     emme_scenario_id = 15
+    transit_assn_max_iteration = 1
 
 [logging]
     display_level = "STATUS"
@@ -936,6 +941,7 @@
     output_stop_usage_path = "output_summaries\\stop_usage_{period}.csv"
     output_transit_boardings_path = "output_summaries\\boardings_by_line_{period}.csv"
     output_shapefile_path = "output_summaries\\{period}_assn.shp"
+    output_station_to_station_flow_path = "output_summaries\\{operator}_station_to_station_{set_name}_{period}.txt"
     fares_path = "inputs\\trn\\fares.far"
     fare_matrix_path = "inputs\\trn\\fareMatrix.txt"
     # max expected transfer distance for mode-to-mode transfer fare table generation
@@ -951,6 +957,7 @@
     fare_2015_to_2000_deflator = 0.698 #180.20/258.27
     # transit assignment methods
     congested_transit_assignment = true
+    trim_demand_before_congested_transit_assignment = true
     use_ccr = false
     # peaking factor option
     use_peaking_factor = true
