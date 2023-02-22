@@ -175,6 +175,7 @@ class PrepareHighwayDemand(PrepareDemand):
                 for file_config in demand_config:
                     demand += self._read_demand(file_config, time_period, num_total_zones)
                 triptables.write_array(demand, name = f'{name}_{time_period}')
+                triptables.write_array(demand, name = f'{name}_{time_period}_{self.controller.iteration}')                                                                                                          
         
         # Transit
         for time_period in self.time_period_names:
@@ -184,6 +185,7 @@ class PrepareHighwayDemand(PrepareDemand):
                 path = self.get_abs_path(self.controller.config.household.transit_demand_file)
                 demand = self._read(path.format(period=time_period), name, num_total_zones)
                 triptables.write_array(demand, name = f'{name}_{time_period}')
+                triptables.write_array(demand, name = f'{name}_{time_period}_{self.controller.iteration}')                                                                                                          
         
         triptables.close()
 
@@ -209,7 +211,9 @@ class PrepareHighwayDemand(PrepareDemand):
         
         
         indiv_trip_file = pathlib.Path(self.controller.config.household.ctramp_run_dir) / self.controller.config.household.ctramp_indiv_trip_file.format(iteration = iteration)
+        print(indiv_trip_file)                                                             
         joint_trip_file = pathlib.Path(self.controller.config.household.ctramp_run_dir) / self.controller.config.household.ctramp_joint_trip_file.format(iteration = iteration)
+        print(joint_trip_file)                                                            
         it_full, jt_full = pd.read_csv(indiv_trip_file), pd.read_csv(joint_trip_file)
         
         # Add time period, expanded count
