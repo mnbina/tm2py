@@ -688,9 +688,12 @@ class AssignmentClass:
             "freeflowtime": "@free_flow_time",
             "btoll": f"@bridgetoll_{group}",
             "vtoll": f"@valuetoll_{group}",
+            # lrgtrk will use "btoll", "vtoll" lookups above
             "btoll_vsm": "@bridgetoll_vsm",
             "btoll_sml": "@bridgetoll_sml",
             "btoll_med": "@bridgetoll_med",
-            "btoll_lrg": "@bridgetoll_lrg",
+            "vtoll_vsm": "@valuetoll_vsm",
+            "vtoll_sml": "@valuetoll_sml",
+            "vtoll_med": "@valuetoll_med",
         }
         return lookup[skim]
