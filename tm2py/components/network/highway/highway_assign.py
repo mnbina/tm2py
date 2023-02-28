@@ -131,9 +131,10 @@ class HighwayAssignment(Component):
         iteration = self.controller.iteration
         dst_veh_groups = self.config.tolls.dst_vehicle_group_names
         run_dynamic_toll = self.config.tolls.run_dynamic_toll
+        max_dynamic_toll_iter = self.config.tolls.max_dynamic_toll_iter
         valuetoll_start_tollbooth_code = self.config.tolls.valuetoll_start_tollbooth_code
         max_dynamic_valuetoll = self.config.tolls.max_dynamic_valuetoll
-        apply_msa = self.config.msa.apply_msa
+        warmstart = self.controller.config.run.warmstart.warmstart
 
         demand.run()
         for time in self.time_period_names:
@@ -152,17 +153,33 @@ class HighwayAssignment(Component):
                     None
                 self._create_skim_matrices(scenario, assign_classes)
 
-                if iteration == 0 or not run_dynamic_toll:
+                # pre-check if there are any valuetoll links
+                valuetoll_start_tollbooth_code = self.config.tolls.valuetoll_start_tollbooth_code
+                valuetoll_links_exist = False
+                network = scenario.get_network()
+                for link in network.links():
+                    if link["@tollbooth"] >= valuetoll_start_tollbooth_code and link["@lanes"] > 0:
+                        valuetoll_links_exist = True
+                        break
+
+                if (not run_dynamic_toll) or (not valuetoll_links_exist):
                     assign_spec = self._get_assignment_spec(assign_classes)
                     self._run_sola_traffic_assignment(scenario, assign_spec, chart_log_interval=1)
-                else: #iteration > 0 and run_dynamic_toll 
-                    # run maximum 5 times of dynamic tolling
+                elif iteration == 0 and (not warmstart):
+                    # if run_dynamic_toll = True, warmstart = False, iteration = 0
+                    assign_spec = self._get_assignment_spec(assign_classes)
+                    self._run_sola_traffic_assignment(scenario, assign_spec, chart_log_interval=1)
+                else: 
+                    # (1) valuetoll_links_exist, run_dynamic_toll = True, warmstart = False, iteration >= 1, or
+                    # (2) valuetoll_links_exist, run_dynamic_toll = True, warmstart = True
+                    # run maximum "max_dynamic_toll_iter" times of dynamic tolling
                     # break out the loop if no valuetoll need to be updated
-                    for dynamic_toll_iteration in range(1, 6):
+
+                    for dynamic_toll_iteration in range(1, max_dynamic_toll_iter+1):
                         assign_spec = self._get_assignment_spec(assign_classes)
-                        if dynamic_toll_iteration < 5:
+                        # reduce inner iter if it's not the last dynamic toll iteration
+                        if dynamic_toll_iteration < max_dynamic_toll_iter:
                             assign_spec["stopping_criteria"]["max_iterations"] = self.config.tolls.dynamic_toll_inner_iter
-                        stopping_criteria = assign_spec["stopping_criteria"]
                         self._run_sola_traffic_assignment(scenario, assign_spec, chart_log_interval=1)
                         self._calc_total_flow(scenario)
                         self._calc_vc(scenario)
@@ -183,18 +200,17 @@ class HighwayAssignment(Component):
                                         link["@update_dynamic_toll"] = 1
                                         break 
 
-                        # if need to update valuetoll, call set_tolls function
-                        if update_toll_required:
-                            PrepareNetwork(controller=self._controller)._set_tolls(network=network, time_period=time)
-                            scenario.publish_network(network)
-                        else:
-                            if dynamic_toll_iteration < 5:
-                                # if there is no valuetoll updated needed before 5th dynamic toll iteration
+                        if dynamic_toll_iteration < max_dynamic_toll_iter:
+                            if update_toll_required: # update value tolls
+                                PrepareNetwork(controller=self._controller)._set_dynamic_tolls(network=network)
+                                PrepareNetwork(controller=self._controller)._calc_link_class_costs(network=network)
+                                scenario.publish_network(network)
+                            else:
+                                # if there is no valuetoll updated needed before max_dynamic_toll_iter,
+                                # run a full assignment without reducing inner iter
                                 assign_spec = self._get_assignment_spec(assign_classes)
                                 self._run_sola_traffic_assignment(scenario, assign_spec, chart_log_interval=1)
-                            break # stop running another dynamic toll assignment iteration
-                    if iteration == self.controller.config.run.end_iteration:
-                        self._write_dynamic_valuetoll() # write out result valuetolls into csv file
+                                break # stop running another dynamic toll assignment iteration
 
                 # after assignment (potentially with multiple iteration due to dynamic tolling) finished
                 # Subtract non-time costs from gen cost to get the raw travel time
@@ -209,37 +225,13 @@ class HighwayAssignment(Component):
                     )
                 self._export_skims(scenario, time)
 
-                if iteration > 0 and apply_msa:
-                    if not run_dynamic_toll:
-                        self._calc_total_flow(scenario) # only needed if not previously calculated by dynamic tolling step
-                    self._calc_weighted_avg_flow(scenario)
-
-                    # in global iteration 1, if apply_msa=True, set bpr to use @total_flow instead of volau + volad
-                    if iteration == 1:
-                        self._set_msa_vdf_functions()
-
                 if self.logger.debug_enabled:
                     self._log_debug_report(scenario, time)
 
+        # write result dynamic valuetoll to csv for reference
+        if iteration == self.controller.config.run.end_iteration:
+            self._write_dynamic_valuetoll()
 
-    def _set_msa_vdf_functions(self):
-        emmebank_path = self.get_abs_path(self.controller.config.emme.highway_database_path)
-        emme_manager = _emme_tools.manager.EmmeManager()
-        emmebank = emme_manager.emmebank(emmebank_path)
-        emmebank.extra_function_parameters.el4 = "@total_flow"
-        bpr_tmplt = "el1 * (1 + 0.20 * (el4/el2/0.75)^6)"
-        akcelik_tmplt = (
-            "(el1 + 60 * (0.25 *(el4/el2 - 1 + "
-            "((el4/el2 - 1)^2 + el3 * el4/el2)^0.5)))"
-        )
-        for f_id in ["fd1", "fd2"]:
-            if emmebank.function(f_id):
-                emmebank.delete_function(f_id)
-            emmebank.create_function(f_id, bpr_tmplt)
-        for f_id in ["fd3", "fd4", "fd5", "fd6", "fd7", "fd9", "fd10", "fd11", "fd12", "fd13", "fd14", "fd99"]:
-            if emmebank.function(f_id):
-                emmebank.delete_function(f_id)
-            emmebank.create_function(f_id, akcelik_tmplt)
 
     def _run_sola_traffic_assignment(self, scenario, assign_spec, chart_log_interval=1):
         with self.logger.log_start_end(
@@ -356,38 +348,6 @@ class HighwayAssignment(Component):
         net_calc = NetworkCalculator(scenario)
         # for links with @capacity == 0, such as ml that has 0 lane in that period, keep vc as 0
         net_calc(result="@vc", expression="@total_flow / @capacity", selections={"link": "not @capacity=0"})
-
-    def _get_msa_calc_expression(self, prev_wgt=0, curr_wgt=1, total=True, assign_class=None):
-        if total:
-            return f"{prev_wgt} * @total_flow_avg + {curr_wgt} * @total_flow"
-        else:
-            return f"{prev_wgt} * @flow_{assign_class.name.lower()}_avg + {curr_wgt} * @flow_{assign_class.name.lower()}"
-
-    def _calc_weighted_avg_flow(self, scenario: EmmeScenario):
-        iteration = self.controller.iteration
-        write_iteration_flow = self.config.msa.write_iteration_flow
-        net_calc = NetworkCalculator(scenario)
-
-        if iteration == 1 or ( (iteration == 0) & self.controller.config.run.warmstart.warmstart): 
-            # carry over current flow to the averaged flow attribute
-            net_calc("@total_flow_avg", "@total_flow")
-            for assign_class in self.config.classes:
-                net_calc(f"@flow_{assign_class.name.lower()}_avg", f"@flow_{assign_class.name.lower()}")
-
-            if write_iteration_flow:
-                net_calc(f"@total_flow_{iteration}", "@total_flow")
-
-        elif iteration >= 2:
-            prev_wgt = self.config.msa.prev_wgt[iteration]
-            curr_wgt = self.config.msa.curr_wgt[iteration]
-            assert prev_wgt + curr_wgt == 1, "total weight for msa calculation should sum to 1"
-
-            if iteration >= 1 and write_iteration_flow:
-                net_calc(f"@total_flow_{iteration}", "@total_flow")
-
-            total_flow_expression = self._get_msa_calc_expression(prev_wgt, curr_wgt, True)
-            net_calc("@total_flow_avg", total_flow_expression)
-            net_calc("@total_flow", "@total_flow_avg") # overwrite @total_flow with the averaged total flow
 
     def _create_skim_matrices(
         self, scenario: EmmeScenario, assign_classes: List[AssignmentClass]

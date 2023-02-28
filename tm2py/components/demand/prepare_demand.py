@@ -60,7 +60,11 @@ class PrepareDemand(Component, ABC):
     def _save_demand(self, name, demand, scenario, description="", apply_msa=False):
         matrix = self._emmebank.matrix(f'mf"{name}"')
         msa_iteration = self.controller.iteration
-        if not apply_msa or msa_iteration <= 1:
+        end_iteration = self.controller.config.run.end_iteration
+        # iteration 0 & 1: do not average demand
+        # iteration 2 ~ end_iteration-1, use average demand
+        # iteration end_iteration: do not average demand
+        if (not apply_msa) or (msa_iteration <= 1) or (msa_iteration == end_iteration):
             if not matrix:
                 ident = self._emmebank.available_matrix_identifier("FULL")
                 matrix = self._emmebank.create_matrix(ident)
@@ -140,6 +144,7 @@ class PrepareHighwayDemand(PrepareDemand):
                  "factor": <factor to apply to demand in this file>}
             time_period (str): the time time_period ID (name)
         """
+        apply_msa = self.controller.config.highway.msa.apply_msa
         scenario = self.get_emme_scenario(self._emmebank.path, time_period)
         num_zones = len(scenario.zone_numbers)
         demand = self._read_demand(demand_config[0], time_period, num_zones)
@@ -147,7 +152,7 @@ class PrepareHighwayDemand(PrepareDemand):
             demand = demand + self._read_demand(file_config, time_period, num_zones)
         demand_name = f"{time_period}_{name}"
         description = f"{time_period} {description} demand"
-        self._save_demand(demand_name, demand, scenario, description, apply_msa=True)
+        self._save_demand(demand_name, demand, scenario, description, apply_msa=apply_msa)
         
     def export_trip_tables(self):
     
@@ -326,7 +331,12 @@ class PrepareHighwayDemand(PrepareDemand):
                     jt = pd.DataFrame(None, columns = jt_full.columns)
 
                
-                for trip_mode in mode_name_dict:
+                for trip_mode in sorted(mode_name_dict):
+                    # Python preserves keys in the order they are inserted but
+                    # mode_name_dict originates from TOML, which does not guarantee
+                    # that the ordering of keys is preserved.  See
+                    # https://github.com/toml-lang/toml/issues/162
+
                     if trip_mode in [1,2,3]: # currently hard-coded based on Travel Mode trip mode codes
                         highway_cache[mode_name_dict[trip_mode]] = combine_trip_lists(it,jt, trip_mode)
 
@@ -345,7 +355,6 @@ class PrepareHighwayDemand(PrepareDemand):
                             matrix_name =f'{out_mode}_{suffix}'  if suffix else out_mode
                             self.logger.debug(f"Writing out mode {out_mode}")
                             highway_cache[out_mode] += (ridehail_trips * ridehail_split_factors[out_mode]).astype(float).round(2)
-                            highway_cache[out_mode] = highway_cache[out_mode]
                             highway_out_file.write_array(numpy_array = highway_cache[out_mode], name = matrix_name)
        
             highway_out_file.close()

@@ -136,8 +136,8 @@ class RunConfig(ConfigItem):
         if values.get("start_iteration"):
             assert (
                 value >= values["start_iteration"]
-            ), f"'end_iteration' ({value}) must be greater than 'start_iteration'\
-                ({values['start_iteration']})"
+            ), f"'end_iteration' ({value}) must be greater than 'start_iteration' " \
+               f"({values['start_iteration']})"
         return value
 
     @validator("start_component", allow_reuse=True)
@@ -150,13 +150,13 @@ class RunConfig(ConfigItem):
             if values.get("start_iteration") == 0:
                 assert value in values.get(
                     "initial_components", [value]
-                ), f"'start_component' ({value}) must be one of the components listed in\
-                    initial_components if 'start_iteration = 0'"
+                ), f"'start_component' ({value}) must be one of the components " \
+                   f"listed in initial_components if 'start_iteration = 0'"
             else:
                 assert value in values.get(
                     "global_iteration_components", [values]
-                ), f"'start_component' ({value}) must be one of the components listed in\
-                    global_iteration_components if 'start_iteration > 0'"
+                ), f"'start_component' ({value}) must be one of the components " \
+                   f"listed in global_iteration_components if 'start_iteration > 0'"
         return value
 
 LogLevel = Literal[
@@ -216,6 +216,8 @@ class TimePeriodConfig(ConfigItem):
             capacites in the highway network
         emme_scenario_id: scenario ID to use for Emme per-period
             assignment (highway and transit) scenarios
+        transit_assn_max_iteration: max iterations in congested 
+            transit assignment stopping criteria
     """
 
     name: str = Field(max_length=4)
@@ -223,6 +225,7 @@ class TimePeriodConfig(ConfigItem):
     length_hours: float = Field(gt=0)
     highway_capacity_factor: float = Field(gt=0)
     emme_scenario_id: int = Field(ge=1)
+    transit_assn_max_iteration: int = Field(ge=1)
     description: Optional[str] = Field(default="")
 
 
@@ -247,16 +250,16 @@ class TimeSplitConfig(ConfigItem):
     def __post_init__(self):
         if self.od and any([self.production, self.attraction]):
             raise ValueError(
-                f"TimeSplitConfig: Must either specifify an od or any of\
-            production/attraction - not both.\n{self}"
+                f"TimeSplitConfig: Must either specifify an od or any of "
+                f"production/attraction - not both.\n{self}"
             )
 
         if not all([self.production, self.attraction]) and any(
             [self.production, self.attraction]
         ):
             raise ValueError(
-                f"TimeSplitConfig: Must have both production AND attraction\
-            if one of them is specified."
+                f"TimeSplitConfig: Must have both production AND attraction "
+                f"if one of them is specified."
             )
 
 
@@ -309,8 +312,8 @@ class HouseholdConfig(ConfigItem):
         """Validate CT-RAMP run folder exists."""
         if not value:
             return value
-        assert os.path.exists(value),  f"'ctramp_run_dir' ({value})\
-            must be an existing folder)"
+        assert os.path.exists(value),  f"'ctramp_run_dir' ({value}) " \
+                                       f"must be an existing folder)"
         return value
 
 @dataclass(frozen=True)
@@ -404,13 +407,13 @@ class MatrixFactorConfig(ConfigItem):
     def valid_factor(value, values):
         assert (
             "i_factor" not in values.keys()
-        ), "Found both `factor` and\
-            `i_factor` in MatrixFactorConfig. Should be one or the other."
+        ), "Found both `factor` and `i_factor` in MatrixFactorConfig. " \
+           "Should be one or the other."
 
         assert (
             "j_factor" not in values.keys()
-        ), "Found both `factor` and\
-            `j_factor` in MatrixFactorConfig. Should be one or the other."
+        ), "Found both `factor` and `j_factor` in MatrixFactorConfig. " \
+           "Should be one or the other."
 
 
 @dataclass(frozen=True)
@@ -832,6 +835,7 @@ class HighwayTollsConfig(ConfigItem):
     src_vehicle_group_names: Tuple[str, ...] = Field()
     dst_vehicle_group_names: Tuple[str, ...] = Field()
     run_dynamic_toll: bool = Field(default=False)
+    max_dynamic_toll_iter: int = Field()
     dynamic_toll_inner_iter: int = Field()
     valuetoll_increment: float = Field()
     output_valuetoll_path: str = Field()
@@ -881,15 +885,9 @@ class HighwayMsaConfig(ConfigItem):
     """Highway MSA calculation parameters
 
     Properties:
-        write_iteration_flow: write out total flow and flow by vehicle 
-            classes for each global iteration if set to true
-        prev_wgt: weight for weighted average volume in previous iteration(s)
-        curr_wgt: weight for volume in current iteration
+        apply_msa: true if apply msa (averaging demands)
     """
     apply_msa: bool = Field(default=False)
-    write_iteration_flow: bool = Field(default=False)
-    prev_wgt: List[float] = Field(default=[])
-    curr_wgt: List[float] = Field(default=[])
 
 
 @dataclass(frozen=True)
@@ -1127,6 +1125,8 @@ class TransitModeConfig(ConfigItem):
     speed_miles_per_hour: Optional[str] = Field(default="")
     initial_boarding_penalty: Optional[float] = Field(default=None, ge=0)
     transfer_boarding_penalty: Optional[float] = Field(default=None, ge=0)
+    headway_fraction: Optional[float] = Field(default=None, ge=0)
+    transfer_wait_perception_factor: Optional[float] = Field(default=None, ge=0)
 
     @validator("in_vehicle_perception_factor", always=True)
     def in_vehicle_perception_factor_valid(value, values):
@@ -1152,6 +1152,20 @@ class TransitModeConfig(ConfigItem):
     @validator("transfer_boarding_penalty", always=True)
     def transfer_boarding_penalty_valid(value, values):
         """Validate transfer_boarding_penalty exists if assign_type is TRANSIT."""
+        if "assign_type" in values and values["assign_type"] == "TRANSIT":
+            assert value is not None, "must be specified when assign_type==TRANSIT"
+        return value
+
+    @validator("headway_fraction", always=True)
+    def headway_fraction_valid(value, values):
+        """Validate headway_fraction exists if assign_type is TRANSIT."""
+        if "assign_type" in values and values["assign_type"] == "TRANSIT":
+            assert value is not None, "must be specified when assign_type==TRANSIT"
+        return value
+
+    @validator("transfer_wait_perception_factor", always=True)
+    def transfer_wait_perception_factor_valid(value, values):
+        """Validate transfer_wait_perception_factor exists if assign_type is TRANSIT."""
         if "assign_type" in values and values["assign_type"] == "TRANSIT":
             assert value is not None, "must be specified when assign_type==TRANSIT"
         return value
@@ -1212,9 +1226,11 @@ class TransitConfig(ConfigItem):
     output_skim_matrixname_tmpl: str = Field()
     output_transit_boardings_path: str = Field()
     output_shapefile_path: str = Field()
+    output_station_to_station_flow_path: str = Field()
     classes: Tuple[TransitClassConfig, ...] = Field()
     use_ccr: bool = False
     congested_transit_assignment: bool = False
+    trim_demand_before_congested_transit_assignment: bool = False
     capacitated_transit_assignment: bool = False
     station_capacity_transit_assignment: bool = False
     mask_noncombo_allpen: bool = False
